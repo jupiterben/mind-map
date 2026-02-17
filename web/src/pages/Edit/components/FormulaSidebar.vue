@@ -32,10 +32,11 @@
 
 <script>
 import Sidebar from './Sidebar.vue'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { formulaList } from '@/config/constant'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -50,13 +51,7 @@ export default {
       list: []
     }
   },
-  computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar, 
-      isDark: state => state.localConfig.isDark, 
-      localConfig: state => state.localConfig
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'formulaSidebar') {
@@ -69,15 +64,13 @@ export default {
   created() {
     this.$bus.$on('node_active', this.handleNodeActive)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('node_active', this.handleNodeActive)
   },
   mounted() {
     this.init()
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     init() {
       if (!window.katex) return
       this.list = formulaList.map(item => {

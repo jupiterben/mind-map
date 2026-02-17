@@ -59,11 +59,11 @@
 <script>
 import xmind from 'simple-mind-map/src/parse/xmind.js'
 import markdown from 'simple-mind-map/src/parse/markdown.js'
-import { mapMutations } from 'vuex'
-import Vue from 'vue'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 导入
 export default {
+  mixins: [storeMixin],
   data() {
     return {
       dialogVisible: false,
@@ -92,14 +92,12 @@ export default {
     this.$bus.$on('handle_file_url', this.handleFileURL)
     this.$bus.$on('importFile', this.handleImportFile)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('showImport', this.handleShowImport)
     this.$bus.$off('handle_file_url', this.handleFileURL)
     this.$bus.$off('importFile', this.handleImportFile)
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     handleShowImport() {
       this.dialogVisible = true
     },
@@ -169,7 +167,7 @@ export default {
       if (this.fileList.length <= 0) {
         return this.$message.error(this.$t('import.notSelectTip'))
       }
-      this.$store.commit('setIsHandleLocalFile', false)
+      this.setIsHandleLocalFile(false)
       let file = this.fileList[0]
       if (/\.(smm|json)$/.test(file.name)) {
         this.handleSmm(file)

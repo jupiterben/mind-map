@@ -375,7 +375,7 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import Color from './Color.vue'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import {
   lineWidthList,
   borderDasharrayList,
@@ -387,6 +387,7 @@ import {
 import OuterFrame from 'simple-mind-map/src/plugins/OuterFrame'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Color
@@ -412,16 +413,13 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar,
-      isDark: state => state.localConfig.isDark,
-      borderDasharrayList() {
-        return borderDasharrayList[this.$i18n.locale] || borderDasharrayList.zh
-      }
-    }),
-
+    borderDasharrayList() {
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return borderDasharrayList[locale] || borderDasharrayList.zh
+    },
     fontFamilyList() {
-      return fontFamilyList[this.$i18n.locale] || fontFamilyList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return fontFamilyList[locale] || fontFamilyList.zh
     }
   },
   watch: {
@@ -438,14 +436,12 @@ export default {
     this.mindMap.on('outer_frame_delete', this.hide)
     this.mindMap.on('outer_frame_deactivate', this.hide)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.mindMap.off('outer_frame_active', this.onOuterFrameActive)
     this.mindMap.off('outer_frame_delete', this.hide)
     this.mindMap.off('outer_frame_deactivate', this.hide)
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     onOuterFrameActive(el, parentNode, range) {
       // 取范围内第一个节点的外框样式
       const firstNode = parentNode.children[range[0]]

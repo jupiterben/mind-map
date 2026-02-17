@@ -30,9 +30,10 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -46,17 +47,13 @@ export default {
       horizontalScrollbarStyle: {}
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   mounted() {
     this.setScrollBarWrapSize()
     this.$bus.$on('scrollbar_change', this.updateScrollbar)
     window.addEventListener('resize', this.onResize)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('scrollbar_change', this.updateScrollbar)
     window.removeEventListener('resize', this.onResize)
   },

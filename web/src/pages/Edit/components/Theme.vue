@@ -30,12 +30,13 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { storeData } from '@/api'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import themeImgMap from 'simple-mind-map-plugin-themes/themeImgMap'
 import themeList from 'simple-mind-map-plugin-themes/themeList'
 
 // 主题
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -65,12 +66,6 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar,
-      extendThemeGroupList: state => state.extendThemeGroupList
-    }),
-
     groupList() {
       return [...this.defaultGroupList, ...this.extendThemeGroupList]
     },
@@ -96,12 +91,10 @@ export default {
     this.theme = this.mindMap.getTheme()
     this.mindMap.on('view_theme_change', this.handleViewThemeChange)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.mindMap.off('view_theme_change', this.handleViewThemeChange)
   },
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
     handleViewThemeChange() {
       this.theme = this.mindMap.getTheme()
       this.handleDark()

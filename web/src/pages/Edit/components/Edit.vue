@@ -105,9 +105,8 @@ import { getData, getConfig, storeData } from '@/api'
 import Navigator from './Navigator.vue'
 import NodeImgPreview from './NodeImgPreview.vue'
 import SidebarTrigger from './SidebarTrigger.vue'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import icon from '@/config/icon'
-import Vue from 'vue'
 import Search from './Search.vue'
 import NodeIconSidebar from './NodeIconSidebar.vue'
 import NodeIconToolbar from './NodeIconToolbar.vue'
@@ -198,19 +197,8 @@ export default {
       showDragMask: false
     }
   },
-  computed: {
-    ...mapState({
-      isZenMode: state => state.localConfig.isZenMode,
-      openNodeRichText: state => state.localConfig.openNodeRichText,
-      isShowScrollbar: state => state.localConfig.isShowScrollbar,
-      enableDragImport: state => state.localConfig.enableDragImport,
-      useLeftKeySelectionRightKeyDrag: state =>
-        state.localConfig.useLeftKeySelectionRightKeyDrag,
-      extraTextOnExport: state => state.extraTextOnExport,
-      isDragOutlineTreeNode: state => state.isDragOutlineTreeNode,
-      enableAi: state => state.localConfig.enableAi
-    })
-  },
+  mixins: [storeMixin],
+  computed: {},
   watch: {
     openNodeRichText() {
       if (this.openNodeRichText) {
@@ -246,7 +234,7 @@ export default {
     this.$bus.$on('showDownloadTip', this.showDownloadTip)
     this.webTip()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('execCommand', this.execCommand)
     this.$bus.$off('paddingChange', this.onPaddingChange)
     this.$bus.$off('export', this.export)
@@ -260,7 +248,7 @@ export default {
     this.$bus.$off('localStorageExceeded', this.onLocalStorageExceeded)
     window.removeEventListener('resize', this.handleResize)
     this.$bus.$off('showDownloadTip', this.showDownloadTip)
-    this.mindMap.destroy()
+    if (this.mindMap) this.mindMap.destroy()
   },
   methods: {
     onLocalStorageExceeded() {
@@ -492,9 +480,7 @@ export default {
       if (hasFileURL) {
         this.$bus.$emit('handle_file_url')
       }
-      // api/index.js文件使用
-      // 当正在编辑本地文件时通过该方法获取最新数据
-      Vue.prototype.getCurrentData = () => {
+      window.getCurrentData = () => {
         const fullData = this.mindMap.getData(true)
         return { ...fullData }
       }

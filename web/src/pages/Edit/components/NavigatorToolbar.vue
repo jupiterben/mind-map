@@ -134,12 +134,13 @@ import MouseAction from './MouseAction.vue'
 import { langList } from '@/config'
 import i18n from '@/i18n'
 import { storeLang, getLang } from '@/api'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import pkg from 'simple-mind-map/package.json'
 import Demonstrate from './Demonstrate.vue'
 
 // 导航器工具栏
 export default {
+  mixins: [storeMixin],
   components: {
     Scale,
     Fullscreen,
@@ -159,23 +160,11 @@ export default {
       openMiniMap: false
     }
   },
-  computed: {
-    ...mapState({
-      isReadonly: state => state.isReadonly,
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   created() {
     this.lang = getLang()
   },
   methods: {
-    ...mapMutations([
-      'setLocalConfig',
-      'setIsReadonly',
-      'setIsSourceCodeEdit',
-      'setActiveSidebar'
-    ]),
-
     readonlyChange() {
       this.setIsReadonly(!this.isReadonly)
       this.mindMap.setMode(this.isReadonly ? 'readonly' : 'edit')
@@ -187,7 +176,7 @@ export default {
     },
 
     onLangChange(lang) {
-      i18n.locale = lang
+      i18n.global.locale.value = lang
       storeLang(lang)
       this.$bus.$emit('lang_change')
     },

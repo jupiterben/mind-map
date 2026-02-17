@@ -20,10 +20,11 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 鼠标操作设置
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -35,15 +36,8 @@ export default {
   data() {
     return {}
   },
-  computed: {
-    ...mapState({
-      useLeftKeySelectionRightKeyDrag: state =>
-        state.localConfig.useLeftKeySelectionRightKeyDrag
-    })
-  },
+  computed: {},
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
     toggleAction() {
       let val = !this.useLeftKeySelectionRightKeyDrag
       this.mindMap.updateConfig({

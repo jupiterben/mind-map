@@ -37,12 +37,13 @@
 
 <script>
 import Sidebar from './Sidebar.vue'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import Outline from './Outline.vue'
 import { printOutline } from '@/utils'
 
 // 大纲侧边栏
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Outline
@@ -52,12 +53,7 @@ export default {
       type: Object
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'outline') {
@@ -68,8 +64,6 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(['setIsOutlineEdit', 'setActiveSidebar']),
-
     onChangeToOutlineEdit() {
       this.setActiveSidebar(null)
       this.setIsOutlineEdit(true)

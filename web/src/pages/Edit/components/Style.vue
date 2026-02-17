@@ -526,10 +526,11 @@ import {
   linearGradientDirList,
   alignList
 } from '@/config'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 节点样式设置
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Color
@@ -578,12 +579,8 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    }),
     fontFamilyList() {
-      return fontFamilyList[this.$i18n.locale] || fontFamilyList.zh
+      return fontFamilyList[this.$i18n?.locale?.value ?? this.$i18n?.locale] || fontFamilyList.zh
     },
     borderDasharrayList() {
       return borderDasharrayList[this.$i18n.locale] || borderDasharrayList.zh
@@ -635,7 +632,7 @@ export default {
   created() {
     this.$bus.$on('node_active', this.onNodeActive)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('node_active', this.onNodeActive)
   },
   methods: {

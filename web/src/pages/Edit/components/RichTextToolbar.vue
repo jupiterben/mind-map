@@ -140,9 +140,10 @@
 <script>
 import { fontFamilyList, fontSizeList, alignList } from '@/config'
 import Color from './Color.vue'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Color
   },
@@ -165,16 +166,14 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    }),
-
     fontFamilyList() {
-      return fontFamilyList[this.$i18n.locale] || fontFamilyList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return fontFamilyList[locale] || fontFamilyList.zh
     },
 
     alignList() {
-      return alignList[this.$i18n.locale] || alignList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return alignList[locale] || alignList.zh
     }
   },
   created() {
@@ -183,7 +182,7 @@ export default {
   mounted() {
     document.body.append(this.$refs.richTextToolbar)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('rich_text_selection_change', this.onRichTextSelectionChange)
   },
   methods: {

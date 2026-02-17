@@ -73,11 +73,12 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { isUndef, getTextFromHtml } from 'simple-mind-map/src/utils/index'
 
 // 搜索替换
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -97,12 +98,7 @@ export default {
       showSearchResultList: false
     }
   },
-  computed: {
-    ...mapState({
-      isReadonly: state => state.isReadonly,
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   watch: {
     searchText() {
       if (isUndef(this.searchText)) {
@@ -129,7 +125,7 @@ export default {
   mounted() {
     this.setSearchResultListHeight()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('show_search', this.showSearch)
     this.mindMap.off('search_info_change', this.handleSearchInfoChange)
     this.mindMap.off('node_click', this.blur)

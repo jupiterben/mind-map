@@ -30,9 +30,10 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -59,11 +60,7 @@ export default {
       withTransition: true
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   mounted() {
     this.setSize()
     window.addEventListener('resize', this.setSize)
@@ -77,7 +74,7 @@ export default {
       this.onViewBoxPositionChange
     )
   },
-  destroyed() {
+  beforeUnmount() {
     window.removeEventListener('resize', this.setSize)
     this.$bus.$off('toggle_mini_map', this.toggle_mini_map)
     this.$bus.$off('data_change', this.data_change)

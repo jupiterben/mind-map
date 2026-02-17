@@ -793,7 +793,7 @@ import {
 } from '@/config'
 import ImgUpload from '@/components/ImgUpload/index.vue'
 import { storeData, storeConfig } from '@/api'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import {
   supportLineStyleLayoutsMap,
   supportLineRadiusLayouts,
@@ -804,6 +804,7 @@ import {
 
 // 基础样式
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Color,
@@ -874,18 +875,14 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar,
-      localConfig: state => state.localConfig,
-      isDark: state => state.localConfig.isDark,
-      bgList: state => state.bgList
-    }),
     lineStyleList() {
-      return lineStyleList[this.$i18n.locale] || lineStyleList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return lineStyleList[locale] || lineStyleList.zh
     },
     rootLineKeepSameInCurveList() {
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       return (
-        rootLineKeepSameInCurveList[this.$i18n.locale] ||
+        rootLineKeepSameInCurveList[locale] ||
         rootLineKeepSameInCurveList.zh
       )
     },
@@ -960,7 +957,7 @@ export default {
   created() {
     this.$bus.$on('setData', this.onSetData)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('setData', this.onSetData)
   },
   methods: {

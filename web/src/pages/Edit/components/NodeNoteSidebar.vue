@@ -6,11 +6,12 @@
 
 <script>
 import Sidebar from './Sidebar.vue'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import Viewer from '@toast-ui/editor/dist/toastui-editor-viewer'
 import '@toast-ui/editor/dist/toastui-editor-viewer.css'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -25,12 +26,7 @@ export default {
       node: null
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'noteSidebar') {
@@ -47,13 +43,11 @@ export default {
   mounted() {
     this.initEditor()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('node_active', this.onNodeActive)
     this.mindMap.off('node_note_click', this.onNodeNoteClick)
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     onNodeActive(...args) {
       if (this.activeSidebar !== 'noteSidebar') {
         return

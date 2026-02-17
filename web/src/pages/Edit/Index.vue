@@ -13,10 +13,11 @@
 <script>
 import Toolbar from './components/Toolbar.vue'
 import Edit from './components/Edit.vue'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { getLocalConfig } from '@/api'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Toolbar,
     Edit
@@ -26,13 +27,7 @@ export default {
       show: false
     }
   },
-  computed: {
-    ...mapState({
-      isZenMode: state => state.localConfig.isZenMode,
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    })
-  },
+  computed: {},
   watch: {
     isDark() {
       this.setBodyDark()
@@ -49,14 +44,11 @@ export default {
     this.setBodyDark()
   },
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
-    // 初始化本地配置
     initLocalConfig() {
       let config = getLocalConfig()
       if (config) {
         this.setLocalConfig({
-          ...this.$store.state.localConfig,
+          ...this.localConfig,
           ...config
         })
       }

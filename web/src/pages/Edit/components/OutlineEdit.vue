@@ -64,7 +64,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import {
   nodeRichTextToTextWithWrap,
   textToNodeRichTextWithWrap,
@@ -78,6 +78,7 @@ import { printOutline } from '@/utils'
 
 // 大纲侧边栏
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -92,13 +93,7 @@ export default {
       currentData: null
     }
   },
-  computed: {
-    ...mapState({
-      isReadonly: state => state.isReadonly,
-      isDark: state => state.localConfig.isDark,
-      isOutlineEdit: state => state.isOutlineEdit
-    })
-  },
+  computed: {},
   watch: {
     isOutlineEdit(val) {
       if (val) {
@@ -112,12 +107,10 @@ export default {
   created() {
     window.addEventListener('keydown', this.onKeyDown)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener('keydown', this.onKeyDown)
   },
   methods: {
-    ...mapMutations(['setIsOutlineEdit']),
-
     // 刷新树数据
     refresh() {
       let data = this.mindMap.getData()

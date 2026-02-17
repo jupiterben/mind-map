@@ -24,10 +24,11 @@
 
 <script>
 import { colorList } from '@/config'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 颜色选择器
 export default {
+  mixins: [storeMixin],
   props: {
     color: {
       type: String,
@@ -40,11 +41,7 @@ export default {
       selectColor: ''
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   watch: {
     color() {
       this.selectColor = this.color

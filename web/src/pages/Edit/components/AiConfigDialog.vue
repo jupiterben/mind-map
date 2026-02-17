@@ -49,9 +49,10 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 export default {
+  mixins: [storeMixin],
   model: {
     prop: 'visible',
     event: 'change'
@@ -111,9 +112,7 @@ export default {
       }
     }
   },
-  computed: {
-    ...mapState(['aiConfig'])
-  },
+  computed: {},
   watch: {
     visible(val) {
       this.aiConfigDialogVisible = val
@@ -128,8 +127,6 @@ export default {
     this.initFormData()
   },
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
     close() {
       this.$emit('change', false)
     },

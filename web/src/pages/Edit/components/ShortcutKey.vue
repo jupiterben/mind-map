@@ -22,10 +22,11 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { shortcutKeyList } from '@/config'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 快捷键
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -33,13 +34,9 @@ export default {
     return {}
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    }),
-
     shortcutKeyList() {
-      return shortcutKeyList[this.$i18n.locale] || shortcutKeyList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return shortcutKeyList[locale] || shortcutKeyList.zh
     }
   },
   watch: {

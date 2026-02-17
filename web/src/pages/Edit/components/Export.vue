@@ -145,7 +145,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { downTypeList } from '@/config'
 import { isMobile } from 'simple-mind-map/src/utils/index'
 import MarkdownIt from 'markdown-it'
@@ -153,6 +153,7 @@ import MarkdownIt from 'markdown-it'
 // 导出
 let md = null
 export default {
+  mixins: [storeMixin],
   data() {
     return {
       dialogVisible: false,
@@ -171,13 +172,9 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      openNodeRichText: state => state.localConfig.openNodeRichText,
-      isDark: state => state.localConfig.isDark,
-    }),
-
     downTypeList() {
-      const list = downTypeList[this.$i18n.locale] || downTypeList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      const list = downTypeList[locale] || downTypeList.zh
       return list.filter(item => {
         if (item.type === 'mm') {
           return false
@@ -208,12 +205,10 @@ export default {
   created() {
     this.$bus.$on('showExport', this.handleShowExport)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('showExport', this.handleShowExport)
   },
   methods: {
-    ...mapMutations(['setExtraTextOnExport']),
-
     handleShowExport() {
       this.dialogVisible = true
     },

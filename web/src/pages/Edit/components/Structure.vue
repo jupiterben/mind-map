@@ -26,12 +26,13 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { storeData } from '@/api'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { layoutImgMap } from '@/config/constant.js'
 import { layoutGroupList } from '@/config'
 
 // 结构
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -47,13 +48,9 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    }),
-
     layoutGroupList() {
-      const groupList = layoutGroupList[this.$i18n.locale] || layoutGroupList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      const groupList = layoutGroupList[locale] || layoutGroupList.zh
       return groupList.map(group => {
         let list = [...group.list].filter(item => {
           return !['rightFishbone', 'rightFishbone2'].includes(item)

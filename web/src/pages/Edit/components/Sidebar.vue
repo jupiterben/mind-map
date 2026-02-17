@@ -17,10 +17,11 @@
 
 <script>
 import { store } from '@/config'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 侧边栏容器
 export default {
+  mixins: [storeMixin],
   props: {
     title: {
       type: String,
@@ -33,11 +34,7 @@ export default {
       zIndex: 0
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   watch: {
     show(val, oldVal) {
       if (val && !oldVal) {
@@ -48,12 +45,10 @@ export default {
   created() {
     this.$bus.$on('closeSideBar', this.handleCloseSidebar)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('closeSideBar', this.handleCloseSidebar)
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     handleCloseSidebar() {
       this.close()
     },

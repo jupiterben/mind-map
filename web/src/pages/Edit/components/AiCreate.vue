@@ -110,10 +110,11 @@ import {
   checkNodeOuter,
   getStrWithBrFromHtml
 } from 'simple-mind-map/src/utils'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import AiConfigDialog from './AiConfigDialog.vue'
 
 export default {
+  mixins: [storeMixin],
   components: {
     AiConfigDialog
   },
@@ -146,9 +147,7 @@ export default {
       beingCreatePartNode: null
     }
   },
-  computed: {
-    ...mapState(['aiConfig'])
-  },
+  computed: {},
   created() {
     this.$bus.$on('ai_create_all', this.aiCrateAll)
     this.$bus.$on('ai_create_part', this.showAiCreatePartDialog)
@@ -159,7 +158,7 @@ export default {
   mounted() {
     document.body.appendChild(this.$refs.aiCreatingMaskRef)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('ai_create_all', this.aiCrateAll)
     this.$bus.$off('ai_create_part', this.showAiCreatePartDialog)
     this.$bus.$off('ai_chat', this.aiChat)

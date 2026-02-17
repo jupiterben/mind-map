@@ -182,7 +182,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { getTextFromHtml, imgToDataUrl } from 'simple-mind-map/src/utils'
 import { transformToMarkdown } from 'simple-mind-map/src/parse/toMarkdown'
 import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
@@ -191,6 +191,7 @@ import { numberTypeList, numberLevelList } from '@/config'
 
 // 右键菜单
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -214,11 +215,6 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isZenMode: state => state.localConfig.isZenMode,
-      isDark: state => state.localConfig.isDark,
-      enableAi: state => state.localConfig.enableAi
-    }),
     expandList() {
       return [
         this.$t('contextmenu.level1'),
@@ -291,10 +287,12 @@ export default {
       return !!this.node.getData('note')
     },
     numberTypeList() {
-      return numberTypeList[this.$i18n.locale] || numberTypeList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return numberTypeList[locale] || numberTypeList.zh
     },
     numberLevelList() {
-      return numberLevelList[this.$i18n.locale] || numberLevelList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return numberLevelList[locale] || numberLevelList.zh
     },
     hasCheckbox() {
       return !!this.node.getData('checkbox')
@@ -313,7 +311,7 @@ export default {
     this.$bus.$on('translate', this.hide)
     this.$bus.$on('node_mousedown', this.onNodeMousedown)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('node_contextmenu', this.show)
     this.$bus.$off('node_click', this.hide)
     this.$bus.$off('draw_click', this.hide)
@@ -324,8 +322,6 @@ export default {
     this.$bus.$off('node_mousedown', this.onNodeMousedown)
   },
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
     // 计算右键菜单元素的显示位置
     getShowPosition(x, y) {
       const rect = this.$refs.contextmenuRef.getBoundingClientRect()

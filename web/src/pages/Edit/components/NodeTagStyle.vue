@@ -28,9 +28,10 @@
 
 <script>
 import Color from './Color.vue'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Color
   },
@@ -52,11 +53,7 @@ export default {
       fill: ''
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   created() {
     this.mindMap.on('node_tag_click', this.onNodeTagClick)
     this.mindMap.on('scale', this.hide)
@@ -64,7 +61,7 @@ export default {
     this.mindMap.on('svg_mousedown', this.hide)
     this.mindMap.on('expand_btn_click', this.hide)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.mindMap.off('node_tag_click', this.onNodeTagClick)
     this.mindMap.off('scale', this.hide)
     this.mindMap.off('translate', this.hide)

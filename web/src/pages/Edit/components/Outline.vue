@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import {
   nodeRichTextToTextWithWrap,
   textToNodeRichTextWithWrap,
@@ -50,6 +50,7 @@ import {
 
 // 大纲树
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -70,12 +71,7 @@ export default {
       isAfterCreateNewNode: false
     }
   },
-  computed: {
-    ...mapState({
-      isReadonly: state => state.isReadonly,
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   created() {
     window.addEventListener('keydown', this.onKeyDown)
     this.$bus.$on('data_change', this.handleDataChange)
@@ -85,15 +81,13 @@ export default {
   mounted() {
     this.refresh()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener('keydown', this.onKeyDown)
     this.$bus.$off('data_change', this.handleDataChange)
     this.$bus.$off('node_tree_render_end', this.handleNodeTreeRenderEnd)
     this.$bus.$off('hide_text_edit', this.handleHideTextEdit)
   },
   methods: {
-    ...mapMutations(['setIsDragOutlineTreeNode']),
-
     handleHideTextEdit() {
       if (this.notHandleDataChange) {
         this.notHandleDataChange = false

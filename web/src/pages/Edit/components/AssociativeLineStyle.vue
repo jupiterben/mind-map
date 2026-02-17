@@ -217,7 +217,7 @@ import {
   fontSizeList,
   borderDasharrayList
 } from '@/config'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 const defaultStyle = {
   associativeLineColor: '',
@@ -231,6 +231,7 @@ const defaultStyle = {
 }
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Color
@@ -252,17 +253,13 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar,
-      isDark: state => state.localConfig.isDark
-    }),
-
     fontFamilyList() {
-      return fontFamilyList[this.$i18n.locale] || fontFamilyList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return fontFamilyList[locale] || fontFamilyList.zh
     },
-
     borderDasharrayList() {
-      return borderDasharrayList[this.$i18n.locale] || borderDasharrayList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      return borderDasharrayList[locale] || borderDasharrayList.zh
     }
   },
   watch: {
@@ -282,8 +279,6 @@ export default {
     )
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     onAssociativeLineClick(a, b, node, toNode) {
       this.activeLineNode = node
       this.activeLineToNode = toNode

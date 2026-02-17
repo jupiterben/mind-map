@@ -56,13 +56,14 @@
 
 <script>
 import Sidebar from './Sidebar.vue'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { nodeIconList } from 'simple-mind-map/src/svg/icons'
 import { mergerIconList } from 'simple-mind-map/src/utils/index'
 import icon from '@/config/icon'
 import image from '@/config/image'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -76,12 +77,7 @@ export default {
       activeNodes: []
     }
   },
-  computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar,
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'nodeIconSidebar') {
@@ -95,7 +91,7 @@ export default {
     this.$bus.$on('node_active', this.handleNodeActive)
     this.$bus.$on('showNodeIcon', this.handleShowNodeIcon)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('node_active', this.handleNodeActive)
     this.$bus.$off('showNodeIcon', this.handleShowNodeIcon)
   },

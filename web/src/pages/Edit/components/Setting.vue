@@ -374,10 +374,11 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { storeConfig } from '@/api'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import Color from './Color.vue'
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar,
     Color
@@ -428,13 +429,7 @@ export default {
       }
     }
   },
-  computed: {
-    ...mapState({
-      activeSidebar: state => state.activeSidebar,
-      localConfig: state => state.localConfig,
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'setting') {
@@ -450,12 +445,10 @@ export default {
     this.initLoacalConfig()
     this.$bus.$on('toggleOpenNodeRichText', this.onToggleOpenNodeRichText)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('toggleOpenNodeRichText', this.onToggleOpenNodeRichText)
   },
   methods: {
-    ...mapMutations(['setLocalConfig']),
-
     // 初始化其他配置
     initConfig() {
       Object.keys(this.config).forEach(key => {

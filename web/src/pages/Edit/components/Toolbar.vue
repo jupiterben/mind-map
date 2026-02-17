@@ -150,8 +150,8 @@ import NodeNote from './NodeNote.vue'
 import NodeTag from './NodeTag.vue'
 import Export from './Export.vue'
 import Import from './Import.vue'
-import { mapState } from 'vuex'
-import { Notification } from 'element-ui'
+import { storeMixin } from '@/mixins/storeMixin'
+import { ElNotification } from 'element-plus'
 import exampleData from 'simple-mind-map/example/exampleData'
 import { getData } from '../../../api'
 import ToolbarNodeBtnList from './ToolbarNodeBtnList.vue'
@@ -181,6 +181,7 @@ const defaultBtnList = [
 ]
 
 export default {
+  mixins: [storeMixin],
   components: {
     NodeImage,
     NodeHyperlink,
@@ -210,13 +211,6 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      isHandleLocalFile: state => state.isHandleLocalFile,
-      openNodeRichText: state => state.localConfig.openNodeRichText,
-      enableAi: state => state.localConfig.enableAi
-    }),
-
     btnLit() {
       let res = [...defaultBtnList]
       if (!this.openNodeRichText) {
@@ -235,7 +229,7 @@ export default {
   watch: {
     isHandleLocalFile(val) {
       if (!val) {
-        Notification.closeAll()
+        ElNotification.closeAll()
       }
     },
     btnLit: {
@@ -256,7 +250,7 @@ export default {
     window.addEventListener('beforeunload', this.onUnload)
     this.$bus.$on('node_note_dblclick', this.onNodeNoteDblclick)
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('write_local_file', this.onWriteLocalFile)
     window.removeEventListener('resize', this.computeToolbarShowThrottle)
     this.$bus.$off('lang_change', this.computeToolbarShowThrottle)
@@ -425,7 +419,7 @@ export default {
       let file = await fileHandle.getFile()
       let fileReader = new FileReader()
       fileReader.onload = async () => {
-        this.$store.commit('setIsHandleLocalFile', true)
+        this.setIsHandleLocalFile(true)
         this.setData(fileReader.result)
         Notification.closeAll()
         Notification({
@@ -512,7 +506,7 @@ export default {
           background: 'rgba(0, 0, 0, 0.7)'
         })
         fileHandle = _fileHandle
-        this.$store.commit('setIsHandleLocalFile', true)
+        this.setIsHandleLocalFile(true)
         this.isFullDataFile = true
         await this.writeLocalFile(content)
         await this.readFile()

@@ -24,11 +24,12 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { sidebarTriggerList } from '@/config'
 
 // 侧边栏触发器
 export default {
+  mixins: [storeMixin],
   data() {
     return {
       show: true,
@@ -36,15 +37,9 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar,
-      isReadonly: state => state.isReadonly,
-      enableAi: state => state.localConfig.enableAi
-    }),
-
     triggerList() {
-      let list = sidebarTriggerList[this.$i18n.locale] || sidebarTriggerList.zh
+      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
+      let list = sidebarTriggerList[locale] || sidebarTriggerList.zh
       if (this.isReadonly) {
         list = list.filter(item => {
           return ['outline', 'shortcutKey', 'ai'].includes(item.value)
@@ -69,12 +64,10 @@ export default {
     window.addEventListener('resize', this.onResize)
     this.updateSize()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     window.removeEventListener('resize', this.onResize)
   },
   methods: {
-    ...mapMutations(['setActiveSidebar']),
-
     trigger(item) {
       this.setActiveSidebar(item.value)
     },

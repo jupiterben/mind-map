@@ -12,11 +12,12 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 // 字数及节点数量统计
 let countEl = document.createElement('div')
 export default {
+  mixins: [storeMixin],
   props: {
     mindMap: {
       type: Object
@@ -29,18 +30,14 @@ export default {
       num: 0
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark
-    })
-  },
+  computed: {},
   created() {
     this.$bus.$on('data_change', this.onDataChange)
     if (this.mindMap) {
       this.onDataChange(this.mindMap.getData())
     }
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.$bus.$off('data_change', this.onDataChange)
   },
   methods: {

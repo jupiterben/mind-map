@@ -59,13 +59,14 @@
 
 <script>
 import Sidebar from './Sidebar.vue'
-import { mapState } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 import { createUid } from 'simple-mind-map/src/utils'
 import MarkdownIt from 'markdown-it'
 
 let md = null
 
 export default {
+  mixins: [storeMixin],
   components: {
     Sidebar
   },
@@ -76,12 +77,7 @@ export default {
       isCreating: false
     }
   },
-  computed: {
-    ...mapState({
-      isDark: state => state.localConfig.isDark,
-      activeSidebar: state => state.activeSidebar
-    })
-  },
+  computed: {},
   watch: {
     activeSidebar(val) {
       if (val === 'ai') {
@@ -92,7 +88,7 @@ export default {
     }
   },
   created() {},
-  beforeDestroy() {},
+  beforeUnmount() {},
   methods: {
     onKeydown(e) {
       if (e.keyCode === 13) {

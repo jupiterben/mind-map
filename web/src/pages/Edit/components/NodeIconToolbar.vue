@@ -14,11 +14,12 @@
 <script>
 import { nodeIconList as _nodeIconList } from 'simple-mind-map/src/svg/icons'
 import icon from '@/config/icon'
-import { mapState, mapMutations } from 'vuex'
+import { storeMixin } from '@/mixins/storeMixin'
 
 const allIconList = [..._nodeIconList, ...icon]
 
 export default {
+    mixins: [storeMixin],
     props: {
         mindMap: {
             type: Object
@@ -38,9 +39,7 @@ export default {
             iconList: []
         }
     },
-    computed: {
-        ...mapState(['activeSidebar']),
-    },
+    computed: {},
     created() {
         this.mindMap.on('node_icon_click', this.show)
         this.mindMap.on('draw_click', this.close)
@@ -53,7 +52,7 @@ export default {
     mounted() {
         document.body.append(this.$refs.nodeIconToolbar)
     },
-    beforeDestroy() {
+    beforeUnmount() {
         this.mindMap.off('node_icon_click', this.show)
         this.mindMap.off('draw_click', this.close)
         this.mindMap.off('svg_mousedown', this.close)
@@ -63,8 +62,6 @@ export default {
         this.$bus.$off('close_node_icon_toolbar', this.close)
     },
     methods: {
-        ...mapMutations(['setActiveSidebar']),
-
         show(node, icon) {
             this.node = node
             this.iconType = icon.split('_')[0]

@@ -12,20 +12,21 @@
       "url": "http://lxqnsys.com/"
     }
   ],
-  "types": "./types/index.d.ts",
-  "typings": "./types/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "typings": "./dist/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/wanglin2/mind-map"
   },
   "scripts": {
+    "build": "tsc",
     "lint": "eslint src/",
     "format": "prettier --write .",
-    "types": "npx -p typescript tsc index.js --declaration --allowJs --emitDeclarationOnly --outDir types --target es2017 --skipLibCheck & node ./bin/createPluginsTypeFiles.js",
+    "types": "tsc --emitDeclarationOnly && node ./bin/createPluginsTypeFiles.js",
     "wsServe": "node ./bin/wsServer.mjs"
   },
-  "module": "index.js",
+  "module": "dist/index.js",
   "main": "./dist/simpleMindMap.umd.min.js",
   "dependencies": {
     "@svgdotjs/svg.js": "3.2.0",
@@ -51,7 +52,9 @@
     "MindMap"
   ],
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "eslint": "^8.25.0",
-    "prettier": "^2.7.1"
+    "prettier": "^2.7.1",
+    "typescript": "^5.3.0"
   }
 }
