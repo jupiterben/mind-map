@@ -270,7 +270,13 @@ class Base {
       this.root = newNode
     } else {
       // 互相收集
-      parent._node.addChildren(newNode)
+      const pNode = parent._node
+      if (typeof pNode?.addChildren === 'function') {
+        pNode.addChildren(newNode)
+      } else if (pNode) {
+        if (!Array.isArray(pNode.children)) pNode.children = []
+        pNode.children.push(newNode)
+      }
     }
     return newNode
   }

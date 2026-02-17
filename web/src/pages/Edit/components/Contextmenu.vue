@@ -183,6 +183,7 @@
 
 <script>
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import { getTextFromHtml, imgToDataUrl } from 'simple-mind-map/src/utils'
 import { transformToMarkdown } from 'simple-mind-map/src/parse/toMarkdown'
 import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
@@ -215,6 +216,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     expandList() {
       return [
         this.$t('contextmenu.level1'),

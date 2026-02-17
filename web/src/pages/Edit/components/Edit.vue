@@ -11,46 +11,40 @@
       id="mindMapContainer"
       ref="mindMapContainer"
     ></div>
-    <Count :mindMap="mindMap" v-if="!isZenMode"></Count>
-    <Navigator v-if="mindMap" :mindMap="mindMap"></Navigator>
-    <NavigatorToolbar :mindMap="mindMap" v-if="!isZenMode"></NavigatorToolbar>
-    <OutlineSidebar :mindMap="mindMap"></OutlineSidebar>
-    <Style v-if="mindMap && !isZenMode" :mindMap="mindMap"></Style>
-    <BaseStyle
-      :data="mindMapData"
-      :configData="mindMapConfig"
-      :mindMap="mindMap"
-    ></BaseStyle>
-    <AssociativeLineStyle
-      v-if="mindMap"
-      :mindMap="mindMap"
-    ></AssociativeLineStyle>
-    <Theme v-if="mindMap" :data="mindMapData" :mindMap="mindMap"></Theme>
-    <Structure :mindMap="mindMap"></Structure>
+    <!-- 仅 mindMap 初始化后才挂载以下依赖它的子组件，保证传入的 mindMap 非 null -->
+    <template v-if="mindMap">
+      <Count v-if="!isZenMode" :mindMap="mindMap"></Count>
+      <Navigator :mindMap="mindMap"></Navigator>
+      <NavigatorToolbar v-if="!isZenMode" :mindMap="mindMap"></NavigatorToolbar>
+      <OutlineSidebar :mindMap="mindMap"></OutlineSidebar>
+      <Style v-if="!isZenMode" :mindMap="mindMap"></Style>
+      <BaseStyle
+        :data="mindMapData"
+        :configData="mindMapConfig"
+        :mindMap="mindMap"
+      ></BaseStyle>
+      <AssociativeLineStyle :mindMap="mindMap"></AssociativeLineStyle>
+      <Theme :data="mindMapData" :mindMap="mindMap"></Theme>
+      <Structure :mindMap="mindMap"></Structure>
+      <Contextmenu :mindMap="mindMap"></Contextmenu>
+      <RichTextToolbar :mindMap="mindMap"></RichTextToolbar>
+      <NodeNoteContentShow :mindMap="mindMap"></NodeNoteContentShow>
+      <NodeImgPreview :mindMap="mindMap"></NodeImgPreview>
+      <Search :mindMap="mindMap"></Search>
+      <NodeIconSidebar :mindMap="mindMap"></NodeIconSidebar>
+      <NodeIconToolbar :mindMap="mindMap"></NodeIconToolbar>
+      <OutlineEdit :mindMap="mindMap"></OutlineEdit>
+      <Scrollbar v-if="isShowScrollbar" :mindMap="mindMap"></Scrollbar>
+      <FormulaSidebar :mindMap="mindMap"></FormulaSidebar>
+      <NodeOuterFrame :mindMap="mindMap"></NodeOuterFrame>
+      <NodeTagStyle :mindMap="mindMap"></NodeTagStyle>
+      <Setting :configData="mindMapConfig" :mindMap="mindMap"></Setting>
+      <NodeImgPlacementToolbar :mindMap="mindMap"></NodeImgPlacementToolbar>
+      <NodeNoteSidebar :mindMap="mindMap"></NodeNoteSidebar>
+      <AiCreate v-if="enableAi" :mindMap="mindMap"></AiCreate>
+    </template>
     <ShortcutKey></ShortcutKey>
-    <Contextmenu v-if="mindMap" :mindMap="mindMap"></Contextmenu>
-    <RichTextToolbar v-if="mindMap" :mindMap="mindMap"></RichTextToolbar>
-    <NodeNoteContentShow
-      v-if="mindMap"
-      :mindMap="mindMap"
-    ></NodeNoteContentShow>
-    <NodeImgPreview v-if="mindMap" :mindMap="mindMap"></NodeImgPreview>
     <SidebarTrigger v-if="!isZenMode"></SidebarTrigger>
-    <Search v-if="mindMap" :mindMap="mindMap"></Search>
-    <NodeIconSidebar v-if="mindMap" :mindMap="mindMap"></NodeIconSidebar>
-    <NodeIconToolbar v-if="mindMap" :mindMap="mindMap"></NodeIconToolbar>
-    <OutlineEdit v-if="mindMap" :mindMap="mindMap"></OutlineEdit>
-    <Scrollbar v-if="isShowScrollbar && mindMap" :mindMap="mindMap"></Scrollbar>
-    <FormulaSidebar v-if="mindMap" :mindMap="mindMap"></FormulaSidebar>
-    <NodeOuterFrame v-if="mindMap" :mindMap="mindMap"></NodeOuterFrame>
-    <NodeTagStyle v-if="mindMap" :mindMap="mindMap"></NodeTagStyle>
-    <Setting :configData="mindMapConfig" :mindMap="mindMap"></Setting>
-    <NodeImgPlacementToolbar
-      v-if="mindMap"
-      :mindMap="mindMap"
-    ></NodeImgPlacementToolbar>
-    <NodeNoteSidebar v-if="mindMap" :mindMap="mindMap"></NodeNoteSidebar>
-    <AiCreate v-if="mindMap && enableAi" :mindMap="mindMap"></AiCreate>
     <AiChat v-if="enableAi"></AiChat>
     <div
       class="dragMask"
@@ -59,12 +53,19 @@
       @dragover.stop.prevent
       @drop.stop.prevent="onDrop"
     >
-      <div class="dragTip">{{ $t('edit.dragTip') }}</div>
+      <div class="dragTip">{{ t('edit.dragTip') }}</div>
     </div>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch, h, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
 import MindMap from 'simple-mind-map'
 import MiniMap from 'simple-mind-map/src/plugins/MiniMap.js'
 import Watermark from 'simple-mind-map/src/plugins/Watermark.js'
@@ -101,11 +102,10 @@ import ShortcutKey from './ShortcutKey.vue'
 import Contextmenu from './Contextmenu.vue'
 import RichTextToolbar from './RichTextToolbar.vue'
 import NodeNoteContentShow from './NodeNoteContentShow.vue'
-import { getData, getConfig, storeData } from '@/api'
+import { getData as getDataFromApi, getConfig, storeData } from '@/api'
 import Navigator from './Navigator.vue'
 import NodeImgPreview from './NodeImgPreview.vue'
 import SidebarTrigger from './SidebarTrigger.vue'
-import { storeMixin } from '@/mixins/storeMixin'
 import icon from '@/config/icon'
 import Search from './Search.vue'
 import NodeIconSidebar from './NodeIconSidebar.vue'
@@ -125,6 +125,7 @@ import NodeImgPlacementToolbar from './NodeImgPlacementToolbar.vue'
 import NodeNoteSidebar from './NodeNoteSidebar.vue'
 import AiCreate from './AiCreate.vue'
 import AiChat from './AiChat.vue'
+import defaultNodeImageUrl from '../../../assets/img/图片加载失败.svg'
 
 // 注册插件
 MindMap.usePlugin(MiniMap)
@@ -155,181 +156,108 @@ if (typeof MoreThemes !== 'undefined') {
   MoreThemes.init(MindMap)
 }
 
-export default {
-  components: {
-    OutlineSidebar,
-    Style,
-    BaseStyle,
-    Theme,
-    Structure,
-    Count,
-    NavigatorToolbar,
-    ShortcutKey,
-    Contextmenu,
-    RichTextToolbar,
-    NodeNoteContentShow,
-    Navigator,
-    NodeImgPreview,
-    SidebarTrigger,
-    Search,
-    NodeIconSidebar,
-    NodeIconToolbar,
-    OutlineEdit,
-    Scrollbar,
-    FormulaSidebar,
-    NodeOuterFrame,
-    NodeTagStyle,
-    Setting,
-    AssociativeLineStyle,
-    NodeImgPlacementToolbar,
-    NodeNoteSidebar,
-    AiCreate,
-    AiChat
-  },
-  data() {
-    return {
-      enableShowLoading: true,
-      mindMap: null,
-      mindMapData: null,
-      mindMapConfig: {},
-      prevImg: '',
-      storeConfigTimer: null,
-      showDragMask: false
-    }
-  },
-  mixins: [storeMixin],
-  computed: {},
-  watch: {
-    openNodeRichText() {
-      if (this.openNodeRichText) {
-        this.addRichTextPlugin()
-      } else {
-        this.removeRichTextPlugin()
-      }
-    },
-    isShowScrollbar() {
-      if (this.isShowScrollbar) {
-        this.addScrollbarPlugin()
-      } else {
-        this.removeScrollbarPlugin()
-      }
-    }
-  },
-  mounted() {
-    showLoading()
-    this.getData()
-    this.init()
-    this.$bus.$on('execCommand', this.execCommand)
-    this.$bus.$on('paddingChange', this.onPaddingChange)
-    this.$bus.$on('export', this.export)
-    this.$bus.$on('setData', this.setData)
-    this.$bus.$on('startTextEdit', this.handleStartTextEdit)
-    this.$bus.$on('endTextEdit', this.handleEndTextEdit)
-    this.$bus.$on('createAssociativeLine', this.handleCreateLineFromActiveNode)
-    this.$bus.$on('startPainter', this.handleStartPainter)
-    this.$bus.$on('node_tree_render_end', this.handleHideLoading)
-    this.$bus.$on('showLoading', this.handleShowLoading)
-    this.$bus.$on('localStorageExceeded', this.onLocalStorageExceeded)
-    window.addEventListener('resize', this.handleResize)
-    this.$bus.$on('showDownloadTip', this.showDownloadTip)
-    this.webTip()
-  },
-  beforeUnmount() {
-    this.$bus.$off('execCommand', this.execCommand)
-    this.$bus.$off('paddingChange', this.onPaddingChange)
-    this.$bus.$off('export', this.export)
-    this.$bus.$off('setData', this.setData)
-    this.$bus.$off('startTextEdit', this.handleStartTextEdit)
-    this.$bus.$off('endTextEdit', this.handleEndTextEdit)
-    this.$bus.$off('createAssociativeLine', this.handleCreateLineFromActiveNode)
-    this.$bus.$off('startPainter', this.handleStartPainter)
-    this.$bus.$off('node_tree_render_end', this.handleHideLoading)
-    this.$bus.$off('showLoading', this.handleShowLoading)
-    this.$bus.$off('localStorageExceeded', this.onLocalStorageExceeded)
-    window.removeEventListener('resize', this.handleResize)
-    this.$bus.$off('showDownloadTip', this.showDownloadTip)
-    if (this.mindMap) this.mindMap.destroy()
-  },
-  methods: {
-    onLocalStorageExceeded() {
-      this.$notify({
+const route = useRoute()
+const { t } = useI18n()
+const store = useStore()
+const { openNodeRichText, isShowScrollbar, useLeftKeySelectionRightKeyDrag, extraTextOnExport, enableAi, enableDragImport, isDragOutlineTreeNode, isZenMode } = storeToRefs(store)
+const bus = getBus()
+
+const mindMapContainer = ref<HTMLElement | null>(null)
+const enableShowLoading = ref(true)
+const mindMap = ref<InstanceType<typeof MindMap> | null>(null)
+const mindMapData = ref<unknown>(null)
+const mindMapConfig = ref<Record<string, unknown>>({})
+const prevImg = ref('')
+let storeConfigTimer: ReturnType<typeof setTimeout> | null = null
+const showDragMask = ref(false)
+
+watch(openNodeRichText, (v) => {
+  if (v) addRichTextPlugin()
+  else removeRichTextPlugin()
+})
+watch(isShowScrollbar, (v) => {
+  if (v) addScrollbarPlugin()
+  else removeScrollbarPlugin()
+})
+
+function onLocalStorageExceeded() {
+      ElNotification({
         type: 'warning',
-        title: this.$t('edit.tip'),
-        message: this.$t('edit.localStorageExceededTip'),
+        title: t('edit.tip'),
+        message: t('edit.localStorageExceededTip'),
         duration: 0
       })
-    },
+    }
 
-    handleStartTextEdit() {
-      this.mindMap.renderer.startTextEdit()
-    },
+function handleStartTextEdit() {
+      mindMap.value.renderer.startTextEdit()
+    }
 
-    handleEndTextEdit() {
-      this.mindMap.renderer.endTextEdit()
-    },
+function handleEndTextEdit() {
+      mindMap.value.renderer.endTextEdit()
+    }
 
-    handleCreateLineFromActiveNode() {
-      this.mindMap.associativeLine.createLineFromActiveNode()
-    },
+function handleCreateLineFromActiveNode() {
+      mindMap.value.associativeLine.createLineFromActiveNode()
+    }
 
-    handleStartPainter() {
-      this.mindMap.painter.startPainter()
-    },
+function handleStartPainter() {
+      mindMap.value.painter.startPainter()
+    }
 
-    handleResize() {
-      this.mindMap.resize()
-    },
+function handleResize() {
+      mindMap.value.resize()
+    }
 
     // 显示loading
-    handleShowLoading() {
-      this.enableShowLoading = true
+function handleShowLoading() {
+      enableShowLoading.value = true
       showLoading()
-    },
+    }
 
     // 渲染结束后关闭loading
-    handleHideLoading() {
-      if (this.enableShowLoading) {
-        this.enableShowLoading = false
+function handleHideLoading() {
+      if (enableShowLoading.value) {
+        enableShowLoading.value = false
         hideLoading()
       }
-    },
+    }
 
     // 获取思维导图数据，实际应该调接口获取
-    getData() {
-      this.mindMapData = getData()
-      this.mindMapConfig = getConfig() || {}
-    },
+function getData() {
+  mindMapData.value = getDataFromApi()
+  mindMapConfig.value = (getConfig() as Record<string, unknown>) || {}
+}
 
-    // 存储数据当数据有变时
-    bindSaveEvent() {
-      this.$bus.$on('data_change', data => {
+function bindSaveEvent() {
+      bus.$on('data_change', data => {
         storeData({ root: data })
       })
-      this.$bus.$on('view_data_change', data => {
-        clearTimeout(this.storeConfigTimer)
-        this.storeConfigTimer = setTimeout(() => {
+      bus.$on('view_data_change', data => {
+        clearTimeout(storeConfigTimer)
+        storeConfigTimer = setTimeout(() => {
           storeData({
             view: data
           })
         }, 300)
       })
-    },
+    }
 
     // 手动保存
-    manualSave() {
-      storeData(this.mindMap.getData(true))
-    },
+function manualSave() {
+      storeData(mindMap.value.getData(true))
+    }
 
     // 初始化
-    init() {
-      let hasFileURL = this.hasFileURL()
-      let { root, layout, theme, view } = this.mindMapData
-      const config = this.mindMapConfig
+function init() {
+      let hasFile = hasFileURL()
+      let { root, layout, theme, view } = mindMapData.value
+      const config = mindMapConfig.value
       // 如果url中存在要打开的文件，那么思维导图数据、主题、布局都使用默认的
-      if (hasFileURL) {
+      if (hasFile) {
         root = {
           data: {
-            text: this.$t('edit.root')
+            text: t('edit.root')
           },
           children: []
         }
@@ -337,8 +265,8 @@ export default {
         theme = exampleData.theme
         view = null
       }
-      this.mindMap = new MindMap({
-        el: this.$refs.mindMapContainer,
+      mindMap.value = new MindMap({
+        el: mindMapContainer.value,
         data: root,
         fit: false,
         layout: layout,
@@ -349,10 +277,10 @@ export default {
         nodeNoteTooltipZIndex: 1000,
         customNoteContentShow: {
           show: (content, left, top, node) => {
-            this.$bus.$emit('showNoteContent', content, left, top, node)
+            bus.$emit('showNoteContent', content, left, top, node)
           },
           hide: () => {
-            // this.$bus.$emit('hideNoteContent')
+            // bus.$emit('hideNoteContent')
           }
         },
         openRealtimeRenderOnNodeTextEdit: true,
@@ -362,18 +290,18 @@ export default {
         },
         ...(config || {}),
         iconList: [...icon],
-        useLeftKeySelectionRightKeyDrag: this.useLeftKeySelectionRightKeyDrag,
+        useLeftKeySelectionRightKeyDrag: useLeftKeySelectionRightKeyDrag.value,
         customInnerElsAppendTo: null,
         customHandleClipboardText: handleClipboardText,
-        defaultNodeImage: require('../../../assets/img/图片加载失败.svg'),
+        defaultNodeImage: defaultNodeImageUrl,
         initRootNodePosition: ['center', 'center'],
         handleIsSplitByWrapOnPasteCreateNewNode: () => {
-          return this.$confirm(
-            this.$t('edit.splitByWrap'),
-            this.$t('edit.tip'),
+          return ElMessageBox.confirm(
+            t('edit.splitByWrap'),
+            t('edit.tip'),
             {
-              confirmButtonText: this.$t('edit.yes'),
-              cancelButtonText: this.$t('edit.no'),
+              confirmButtonText: t('edit.yes'),
+              cancelButtonText: t('edit.no'),
               type: 'warning'
             }
           )
@@ -382,14 +310,14 @@ export default {
           console.error(err)
           switch (code) {
             case 'export_error':
-              this.$message.error(this.$t('edit.exportError'))
+              ElMessage.error(t('edit.exportError'))
               break
             default:
               break
           }
         },
         addContentToFooter: () => {
-          const text = this.extraTextOnExport.trim()
+          const text = extraTextOnExport.value.trim()
           if (!text) return null
           const el = document.createElement('div')
           el.className = 'footer'
@@ -416,12 +344,12 @@ export default {
         },
         beforeDeleteNodeImg: node => {
           return new Promise(resolve => {
-            this.$confirm(
-              this.$t('edit.deleteNodeImgTip'),
-              this.$t('edit.tip'),
+            ElMessageBox.confirm(
+              t('edit.deleteNodeImgTip'),
+              t('edit.tip'),
               {
-                confirmButtonText: this.$t('edit.yes'),
-                cancelButtonText: this.$t('edit.no'),
+                confirmButtonText: t('edit.yes'),
+                cancelButtonText: t('edit.no'),
                 type: 'warning'
               }
             )
@@ -434,9 +362,9 @@ export default {
           })
         }
       })
-      this.loadPlugins()
-      this.mindMap.keyCommand.addShortcut('Control+s', () => {
-        this.manualSave()
+      loadPlugins()
+      mindMap.value.keyCommand.addShortcut('Control+s', () => {
+        manualSave()
       })
       // 转发事件
       ;[
@@ -467,122 +395,122 @@ export default {
         'node_note_dblclick',
         'node_mousedown'
       ].forEach(event => {
-        this.mindMap.on(event, (...args) => {
-          this.$bus.$emit(event, ...args)
+        mindMap.value.on(event, (...args) => {
+          bus.$emit(event, ...args)
         })
       })
-      this.bindSaveEvent()
+      bindSaveEvent()
       // 如果应用被接管，那么抛出事件传递思维导图实例
       if (window.takeOverApp) {
-        this.$bus.$emit('app_inited', this.mindMap)
+        bus.$emit('app_inited', mindMap.value)
       }
       // 解析url中的文件
-      if (hasFileURL) {
-        this.$bus.$emit('handle_file_url')
+      if (hasFile) {
+        bus.$emit('handle_file_url')
       }
       window.getCurrentData = () => {
-        const fullData = this.mindMap.getData(true)
+        const fullData = mindMap.value.getData(true)
         return { ...fullData }
       }
       // 协同测试
-      this.cooperateTest()
-    },
+      cooperateTest()
+    }
 
     // 加载相关插件
-    loadPlugins() {
-      if (this.openNodeRichText) this.addRichTextPlugin()
-      if (this.isShowScrollbar) this.addScrollbarPlugin()
-    },
+function loadPlugins() {
+      if (openNodeRichText.value) addRichTextPlugin()
+      if (isShowScrollbar.value) addScrollbarPlugin()
+    }
 
     // url中是否存在要打开的文件
-    hasFileURL() {
-      const fileURL = this.$route.query.fileURL
+function hasFileURL() {
+      const fileURL = route.query.fileURL
       if (!fileURL) return false
       return /\.(smm|json|xmind|md|xlsx)$/.test(fileURL)
-    },
+    }
 
     // 动态设置思维导图数据
-    setData(data) {
-      this.handleShowLoading()
+function setData(data: unknown) {
+      handleShowLoading()
       let rootNodeData = null
       if (data.root) {
-        this.mindMap.setFullData(data)
+        mindMap.value.setFullData(data)
         rootNodeData = data.root
       } else {
-        this.mindMap.setData(data)
+        mindMap.value.setData(data)
         rootNodeData = data
       }
-      this.mindMap.view.reset()
-      this.manualSave()
+      mindMap.value.view.reset()
+      manualSave()
       // 如果导入的是富文本内容，那么自动开启富文本模式
-      if (rootNodeData.data.richText && !this.openNodeRichText) {
-        this.$bus.$emit('toggleOpenNodeRichText', true)
-        this.$notify.info({
-          title: this.$t('edit.tip'),
-          message: this.$t('edit.autoOpenNodeRichTextTip')
+      if (rootNodeData.data.richText && !openNodeRichText.value) {
+        bus.$emit('toggleOpenNodeRichText', true)
+        ElNotification.info({
+          title: t('edit.tip'),
+          message: t('edit.autoOpenNodeRichTextTip')
         })
       }
-    },
+    }
 
     // 重新渲染
-    reRender() {
-      this.mindMap.reRender()
-    },
+function reRender() {
+      mindMap.value.reRender()
+    }
 
     // 执行命令
-    execCommand(...args) {
-      this.mindMap.execCommand(...args)
-    },
+function execCommand(...args: unknown[]) {
+      mindMap.value.execCommand(...args)
+    }
 
     // 导出
-    async export(...args) {
+async function exportMap(...args: unknown[]) {
       try {
         showLoading()
-        await this.mindMap.export(...args)
+        await mindMap.value.export(...args)
         hideLoading()
       } catch (error) {
         console.log(error)
         hideLoading()
       }
-    },
+    }
 
     // 修改导出内边距
-    onPaddingChange(data) {
-      this.mindMap.updateConfig(data)
-    },
+function onPaddingChange(data: unknown) {
+      mindMap.value.updateConfig(data)
+    }
 
     // 加载节点富文本编辑插件
-    addRichTextPlugin() {
-      if (!this.mindMap) return
-      this.mindMap.addPlugin(RichText)
-    },
+function addRichTextPlugin() {
+      if (!mindMap.value) return
+      mindMap.value.addPlugin(RichText)
+    }
 
     // 移除节点富文本编辑插件
-    removeRichTextPlugin() {
-      this.mindMap.removePlugin(RichText)
-    },
+function removeRichTextPlugin() {
+      mindMap.value.removePlugin(RichText)
+    }
 
     // 加载滚动条插件
-    addScrollbarPlugin() {
-      if (!this.mindMap) return
-      this.mindMap.addPlugin(ScrollbarPlugin)
-    },
+function addScrollbarPlugin() {
+      if (!mindMap.value) return
+      mindMap.value.addPlugin(ScrollbarPlugin)
+    }
 
     // 移除滚动条插件
-    removeScrollbarPlugin() {
-      this.mindMap.removePlugin(ScrollbarPlugin)
-    },
+function removeScrollbarPlugin() {
+      mindMap.value.removePlugin(ScrollbarPlugin)
+    }
 
     // 协同测试
-    cooperateTest() {
-      if (this.mindMap.cooperate && this.$route.query.userName) {
-        this.mindMap.cooperate.setProvider(null, {
+function cooperateTest() {
+      if (mindMap.value.cooperate && route.query.userName) {
+        mindMap.value.cooperate.setProvider(null, {
           roomName: 'demo-room',
           signalingList: ['ws://localhost:4444']
         })
-        this.mindMap.cooperate.setUserInfo({
+        mindMap.value.cooperate.setUserInfo({
           id: Math.random(),
-          name: this.$route.query.userName,
+          name: route.query.userName,
           color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'][
             Math.floor(Math.random() * 5)
           ],
@@ -592,92 +520,106 @@ export default {
               : ''
         })
       }
-    },
+    }
 
     // 拖拽文件到页面导入
-    onDragenter() {
-      if (!this.enableDragImport || this.isDragOutlineTreeNode) return
-      this.showDragMask = true
-    },
+function onDragenter() {
+      if (!enableDragImport.value || isDragOutlineTreeNode.value) return
+      showDragMask.value = true
+    }
 
-    onDragleave() {
-      this.showDragMask = false
-    },
+function onDragleave() {
+      showDragMask.value = false
+    }
 
-    onDrop(e) {
-      if (!this.enableDragImport) return
-      this.showDragMask = false
+function onDrop(e: DragEvent) {
+      if (!enableDragImport.value) return
+      showDragMask.value = false
       const dt = e.dataTransfer
       const file = dt.files && dt.files[0]
       if (!file) return
-      this.$bus.$emit('importFile', file)
-    },
+      bus.$emit('importFile', file)
+    }
 
     // 网页版试用提示
-    webTip() {
+function webTip() {
       const storageKey = 'webUseTip'
       const data = localStorage.getItem(storageKey)
       if (data) {
         return
       }
-      this.showDownloadTip(
+      showDownloadTip(
         '重要提示',
         '网页版已暂停更新，部分功能缺失，请下载客户端获得完整体验~'
       )
       localStorage.setItem(storageKey, 1)
-    },
-
-    showDownloadTip(title, desc) {
-      const h = this.$createElement
-      this.$msgbox({
-        title,
-        message: h('div', null, [
-          h(
-            'p',
-            {
-              style: {
-                marginBottom: '12px'
-              }
-            },
-            desc
-          ),
-          h('div', null, [
-            h(
-              'a',
-              {
-                attrs: {
-                  href:
-                    'https://pan.baidu.com/s/1huasEbKsGNH2Af68dvWiOg?pwd=3bp3',
-                  target: '_blank'
-                },
-                style: {
-                  color: '#409eff',
-                  marginRight: '12px'
-                }
-              },
-              this.$t('edit.downBaidu')
-            ),
-            h(
-              'a',
-              {
-                attrs: {
-                  href: 'https://github.com/wanglin2/mind-map/releases',
-                  target: '_blank'
-                },
-                style: {
-                  color: '#409eff'
-                }
-              },
-              this.$t('edit.downGithub')
-            )
-          ])
-        ]),
-        showCancelButton: false,
-        showConfirmButton: false
-      })
     }
-  }
+
+function showDownloadTip(title: string, desc: string) {
+  ElMessageBox.alert(
+    h('div', null, [
+      h('p', { style: { marginBottom: '12px' } }, desc),
+      h('div', null, [
+        h(
+          'a',
+          {
+            href: 'https://pan.baidu.com/s/1huasEbKsGNH2Af68dvWiOg?pwd=3bp3',
+            target: '_blank',
+            style: { color: '#409eff', marginRight: '12px' }
+          },
+          t('edit.downBaidu')
+        ),
+        h(
+          'a',
+          {
+            href: 'https://github.com/wanglin2/mind-map/releases',
+            target: '_blank',
+            style: { color: '#409eff' }
+          },
+          t('edit.downGithub')
+        )
+      ])
+    ]),
+    title,
+    { showCancelButton: false, showConfirmButton: false }
+  )
 }
+
+onMounted(() => {
+  showLoading()
+  getData()
+  init()
+  bus.$on('execCommand', execCommand)
+  bus.$on('paddingChange', onPaddingChange)
+  bus.$on('export', exportMap)
+  bus.$on('setData', setData)
+  bus.$on('startTextEdit', handleStartTextEdit)
+  bus.$on('endTextEdit', handleEndTextEdit)
+  bus.$on('createAssociativeLine', handleCreateLineFromActiveNode)
+  bus.$on('startPainter', handleStartPainter)
+  bus.$on('node_tree_render_end', handleHideLoading)
+  bus.$on('showLoading', handleShowLoading)
+  bus.$on('localStorageExceeded', onLocalStorageExceeded)
+  window.addEventListener('resize', handleResize)
+  bus.$on('showDownloadTip', showDownloadTip)
+  webTip()
+})
+onBeforeUnmount(() => {
+  bus.$off('execCommand', execCommand)
+  bus.$off('paddingChange', onPaddingChange)
+  bus.$off('export', exportMap)
+  bus.$off('setData', setData)
+  bus.$off('startTextEdit', handleStartTextEdit)
+  bus.$off('endTextEdit', handleEndTextEdit)
+  bus.$off('createAssociativeLine', handleCreateLineFromActiveNode)
+  bus.$off('startPainter', handleStartPainter)
+  bus.$off('node_tree_render_end', handleHideLoading)
+  bus.$off('showLoading', handleShowLoading)
+  bus.$off('localStorageExceeded', onLocalStorageExceeded)
+  window.removeEventListener('resize', handleResize)
+  bus.$off('showDownloadTip', showDownloadTip)
+  if (mindMap.value) mindMap.value.destroy()
+})
 </script>
 
 <style lang="less" scoped>

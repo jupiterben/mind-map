@@ -61,21 +61,24 @@ class LogicalStructure extends Base {
         }
       },
       (cur, parent, isRoot, layerIndex) => {
+        const node = cur._node
+        if (!node) return
         // 返回时计算节点的areaHeight，也就是子节点所占的高度之和，包括外边距
-        let len = cur.data.expand === false ? 0 : cur._node.children.length
-        cur._node.childrenAreaHeight = len
-          ? cur._node.children.reduce((h, item) => {
+        const children = node.children ?? []
+        let len = cur.data?.expand === false ? 0 : children.length
+        node.childrenAreaHeight = len
+          ? children.reduce((h, item) => {
               return h + item.height
             }, 0) +
             (len + 1) * this.getMarginY(layerIndex + 1)
           : 0
         // 如果存在概要，则和概要的高度取最大值
-        let generalizationNodeHeight = cur._node.checkHasGeneralization()
-          ? cur._node._generalizationNodeHeight +
+        let generalizationNodeHeight = node.checkHasGeneralization?.()
+          ? node._generalizationNodeHeight +
             this.getMarginY(layerIndex + 1)
           : 0
-        cur._node.childrenAreaHeight2 = Math.max(
-          cur._node.childrenAreaHeight,
+        node.childrenAreaHeight2 = Math.max(
+          node.childrenAreaHeight,
           generalizationNodeHeight
         )
       },
@@ -84,13 +87,20 @@ class LogicalStructure extends Base {
     )
   }
 
+  //  获取节点 expand 状态（兼容无 getData 的节点）
+  getNodeExpand(node) {
+    return typeof node.getData === 'function'
+      ? node.getData('expand')
+      : node.nodeData?.data?.expand
+  }
+
   //  遍历节点树计算节点的top
   computedTopValue() {
     walk(
       this.root,
       null,
       (node, parent, isRoot, layerIndex) => {
-        if (node.getData('expand') && node.children && node.children.length) {
+        if (this.getNodeExpand(node) !== false && node.children && node.children.length) {
           let marginY = this.getMarginY(layerIndex + 1)
           // 第一个子节点的top值 = 该节点中心的top值 - 子节点的高度之和的一半
           let top = node.top + node.height / 2 - node.childrenAreaHeight / 2
@@ -112,7 +122,7 @@ class LogicalStructure extends Base {
       this.root,
       null,
       (node, parent, isRoot, layerIndex) => {
-        if (!node.getData('expand')) {
+        if (this.getNodeExpand(node) === false) {
           return
         }
         // 判断子节点所占的高度之和是否大于该节点自身，大于则需要调整位置

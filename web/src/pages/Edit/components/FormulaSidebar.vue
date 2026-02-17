@@ -1,5 +1,5 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('formulaSidebar.title')">
+  <Sidebar ref="sidebarRef" :title="t('formulaSidebar.title')">
     <div class="box" :class="{ isDark: isDark }">
       <div class="formulaInputBox">
         <el-input
@@ -7,17 +7,18 @@
           :rows="4"
           resize="none"
           type="textarea"
-          :placeholder="$t('formulaSidebar.placeholder')"
-          @keydown.native.stop
+          :placeholder="t('formulaSidebar.placeholder')"
+          @keydown.stop
         />
         <el-button
           size="small"
           style="width: 100%; margin-top: 20px;"
           @click="confirm"
-          >{{ $t('formulaSidebar.confirm') }}</el-button
         >
+          {{ t('formulaSidebar.confirm') }}
+        </el-button>
       </div>
-      <div class="title">{{ $t('formulaSidebar.common') }}</div>
+      <div class="title">{{ t('formulaSidebar.common') }}</div>
       <div class="formulaList customScrollbar">
         <div class="formulaItem" v-for="(item, index) in list" :key="index">
           <div class="overview" v-html="item.overview"></div>
@@ -30,80 +31,73 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { ElMessage } from 'element-plus'
 import Sidebar from './Sidebar.vue'
-import { storeMixin } from '@/mixins/storeMixin'
 import { formulaList } from '@/config/constant'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      formulaText: '',
-      list: []
-    }
-  },
-  computed: {},
-  watch: {
-    activeSidebar(val) {
-      if (val === 'formulaSidebar') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.handleNodeActive)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.handleNodeActive)
-  },
-  mounted() {
-    this.init()
-  },
-  methods: {
-    init() {
-      if (!window.katex) return
-      this.list = formulaList.map(item => {
-        return {
-          overview: window.katex.renderToString(
-            item,
-            this.mindMap.formula.getKatexConfig()
-          ),
-          text: item
-        }
-      })
-    },
+const props = defineProps<{
+  mindMap: {
+    formula: { getKatexConfig: () => unknown }
+    execCommand: (cmd: string, str: string) => void
+  }
+}>()
+const { t } = useI18n()
+const store = useStore()
+const { isDark, activeSidebar } = storeToRefs(store)
+const { setActiveSidebar } = store
+const { openNodeRichText } = storeToRefs(store)
+const bus = getBus()
 
-    handleNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-      if (
-        this.activeNodes.length <= 0 &&
-        this.activeSidebar === 'formulaSidebar'
-      ) {
-        this.setActiveSidebar(null)
-      }
-    },
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const formulaText = ref('')
+const list = ref<{ overview: string; text: string }[]>([])
+const activeNodes = ref<unknown[]>([])
 
-    confirm() {
-      if (!this.localConfig.openNodeRichText) {
-        return this.$message.warning(this.$t('formulaSidebar.tip'))
-      }
-      let str = this.formulaText.trim()
-      if (!str) return
-      this.mindMap.execCommand('INSERT_FORMULA', str)
-    }
+function init() {
+  if (typeof window === 'undefined' || !(window as unknown as { katex?: { renderToString: (s: string, c: unknown) => string } }).katex) return
+  const katex = (window as unknown as { katex: { renderToString: (s: string, c: unknown) => string } }).katex
+  list.value = formulaList.map((item: string) => ({
+    overview: katex.renderToString(item, props.mindMap.formula.getKatexConfig()),
+    text: item
+  }))
+}
+
+function handleNodeActive(_node: unknown, nodes: unknown[]) {
+  activeNodes.value = nodes ?? []
+  if (activeNodes.value.length <= 0 && activeSidebar.value === 'formulaSidebar') {
+    setActiveSidebar(null)
   }
 }
+
+function confirm() {
+  if (!openNodeRichText.value) {
+    ElMessage.warning(t('formulaSidebar.tip'))
+    return
+  }
+  const str = formulaText.value.trim()
+  if (!str) return
+  props.mindMap.execCommand('INSERT_FORMULA', str)
+}
+
+watch(activeSidebar, (val) => {
+  if (sidebarRef.value) {
+    sidebarRef.value.show = val === 'formulaSidebar'
+  }
+})
+
+onMounted(() => {
+  bus.$on('node_active', handleNodeActive)
+  init()
+})
+onBeforeUnmount(() => {
+  bus.$off('node_active', handleNodeActive)
+})
 </script>
 
 <style lang="less" scoped>
@@ -133,7 +127,7 @@ export default {
       }
     }
 
-    /deep/ .el-textarea__inner {
+    :deep(.el-textarea__inner) {
       background-color: transparent;
       color: #fff;
     }

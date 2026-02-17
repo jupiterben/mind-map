@@ -4,16 +4,16 @@
       <span
         class="colorItem iconfont"
         v-for="item in colorList"
+        :key="item"
         :style="{ backgroundColor: item }"
         :class="{ icontouming: item === 'transparent' }"
-        :key="item"
         @click="clickColorItem(item)"
       ></span>
     </div>
     <div class="moreColor">
-      <span>{{ $t('color.moreColor') }}</span>
+      <span>{{ t('color.moreColor') }}</span>
       <el-color-picker
-        size="mini"
+        size="small"
         show-alpha
         v-model="selectColor"
         @change="changeColor"
@@ -22,45 +22,39 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 import { colorList } from '@/config'
-import { storeMixin } from '@/mixins/storeMixin'
 
-// 颜色选择器
-export default {
-  mixins: [storeMixin],
-  props: {
-    color: {
-      type: String,
-      default: ''
-    }
-  },
-  data() {
-    return {
-      colorList,
-      selectColor: ''
-    }
-  },
-  computed: {},
-  watch: {
-    color() {
-      this.selectColor = this.color
-    }
-  },
-  created() {
-    this.selectColor = this.color
-  },
-  methods: {
-    // 点击预设颜色
-    clickColorItem(color) {
-      this.$emit('change', color)
-    },
+const props = withDefaults(
+  defineProps<{
+    color?: string
+  }>(),
+  { color: '' }
+)
+const emit = defineEmits<{ (e: 'change', color: string): void }>()
+const { t } = useI18n()
+const store = useStore()
+const { isDark } = storeToRefs(store)
 
-    // 修改颜色
-    changeColor() {
-      this.$emit('change', this.selectColor)
-    }
-  }
+const selectColor = ref(props.color)
+watch(
+  () => props.color,
+  (v) => {
+    selectColor.value = v
+  },
+  { immediate: true }
+)
+
+function clickColorItem(color: string) {
+  emit('change', color)
+}
+
+function changeColor() {
+  emit('change', selectColor.value)
 }
 </script>
 

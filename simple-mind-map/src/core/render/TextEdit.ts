@@ -56,14 +56,14 @@ class MindMapNode {
     // 节点高
     this.height = opt.height || 0
     // 自定义文本的宽度
-    this.customTextWidth = opt.data.data.customTextWidth || undefined
+    this.customTextWidth = this.nodeData?.data?.customTextWidth || undefined
     // left
     this._left = opt.left || 0
     // top
     this._top = opt.top || 0
     // 自定义位置
-    this.customLeft = opt.data.data.customLeft || undefined
-    this.customTop = opt.data.data.customTop || undefined
+    this.customLeft = this.nodeData?.data?.customLeft || undefined
+    this.customTop = this.nodeData?.data?.customTop || undefined
     // 是否正在拖拽中
     this.isDrag = false
     // 父节点
@@ -204,6 +204,7 @@ class MindMapNode {
 
   //  处理数据
   handleData(data) {
+    data.data = data.data || {}
     data.data.expand = data.data.expand === false ? false : true
     data.data.isActive = data.data.isActive === true ? true : false
     data.children = data.children || []
@@ -1140,6 +1141,46 @@ class MindMapNode {
   // 获取子节点的数量
   getChildrenLength() {
     return this.nodeData.children ? this.nodeData.children.length : 0
+  }
+
+  // ========== 以下为 renderer.textEdit 委托方法（富文本等插件通过 renderer.textEdit 调用） ==========
+  getCurrentEditNode() {
+    return this.mindMap.richText ? this.mindMap.richText.node : null
+  }
+
+  hideEditTextBox() {
+    if (this.mindMap.richText) this.mindMap.richText.hideEditText()
+  }
+
+  updateTextEditNode() {
+    if (this.mindMap.richText) this.mindMap.richText.updateTextEditNode()
+  }
+
+  isShowTextEdit() {
+    return !!(this.mindMap.richText && this.mindMap.richText.showTextEdit)
+  }
+
+  removeTextEditEl() {
+    if (this.mindMap.richText) this.mindMap.richText.removeTextEditEl()
+  }
+
+  registerTmpShortcut() {
+    if (this.mindMap.richText && typeof this.mindMap.richText.registerTmpShortcut === 'function') {
+      this.mindMap.richText.registerTmpShortcut()
+    }
+  }
+
+  getBackground(node) {
+    if (!node || !node.style) return '#fff'
+    const fill = node.style.merge('fillColor')
+    return fill || '#fff'
+  }
+
+  checkIsAutoEnterTextEditKey(e) {
+    if (this.mindMap.richText && typeof this.mindMap.richText.checkIsAutoEnterTextEditKey === 'function') {
+      return this.mindMap.richText.checkIsAutoEnterTextEditKey(e)
+    }
+    return false
   }
 }
 

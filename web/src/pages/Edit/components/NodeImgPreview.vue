@@ -4,38 +4,33 @@
   </viewer>
 </template>
 
-<script>
-export default {
-  props: {
-    mindMap: {
-      type: Object,
-      default() {
-        return null
-      }
-    }
-  },
-  data() {
-    return {
-      images: []
-    }
-  },
-  mounted() {
-    this.mindMap.on('node_img_dblclick', this.onNodeTmgDblclick)
-  },
-  beforeUnmount() {
-    this.mindMap.off('node_img_dblclick', this.onNodeTmgDblclick)
-  },
-  methods: {
-    onNodeTmgDblclick(node, e) {
-      e.stopPropagation()
-      e.preventDefault()
-      this.images = [node.getImageUrl()]
-      this.$viewerApi({
-        images: this.images
-      })
-    }
-  }
+<script setup lang="ts">
+import { ref, getCurrentInstance, onMounted, onBeforeUnmount } from 'vue'
+
+const props = defineProps<{
+  mindMap: {
+    on: (e: string, fn: (...args: unknown[]) => void) => void
+    off: (e: string, fn: (...args: unknown[]) => void) => void
+  } | null
+}>()
+
+const images = ref<string[]>([])
+const instance = getCurrentInstance()
+const viewerApi = () => (instance?.appContext?.config?.globalProperties as { $viewerApi?: (opts: { images: string[] }) => void })?.$viewerApi
+
+function onNodeTmgDblclick(node: { getImageUrl: () => string }, e: Event) {
+  e.stopPropagation()
+  e.preventDefault()
+  images.value = [node.getImageUrl()]
+  viewerApi()?.({ images: images.value })
 }
+
+onMounted(() => {
+  props.mindMap?.on('node_img_dblclick', onNodeTmgDblclick)
+})
+onBeforeUnmount(() => {
+  props.mindMap?.off('node_img_dblclick', onNodeTmgDblclick)
+})
 </script>
 
 <style></style>

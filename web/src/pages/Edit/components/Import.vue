@@ -43,7 +43,7 @@
         <el-radio
           v-for="(item, index) in canvasList"
           :key="index"
-          :label="index"
+          :value="index"
           >{{ item.title }}</el-radio
         >
       </el-radio-group>
@@ -268,7 +268,7 @@ export default {
   display: flex;
   flex-direction: column;
 
-  /deep/ .el-radio {
+  :deep(.el-radio) {
     margin-bottom: 12px;
 
     &:last-of-type {

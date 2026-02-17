@@ -57,6 +57,7 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import { nodeIconList } from 'simple-mind-map/src/svg/icons'
 import { mergerIconList } from 'simple-mind-map/src/utils/index'
 import icon from '@/config/icon'
@@ -77,7 +78,11 @@ export default {
       activeNodes: []
     }
   },
-  computed: {},
+  computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    }
+  },
   watch: {
     activeSidebar(val) {
       if (val === 'nodeIconSidebar') {
@@ -203,12 +208,12 @@ export default {
             cursor: pointer;
             position: relative;
 
-            /deep/ img {
+            :deep(img) {
               width: 100%;
               height: 100%;
             }
 
-            /deep/ svg {
+            :deep(svg) {
               width: 100%;
               height: 100%;
             }
@@ -250,7 +255,7 @@ export default {
           cursor: pointer;
           position: relative;
 
-          /deep/ img {
+          :deep(img) {
             width: 100%;
             height: 100%;
             object-fit: contain;

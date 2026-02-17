@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import { resolve, isAbsolute } from 'path'
 import { existsSync, statSync } from 'fs'
 
@@ -8,6 +9,7 @@ const simpleMindMapRoot = resolve(__dirname, '../simple-mind-map')
 export default defineConfig({
   plugins: [
     vue(),
+    nodePolyfills(),
     // 保证 simple-mind-map 内相对路径在打包时能正确解析到源码目录
     {
       name: 'resolve-simple-mind-map',

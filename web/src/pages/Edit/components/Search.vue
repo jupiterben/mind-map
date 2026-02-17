@@ -6,22 +6,22 @@
     <div class="searchInputBox">
       <el-input
         ref="searchInputRef"
-        :placeholder="$t('search.searchPlaceholder')"
+        :placeholder="t('search.searchPlaceholder')"
         size="small"
         v-model="searchText"
-        @keyup.native.enter.stop="onSearchNext"
-        @keydown.native.stop
+        @keyup.enter.stop="onSearchNext"
+        @keydown.stop
         @focus="onFocus"
         @blur="onBlur"
       >
-        <i slot="prefix" class="el-input__icon el-icon-search"></i>
-        <el-button
-          size="small"
-          slot="append"
-          v-if="!isUndef(searchText)"
-          @click="showReplaceInput = true"
-          >{{ $t('search.replace') }}</el-button
-        >
+        <template #prefix>
+          <i class="el-input__icon el-icon-search"></i>
+        </template>
+        <template #append v-if="!isUndef(searchText)">
+          <el-button size="small" @click="showReplaceInput = true">
+            {{ t('search.replace') }}
+          </el-button>
+        </template>
       </el-input>
       <div class="searchInfo" v-if="showSearchInfo && !isUndef(searchText)">
         {{ currentIndex }} / {{ total }}
@@ -30,26 +30,30 @@
     <el-input
       v-if="showReplaceInput"
       ref="replaceInputRef"
-      :placeholder="$t('search.replacePlaceholder')"
+      :placeholder="t('search.replacePlaceholder')"
       size="small"
       v-model="replaceText"
       style="margin: 12px 0;"
-      @keydown.native.stop
+      @keydown.stop
       @focus="onFocus"
       @blur="onBlur"
     >
-      <i slot="prefix" class="el-input__icon el-icon-edit"></i>
-      <el-button size="small" slot="append" @click="hideReplaceInput">{{
-        $t('search.cancel')
-      }}</el-button>
+      <template #prefix>
+        <i class="el-input__icon el-icon-edit"></i>
+      </template>
+      <template #append>
+        <el-button size="small" @click="hideReplaceInput">
+          {{ t('search.cancel') }}
+        </el-button>
+      </template>
     </el-input>
     <div class="btnList" v-if="showReplaceInput">
-      <el-button size="small" :disabled="isReadonly" @click="replace">{{
-        $t('search.replace')
-      }}</el-button>
-      <el-button size="small" :disabled="isReadonly" @click="replaceAll">{{
-        $t('search.replaceAll')
-      }}</el-button>
+      <el-button size="small" :disabled="isReadonly" @click="replace">
+        {{ t('search.replace') }}
+      </el-button>
+      <el-button size="small" :disabled="isReadonly" @click="replaceAll">
+        {{ t('search.replaceAll') }}
+      </el-button>
     </div>
     <div
       class="searchResultList"
@@ -66,177 +70,164 @@
       ></div>
       <div class="empty" v-if="searchResultList.length <= 0">
         <span class="iconfont iconwushuju"></span>
-        <span class="text">{{ $t('search.noResult') }}</span>
+        <span class="text">{{ t('search.noResult') }}</span>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
-import { isUndef, getTextFromHtml } from 'simple-mind-map/src/utils/index'
+<script setup lang="ts">
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { isUndef as isUndefUtil, getTextFromHtml } from 'simple-mind-map/src/utils/index'
 
-// 搜索替换
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
+const props = defineProps<{
+  mindMap: {
+    on: (e: string, fn: (...args: unknown[]) => void) => void
+    off: (e: string, fn: (...args: unknown[]) => void) => void
+    updateConfig: (c: { enableAutoEnterTextEditWhenKeydown: boolean }) => void
+    search: {
+      search: (text: string) => void
+      replace: (text: string, one?: boolean) => void
+      replaceAll: (text: string) => void
+      endSearch: () => void
+      jump: (index: number) => void
     }
-  },
-  data() {
-    return {
-      show: false,
-      searchText: '',
-      replaceText: '',
-      showReplaceInput: false,
-      currentIndex: 0,
-      total: 0,
-      showSearchInfo: false,
-      searchResultListHeight: 0,
-      searchResultList: [],
-      showSearchResultList: false
-    }
-  },
-  computed: {},
-  watch: {
-    searchText() {
-      if (isUndef(this.searchText)) {
-        this.currentIndex = 0
-        this.total = 0
-        this.showSearchInfo = false
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('show_search', this.showSearch)
-    this.mindMap.on('search_info_change', this.handleSearchInfoChange)
-    this.mindMap.on('node_click', this.blur)
-    this.mindMap.on('draw_click', this.blur)
-    this.mindMap.on('expand_btn_click', this.blur)
-    this.mindMap.on(
-      'search_match_node_list_change',
-      this.onSearchMatchNodeListChange
-    )
-    this.mindMap.keyCommand.addShortcut('Control+f', this.showSearch)
-    window.addEventListener('resize', this.setSearchResultListHeight)
-    this.$bus.$on('setData', this.close)
-  },
-  mounted() {
-    this.setSearchResultListHeight()
-  },
-  beforeUnmount() {
-    this.$bus.$off('show_search', this.showSearch)
-    this.mindMap.off('search_info_change', this.handleSearchInfoChange)
-    this.mindMap.off('node_click', this.blur)
-    this.mindMap.off('draw_click', this.blur)
-    this.mindMap.off('expand_btn_click', this.blur)
-    this.mindMap.off(
-      'search_match_node_list_change',
-      this.onSearchMatchNodeListChange
-    )
-    this.mindMap.keyCommand.removeShortcut('Control+f', this.showSearch)
-    window.removeEventListener('resize', this.setSearchResultListHeight)
-    this.$bus.$off('setData', this.close)
-  },
-  methods: {
-    isUndef,
-
-    handleSearchInfoChange(data) {
-      this.currentIndex = data.currentIndex + 1
-      this.total = data.total
-      this.showSearchInfo = true
-    },
-
-    showSearch() {
-      this.$bus.$emit('closeSideBar')
-      this.show = true
-      this.$refs.searchInputRef.focus()
-    },
-
-    hideReplaceInput() {
-      this.showReplaceInput = false
-      this.replaceText = ''
-    },
-
-    // 输入框聚焦时，禁止思维导图节点响应按键事件自动进入文本编辑
-    onFocus() {
-      this.mindMap.updateConfig({
-        enableAutoEnterTextEditWhenKeydown: false
-      })
-    },
-
-    // 输入框失焦时恢复
-    onBlur() {
-      this.mindMap.updateConfig({
-        enableAutoEnterTextEditWhenKeydown: true
-      })
-    },
-
-    // 画布，节点点击时让输入框失焦
-    blur() {
-      if (this.$refs.searchInputRef) {
-        this.$refs.searchInputRef.blur()
-      }
-      if (this.$refs.replaceInputRef) {
-        this.$refs.replaceInputRef.blur()
-      }
-    },
-
-    onSearchNext() {
-      this.showSearchResultList = true
-      this.mindMap.search.search(this.searchText)
-    },
-
-    replace() {
-      this.mindMap.search.replace(this.replaceText, true)
-    },
-
-    replaceAll() {
-      this.mindMap.search.replaceAll(this.replaceText)
-    },
-
-    close() {
-      this.show = false
-      this.showSearchResultList = false
-      this.showSearchInfo = false
-      this.total = 0
-      this.currentIndex = 0
-      this.searchText = ''
-      this.hideReplaceInput()
-      this.mindMap.search.endSearch()
-    },
-
-    onSearchMatchNodeListChange(list) {
-      this.searchResultList = list.map(item => {
-        const data = item.data || item.nodeData.data
-        let name = data.text
-        const id = data.uid
-        if (data.richText) {
-          name = getTextFromHtml(name)
-        }
-        const reg = new RegExp(`${this.searchText.trim()}`, 'g')
-        const text = name.replace(reg, a => {
-          return `<span class="match">${a}</span>`
-        })
-        return {
-          data: item,
-          id,
-          text,
-          name
-        }
-      })
-    },
-
-    setSearchResultListHeight() {
-      this.searchResultListHeight = window.innerHeight - 267 - 24
-    },
-
-    onSearchResultItemClick(index) {
-      this.mindMap.search.jump(index)
-    }
+    keyCommand: { addShortcut: (k: string, fn: () => void) => void; removeShortcut: (k: string, fn: () => void) => void }
   }
+}>()
+const { t } = useI18n()
+const store = useStore()
+const { isDark, isReadonly } = storeToRefs(store)
+const bus = getBus()
+
+const searchInputRef = ref<{ focus: () => void; blur: () => void } | null>(null)
+const replaceInputRef = ref<{ blur: () => void } | null>(null)
+const show = ref(false)
+const searchText = ref('')
+const replaceText = ref('')
+const showReplaceInput = ref(false)
+const currentIndex = ref(0)
+const total = ref(0)
+const showSearchInfo = ref(false)
+const searchResultListHeight = ref(0)
+const searchResultList = ref<{ id: string; text: string; name: string }[]>([])
+const showSearchResultList = ref(false)
+
+function isUndef(v: unknown) {
+  return isUndefUtil(v)
 }
+
+function handleSearchInfoChange(data: { currentIndex: number; total: number }) {
+  currentIndex.value = data.currentIndex + 1
+  total.value = data.total
+  showSearchInfo.value = true
+}
+
+function showSearch() {
+  bus.$emit('closeSideBar')
+  show.value = true
+  nextTick(() => searchInputRef.value?.focus())
+}
+
+function hideReplaceInput() {
+  showReplaceInput.value = false
+  replaceText.value = ''
+}
+
+function onFocus() {
+  props.mindMap.updateConfig({ enableAutoEnterTextEditWhenKeydown: false })
+}
+
+function onBlur() {
+  props.mindMap.updateConfig({ enableAutoEnterTextEditWhenKeydown: true })
+}
+
+function blur() {
+  searchInputRef.value?.blur()
+  replaceInputRef.value?.blur()
+}
+
+function onSearchNext() {
+  showSearchResultList.value = true
+  props.mindMap.search.search(searchText.value)
+}
+
+function replace() {
+  props.mindMap.search.replace(replaceText.value, true)
+}
+
+function replaceAll() {
+  props.mindMap.search.replaceAll(replaceText.value)
+}
+
+function close() {
+  show.value = false
+  showSearchResultList.value = false
+  showSearchInfo.value = false
+  total.value = 0
+  currentIndex.value = 0
+  searchText.value = ''
+  hideReplaceInput()
+  props.mindMap.search.endSearch()
+}
+
+function onSearchMatchNodeListChange(list: { data?: { text?: string; uid?: string }; nodeData?: { data: { text?: string; uid?: string } } }[]) {
+  searchResultList.value = list.map((item) => {
+    const data = item.data ?? (item as { nodeData: { data: { text?: string; uid?: string } } }).nodeData?.data
+    let name = (data?.text ?? '') as string
+    const id = (data as { uid?: string })?.uid ?? ''
+    if ((data as { richText?: boolean })?.richText) {
+      name = getTextFromHtml(name)
+    }
+    const reg = new RegExp(`${searchText.value.trim()}`, 'g')
+    const text = name.replace(reg, (a) => `<span class="match">${a}</span>`)
+    return { data: item, id, text, name }
+  })
+}
+
+function setSearchResultListHeight() {
+  searchResultListHeight.value = window.innerHeight - 267 - 24
+}
+
+function onSearchResultItemClick(index: number) {
+  props.mindMap.search.jump(index)
+}
+
+watch(searchText, () => {
+  if (isUndef(searchText.value)) {
+    currentIndex.value = 0
+    total.value = 0
+    showSearchInfo.value = false
+  }
+})
+
+onMounted(() => {
+  bus.$on('show_search', showSearch)
+  props.mindMap.on('search_info_change', handleSearchInfoChange)
+  props.mindMap.on('node_click', blur)
+  props.mindMap.on('draw_click', blur)
+  props.mindMap.on('expand_btn_click', blur)
+  props.mindMap.on('search_match_node_list_change', onSearchMatchNodeListChange)
+  props.mindMap.keyCommand.addShortcut('Control+f', showSearch)
+  window.addEventListener('resize', setSearchResultListHeight)
+  bus.$on('setData', close)
+  setSearchResultListHeight()
+})
+onBeforeUnmount(() => {
+  bus.$off('show_search', showSearch)
+  props.mindMap.off('search_info_change', handleSearchInfoChange)
+  props.mindMap.off('node_click', blur)
+  props.mindMap.off('draw_click', blur)
+  props.mindMap.off('expand_btn_click', blur)
+  props.mindMap.off('search_match_node_list_change', onSearchMatchNodeListChange)
+  props.mindMap.keyCommand.removeShortcut('Control+f', showSearch)
+  window.removeEventListener('resize', setSearchResultListHeight)
+  bus.$off('setData', close)
+})
 </script>
 
 <style lang="less" scoped>
@@ -342,7 +333,7 @@ export default {
         background-color: #f2f4f7;
       }
 
-      /deep/.match {
+      :deep(.match) {
         color: #409eff;
         font-weight: bold;
       }

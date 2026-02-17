@@ -1,16 +1,18 @@
 <template>
-  <el-dialog
-    class="nodeExportDialog"
-    :class="{ isMobile: isMobile, isDark: isDark }"
-    :title="$t('export.title')"
-    :visible.sync="dialogVisible"
+  <div
     v-loading.fullscreen.lock="loading"
     :element-loading-text="loadingText"
     element-loading-spinner="el-icon-loading"
     element-loading-background="rgba(0, 0, 0, 0.8)"
-    :width="isMobile ? '90%' : '800px'"
-    :top="isMobile ? '20px' : '15vh'"
   >
+    <el-dialog
+      class="nodeExportDialog"
+      :class="{ isMobile: isMobile, isDark: isDark }"
+      :title="$t('export.title')"
+      :visible.sync="dialogVisible"
+      :width="isMobile ? '90%' : '800px'"
+      :top="isMobile ? '20px' : '15vh'"
+    >
     <div class="exportContainer" :class="{ isDark: isDark }">
       <!-- 导出类型选择 -->
       <div class="downloadTypeSelectBox">
@@ -39,7 +41,7 @@
               <el-input
                 style="max-width: 250px"
                 v-model="fileName"
-                size="mini"
+                size="small"
                 @keydown.native.stop
               ></el-input>
             </div>
@@ -78,7 +80,7 @@
                   <div class="valueSubItem" v-if="['png'].includes(exportType)">
                     <span class="name">{{ $t('export.format') }}</span>
                     <el-radio-group v-model="imageFormat">
-                      <el-radio label="png">PNG</el-radio>
+                      <el-radio value="png">PNG</el-radio>
                     </el-radio-group>
                   </div>
                   <div class="valueSubItem">
@@ -86,7 +88,7 @@
                     <el-input
                       style="width: 200px"
                       v-model="paddingX"
-                      size="mini"
+                      size="small"
                       @change="onPaddingChange"
                       @keydown.native.stop
                     ></el-input>
@@ -96,7 +98,7 @@
                     <el-input
                       style="width: 200px"
                       v-model="paddingY"
-                      size="mini"
+                      size="small"
                       @change="onPaddingChange"
                       @keydown.native.stop
                     ></el-input>
@@ -108,7 +110,7 @@
                     <el-input
                       style="width: 200px"
                       v-model="extraText"
-                      size="mini"
+                      size="small"
                       :placeholder="$t('export.addFooterTextPlaceholder')"
                       @keydown.native.stop
                     ></el-input>
@@ -141,11 +143,13 @@
         </div>
       </div>
     </div>
-  </el-dialog>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import { downTypeList } from '@/config'
 import { isMobile } from 'simple-mind-map/src/utils/index'
 import MarkdownIt from 'markdown-it'
@@ -172,6 +176,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     downTypeList() {
       const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       const list = downTypeList[locale] || downTypeList.zh
@@ -341,7 +348,7 @@ export default {
 
 .nodeExportDialog {
   &.isDark {
-    /deep/ .el-dialog__body {
+    :deep(.el-dialog__body) {
       .el-checkbox {
         .el-checkbox__label {
           color: hsla(0, 0%, 100%, 0.6);
@@ -350,7 +357,7 @@ export default {
     }
   }
 
-  /deep/ .el-dialog {
+  :deep(.el-dialog) {
     border-radius: 10px;
     overflow: hidden;
 
@@ -359,7 +366,7 @@ export default {
     }
   }
 
-  /deep/ .el-dialog__body {
+  :deep(.el-dialog__body) {
     padding: 0;
 
     .el-checkbox__input.is-checked + .el-checkbox__label {
@@ -664,7 +671,7 @@ export default {
           flex-shrink: 0;
           border-top: 1px solid #f2f4f7;
 
-          /deep/ .el-button--small {
+          :deep(.el-button--small) {
             height: 25px;
             padding: 0 30px;
             border-radius: 5px;

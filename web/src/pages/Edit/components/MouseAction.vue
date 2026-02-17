@@ -4,9 +4,7 @@
       class="item"
       effect="dark"
       :content="
-        useLeftKeySelectionRightKeyDrag
-          ? $t('mouseAction.tip2')
-          : $t('mouseAction.tip1')
+        useLeftKeySelectionRightKeyDrag ? t('mouseAction.tip2') : t('mouseAction.tip1')
       "
       placement="top"
     >
@@ -19,35 +17,24 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 
-// 鼠标操作设置
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
-    },
-    isDark: {
-      type: Boolean
-    }
-  },
-  data() {
-    return {}
-  },
-  computed: {},
-  methods: {
-    toggleAction() {
-      let val = !this.useLeftKeySelectionRightKeyDrag
-      this.mindMap.updateConfig({
-        useLeftKeySelectionRightKeyDrag: val
-      })
-      this.setLocalConfig({
-        useLeftKeySelectionRightKeyDrag: val
-      })
-    }
-  }
+const props = defineProps<{
+  mindMap: { updateConfig: (c: { useLeftKeySelectionRightKeyDrag: boolean }) => void }
+  isDark?: boolean
+}>()
+const { t } = useI18n()
+const store = useStore()
+const { useLeftKeySelectionRightKeyDrag, isDark } = storeToRefs(store)
+const { setLocalConfig } = store
+
+function toggleAction() {
+  const val = !useLeftKeySelectionRightKeyDrag.value
+  props.mindMap.updateConfig({ useLeftKeySelectionRightKeyDrag: val })
+  setLocalConfig({ useLeftKeySelectionRightKeyDrag: val })
 }
 </script>
 

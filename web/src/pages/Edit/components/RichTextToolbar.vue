@@ -44,89 +44,119 @@
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.fontFamily')" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <div class="fontOptionsList" :class="{ isDark: isDark }">
-          <div
-            class="fontOptionItem"
-            v-for="item in fontFamilyList"
-            :key="item.value"
-            :style="{ fontFamily: item.value }"
-            :class="{ active: formatInfo.font === item.value }"
-            @click="changeFontFamily(item.value)"
-          >
-            {{ item.name }}
-          </div>
-        </div>
-        <div class="btn" slot="reference">
-          <span class="icon iconfont iconxingzhuang-wenzi"></span>
-        </div>
-      </el-popover>
+      <span class="btn-wrap">
+        <el-popover placement="bottom" trigger="hover">
+          <template #default>
+            <div class="fontOptionsList" :class="{ isDark: isDark }">
+              <div
+                class="fontOptionItem"
+                v-for="item in fontFamilyList"
+                :key="item.value"
+                :style="{ fontFamily: item.value }"
+                :class="{ active: formatInfo.font === item.value }"
+                @click="changeFontFamily(item.value)"
+              >
+                {{ item.name }}
+              </div>
+            </div>
+          </template>
+          <template #reference>
+            <div class="btn">
+              <span class="icon iconfont iconxingzhuang-wenzi"></span>
+            </div>
+          </template>
+        </el-popover>
+      </span>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.fontSize')" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <div class="fontOptionsList" :class="{ isDark: isDark }">
-          <div
-            class="fontOptionItem"
-            v-for="item in fontSizeList"
-            :key="item"
-            :style="{
-              fontSize: item + 'px',
-              height: (item < 30 ? 30 : item + 10) + 'px'
-            }"
-            :class="{ active: formatInfo.size === item + 'px' }"
-            @click="changeFontSize(item)"
-          >
-            {{ item }}px
-          </div>
-        </div>
-        <div class="btn" slot="reference">
-          <span class="icon iconfont iconcase fontColor"></span>
-        </div>
-      </el-popover>
+      <span class="btn-wrap">
+        <el-popover placement="bottom" trigger="hover">
+          <template #default>
+            <div class="fontOptionsList" :class="{ isDark: isDark }">
+              <div
+                class="fontOptionItem"
+                v-for="item in fontSizeList"
+                :key="item"
+                :style="{
+                  fontSize: item + 'px',
+                  height: (item < 30 ? 30 : item + 10) + 'px'
+                }"
+                :class="{ active: formatInfo.size === item + 'px' }"
+                @click="changeFontSize(item)"
+              >
+                {{ item }}px
+              </div>
+            </div>
+          </template>
+          <template #reference>
+            <div class="btn">
+              <span class="icon iconfont iconcase fontColor"></span>
+            </div>
+          </template>
+        </el-popover>
+      </span>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.color')" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <Color :color="fontColor" @change="changeFontColor"></Color>
-        <div class="btn" slot="reference" :style="{ color: formatInfo.color }">
-          <span class="icon iconfont iconzitiyanse"></span>
-        </div>
-      </el-popover>
+      <span class="btn-wrap">
+        <el-popover placement="bottom" trigger="hover">
+          <template #default>
+            <Color :color="fontColor" @change="changeFontColor"></Color>
+          </template>
+          <template #reference>
+            <div class="btn" :style="{ color: formatInfo.color }">
+              <span class="icon iconfont iconzitiyanse"></span>
+            </div>
+          </template>
+        </el-popover>
+      </span>
     </el-tooltip>
 
     <el-tooltip
       :content="$t('richTextToolbar.backgroundColor')"
       placement="top"
     >
-      <el-popover placement="bottom" trigger="hover">
-        <Color
-          :color="fontBackgroundColor"
-          @change="changeFontBackgroundColor"
-        ></Color>
-        <div class="btn" slot="reference">
-          <span class="icon iconfont iconbeijingyanse"></span>
-        </div>
-      </el-popover>
+      <span class="btn-wrap">
+        <el-popover placement="bottom" trigger="hover">
+          <template #default>
+            <Color
+              :color="fontBackgroundColor"
+              @change="changeFontBackgroundColor"
+            ></Color>
+          </template>
+          <template #reference>
+            <div class="btn">
+              <span class="icon iconfont iconbeijingyanse"></span>
+            </div>
+          </template>
+        </el-popover>
+      </span>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.textAlign')" placement="top">
-      <el-popover placement="bottom" trigger="hover">
-        <div class="fontOptionsList" :class="{ isDark: isDark }">
-          <div
-            class="fontOptionItem"
-            v-for="item in alignList"
-            :key="item.value"
-            :class="{ active: formatInfo.align === item.value }"
-            @click="changeTextAlign(item.value)"
-          >
-            {{ item.name }}
-          </div>
-        </div>
-        <div class="btn" slot="reference">
-          <span class="icon iconfont iconjuzhongduiqi"></span>
-        </div>
-      </el-popover>
+      <span class="btn-wrap">
+        <el-popover placement="bottom" trigger="hover">
+          <template #default>
+            <div class="fontOptionsList" :class="{ isDark: isDark }">
+              <div
+                class="fontOptionItem"
+                v-for="item in alignList"
+                :key="item.value"
+                :class="{ active: formatInfo.align === item.value }"
+                @click="changeTextAlign(item.value)"
+              >
+                {{ item.name }}
+              </div>
+            </div>
+          </template>
+          <template #reference>
+            <div class="btn">
+              <span class="icon iconfont iconjuzhongduiqi"></span>
+            </div>
+          </template>
+        </el-popover>
+      </span>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.removeFormat')" placement="top">
@@ -141,6 +171,7 @@
 import { fontFamilyList, fontSizeList, alignList } from '@/config'
 import Color from './Color.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 
 export default {
   mixins: [storeMixin],
@@ -166,6 +197,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     fontFamilyList() {
       const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       return fontFamilyList[locale] || fontFamilyList.zh
@@ -288,6 +322,10 @@ export default {
         background: hsla(0, 0%, 100%, 0.05);
       }
     }
+  }
+
+  .btn-wrap {
+    display: inline-flex;
   }
 
   .btn {

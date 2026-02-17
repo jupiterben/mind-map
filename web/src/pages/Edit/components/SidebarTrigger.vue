@@ -23,66 +23,58 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 import { sidebarTriggerList } from '@/config'
 
-// 侧边栏触发器
-export default {
-  mixins: [storeMixin],
-  data() {
-    return {
-      show: true,
-      maxHeight: 0
-    }
-  },
-  computed: {
-    triggerList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      let list = sidebarTriggerList[locale] || sidebarTriggerList.zh
-      if (this.isReadonly) {
-        list = list.filter(item => {
-          return ['outline', 'shortcutKey', 'ai'].includes(item.value)
-        })
-      }
-      if (!this.enableAi) {
-        list = list.filter(item => {
-          return item.value !== 'ai'
-        })
-      }
-      return list
-    }
-  },
-  watch: {
-    isReadonly(val) {
-      if (val) {
-        this.setActiveSidebar(null)
-      }
-    }
-  },
-  created() {
-    window.addEventListener('resize', this.onResize)
-    this.updateSize()
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.onResize)
-  },
-  methods: {
-    trigger(item) {
-      this.setActiveSidebar(item.value)
-    },
+const store = useStore()
+const { activeSidebar, isReadonly, enableAi, isDark } = storeToRefs(store)
+const { setActiveSidebar } = store
+const { locale } = useI18n()
 
-    onResize() {
-      this.updateSize()
-    },
+const show = ref(true)
+const maxHeight = ref(0)
 
-    updateSize() {
-      const topMargin = 110
-      const bottomMargin = 80
-      this.maxHeight = window.innerHeight - topMargin - bottomMargin
-    }
+const triggerList = computed(() => {
+  const loc = locale?.value ?? locale
+  let list = (sidebarTriggerList as Record<string, { value: string; name: string; icon: string }[]>)[loc] || (sidebarTriggerList as { zh: { value: string; name: string; icon: string }[] }).zh
+  if (isReadonly.value) {
+    list = list.filter((item) => ['outline', 'shortcutKey', 'ai'].includes(item.value))
   }
+  if (!enableAi.value) {
+    list = list.filter((item) => item.value !== 'ai')
+  }
+  return list
+})
+
+watch(isReadonly, (val) => {
+  if (val) setActiveSidebar(null)
+})
+
+function trigger(item: { value: string }) {
+  setActiveSidebar(item.value)
 }
+
+function onResize() {
+  updateSize()
+}
+
+function updateSize() {
+  const topMargin = 110
+  const bottomMargin = 80
+  maxHeight.value = window.innerHeight - topMargin - bottomMargin
+}
+
+onMounted(() => {
+  window.addEventListener('resize', onResize)
+  updateSize()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
+})
 </script>
 
 <style lang="less" scoped>

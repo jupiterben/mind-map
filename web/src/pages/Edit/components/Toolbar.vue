@@ -13,15 +13,19 @@
           v-if="showMoreBtn"
           :style="{ marginLeft: horizontalList.length > 0 ? '20px' : 0 }"
         >
-          <ToolbarNodeBtnList
-            dir="v"
-            :list="verticalList"
-            @click.native="popoverShow = false"
-          ></ToolbarNodeBtnList>
-          <div slot="reference" class="toolbarBtn">
-            <span class="icon iconfont icongongshi"></span>
-            <span class="text">{{ $t('toolbar.more') }}</span>
-          </div>
+          <template #default>
+            <ToolbarNodeBtnList
+              dir="v"
+              :list="verticalList"
+              @click.native="popoverShow = false"
+            ></ToolbarNodeBtnList>
+          </template>
+          <template #reference>
+            <div class="toolbarBtn">
+              <span class="icon iconfont icongongshi"></span>
+              <span class="text">{{ $t('toolbar.more') }}</span>
+            </div>
+          </template>
         </el-popover>
       </div>
       <!-- 导出 -->
@@ -113,14 +117,14 @@
                 <div class="treeNodeBtnList" v-if="data.type === 'file'">
                   <el-button
                     type="text"
-                    size="mini"
+                    size="small"
                     v-if="data.enableEdit"
                     @click="editLocalFile(data)"
                     >编辑</el-button
                   >
                   <el-button
                     type="text"
-                    size="mini"
+                    size="small"
                     v-else
                     @click="importLocalFile(data)"
                     >导入</el-button
@@ -151,6 +155,7 @@ import NodeTag from './NodeTag.vue'
 import Export from './Export.vue'
 import Import from './Import.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import { ElNotification } from 'element-plus'
 import exampleData from 'simple-mind-map/example/exampleData'
 import { getData } from '../../../api'
@@ -211,6 +216,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     btnLit() {
       let res = [...defaultBtnList]
       if (!this.openNodeRichText) {
@@ -539,7 +547,7 @@ export default {
         .fileTreeBox {
           background-color: #262a2e;
 
-          /deep/ .el-tree {
+          :deep(.el-tree) {
             background-color: #262a2e;
 
             &.el-tree--highlight-current {

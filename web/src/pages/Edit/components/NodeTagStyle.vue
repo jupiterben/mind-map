@@ -10,7 +10,7 @@
       <el-input
         v-model="text"
         :placeholder="$t('nodeTagStyle.placeholder')"
-        size="mini"
+        size="small"
         @blur="updateTagText"
         @keydown.native.stop
         @keyup.native.enter.stop="updateTagText"
@@ -29,6 +29,7 @@
 <script>
 import Color from './Color.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 
 export default {
   mixins: [storeMixin],
@@ -53,7 +54,11 @@ export default {
       fill: ''
     }
   },
-  computed: {},
+  computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    }
+  },
   created() {
     this.mindMap.on('node_tag_click', this.onNodeTagClick)
     this.mindMap.on('scale', this.hide)

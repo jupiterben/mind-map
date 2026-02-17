@@ -37,7 +37,8 @@ const defaultTagStyle = {
 // 因为如果注册了NodeBase64ImageStorage插件，那么节点图片字段保存的实际是一个id，所以如果要获取图片真实的url可以通过该方法
 function getImageUrl() {
   const img = this.getData('image')
-  return (this.mindMap.renderer.renderTree.data.imgMap || {})[img] || img
+  const imgMap = this.mindMap.renderer?.renderTree?.data?.imgMap
+  return (imgMap && imgMap[img]) || img
 }
 
 //  创建图片节点
@@ -46,9 +47,10 @@ function createImgNode() {
   if (!img) {
     return
   }
-  img = (this.mindMap.renderer.renderTree.data.imgMap || {})[img] || img
+  const imgMap = this.mindMap.renderer?.renderTree?.data?.imgMap
+  const imgUrl = (imgMap && imgMap[img]) || img
   const imgSize = this.getImgShowSize()
-  const node = new SVGImage().load(img).size(...imgSize)
+  const node = new SVGImage().load(imgUrl).size(...imgSize)
   // 如果指定了加载失败显示的图片，那么加载一下图片检测是否失败
   const { defaultNodeImage } = this.mindMap.opt
   if (defaultNodeImage) {
@@ -56,7 +58,7 @@ function createImgNode() {
     imgEl.onerror = () => {
       node.load(defaultNodeImage)
     }
-    imgEl.src = img
+    imgEl.src = imgUrl
   }
   if (this.getData('imageTitle')) {
     node.attr('title', this.getData('imageTitle'))

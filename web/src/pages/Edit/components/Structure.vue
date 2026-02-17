@@ -1,5 +1,5 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('strusture.title')">
+  <Sidebar ref="sidebarRef" :title="t('strusture.title')">
     <div class="layoutGroupList" :class="{ isDark: isDark }">
       <div
         class="laytouGroup"
@@ -23,64 +23,50 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 import Sidebar from './Sidebar.vue'
 import { storeData } from '@/api'
-import { storeMixin } from '@/mixins/storeMixin'
 import { layoutImgMap } from '@/config/constant.js'
-import { layoutGroupList } from '@/config'
+import { layoutGroupList as layoutGroupListConfig } from '@/config'
 
-// 结构
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      layoutImgMap,
-      layout: ''
-    }
-  },
-  computed: {
-    layoutGroupList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      const groupList = layoutGroupList[locale] || layoutGroupList.zh
-      return groupList.map(group => {
-        let list = [...group.list].filter(item => {
-          return !['rightFishbone', 'rightFishbone2'].includes(item)
-        })
-        return {
-          name: group.name,
-          list
-        }
-      })
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'structure') {
-        this.layout = this.mindMap.getLayout()
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  methods: {
-    useLayout(layout) {
-      this.layout = layout
-      this.mindMap.setLayout(layout)
-      storeData({
-        layout: layout
-      })
+const props = defineProps<{
+  mindMap: { getLayout: () => string; setLayout: (l: string) => void }
+}>()
+const { t, locale } = useI18n()
+const store = useStore()
+const { activeSidebar, isDark } = storeToRefs(store)
+
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const layout = ref('')
+
+const layoutGroupList = computed(() => {
+  const loc = locale?.value ?? locale
+  const groupList = (layoutGroupListConfig as Record<string, { name: string; list: string[] }[]>)[loc as string] || (layoutGroupListConfig as { zh: { name: string; list: string[] }[] }).zh
+  return groupList.map((group: { name: string; list: string[] }) => {
+    const list = [...group.list].filter((item) => !['rightFishbone', 'rightFishbone2'].includes(item))
+    return { name: group.name, list }
+  })
+})
+
+watch(activeSidebar, (val) => {
+  if (sidebarRef.value) {
+    if (val === 'structure') {
+      layout.value = props.mindMap.getLayout()
+      sidebarRef.value.show = true
+    } else {
+      sidebarRef.value.show = false
     }
   }
+})
+
+function useLayout(l: string) {
+  layout.value = l
+  props.mindMap.setLayout(l)
+  storeData({ layout: l })
 }
 </script>
 

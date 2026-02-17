@@ -53,12 +53,13 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('setting.watermarkTextColor') }}</span>
-            <span
-              class="block"
-              v-popover:popover3
-              :style="{ backgroundColor: watermarkConfig.textStyle.color }"
-            ></span>
             <el-popover ref="popover3" placement="bottom" trigger="click">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: watermarkConfig.textStyle.color }"
+                ></span>
+              </template>
               <Color
                 :color="watermarkConfig.textStyle.color"
                 @change="
@@ -261,7 +262,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('setting.mousewheelAction') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 120px"
             v-model="config.mousewheelAction"
             placeholder=""
@@ -286,7 +287,7 @@
             $t('setting.mousewheelZoomActionReverse')
           }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 120px"
             v-model="config.mousewheelZoomActionReverse"
             placeholder=""
@@ -312,7 +313,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('setting.createNewNodeBehavior') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 120px"
             v-model="config.createNewNodeBehavior"
             placeholder=""
@@ -375,6 +376,7 @@
 import Sidebar from './Sidebar.vue'
 import { storeConfig } from '@/api'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import Color from './Color.vue'
 
 export default {
@@ -429,11 +431,16 @@ export default {
       }
     }
   },
-  computed: {},
+  computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    }
+  },
   watch: {
     activeSidebar(val) {
       if (val === 'setting') {
         this.$refs.sidebar.show = true
+        this.initLoacalConfig()
         this.initConfig()
         this.initWatermark()
       } else {
@@ -464,11 +471,13 @@ export default {
 
     // 初始化本地配置
     initLoacalConfig() {
-      this.enableNodeRichText = this.localConfig.openNodeRichText
-      this.mousewheelAction = this.localConfig.mousewheelAction
-      this.mousewheelZoomActionReverse = this.localConfig.mousewheelZoomActionReverse
+      const cfg = this.localConfig
+      if (!cfg) return
+      this.enableNodeRichText = cfg.openNodeRichText
+      this.mousewheelAction = cfg.mousewheelAction
+      this.mousewheelZoomActionReverse = cfg.mousewheelZoomActionReverse
       Object.keys(this.localConfigs).forEach(key => {
-        this.localConfigs[key] = this.localConfig[key]
+        this.localConfigs[key] = cfg[key]
       })
     },
 

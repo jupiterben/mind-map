@@ -14,7 +14,7 @@
             <span class="name">{{ $t('nodeOuterFrame.boxStyle') }}</span>
             <!-- 宽度 -->
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="styleConfig.strokeWidth"
               placeholder=""
@@ -40,7 +40,7 @@
             </el-select>
             <!-- 实现虚线 -->
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px;margin-left: 4px;"
               v-model="styleConfig.strokeDasharray"
               placeholder=""
@@ -80,12 +80,13 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.boxColor') }}</span>
-            <span
-              class="block"
-              v-popover:popover
-              :style="{ backgroundColor: styleConfig.strokeColor }"
-            ></span>
             <el-popover ref="popover" placement="bottom" trigger="click">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: styleConfig.strokeColor }"
+                ></span>
+              </template>
               <Color
                 :color="styleConfig.strokeColor"
                 @change="
@@ -99,7 +100,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.radius') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="styleConfig.radius"
               placeholder=""
@@ -122,12 +123,13 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.fillColor') }}</span>
-            <span
-              class="block"
-              v-popover:popover2
-              :style="{ backgroundColor: styleConfig.fill }"
-            ></span>
             <el-popover ref="popover2" placement="bottom" trigger="click">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: styleConfig.fill }"
+                ></span>
+              </template>
               <Color
                 :color="styleConfig.fill"
                 @change="
@@ -152,7 +154,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.fontFamily') }}</span>
             <el-select
-              size="mini"
+              size="small"
               v-model="styleConfig.fontFamily"
               placeholder=""
               @change="
@@ -174,63 +176,67 @@
         </div>
         <div class="row">
           <div class="btnGroup">
-            <el-tooltip
-              :content="$t('nodeOuterFrame.color')"
-              placement="bottom"
-            >
-              <div class="styleBtn" v-popover:popover3>
-                A
-                <span
-                  class="colorShow"
-                  :style="{ backgroundColor: styleConfig.color }"
-                ></span>
-              </div>
-            </el-tooltip>
+            <el-popover ref="popover3" placement="bottom" trigger="hover">
+              <template #reference>
+                <div class="styleBtn-ref-wrap">
+                  <el-tooltip
+                    :content="$t('nodeOuterFrame.color')"
+                    placement="bottom"
+                  >
+                    <span class="styleBtn styleBtn--inline">
+                      A
+                      <span
+                        class="colorShow"
+                        :style="{ backgroundColor: styleConfig.color }"
+                      ></span>
+                    </span>
+                  </el-tooltip>
+                </div>
+              </template>
+              <Color
+                :color="styleConfig.color"
+                @change="
+                  color => {
+                    updateOuterFrame('color', color)
+                  }
+                "
+              ></Color>
+            </el-popover>
             <el-tooltip
               :content="$t('nodeOuterFrame.fontBold')"
               placement="bottom"
             >
-              <div
-                class="styleBtn"
+              <span
+                class="styleBtn styleBtn--inline"
                 :class="{
                   actived: styleConfig.fontWeight === 'bold'
                 }"
                 @click="toggleFontWeight"
               >
                 B
-              </div>
+              </span>
             </el-tooltip>
             <el-tooltip
               :content="$t('nodeOuterFrame.italic')"
               placement="bottom"
             >
-              <div
-                class="styleBtn i"
+              <span
+                class="styleBtn styleBtn--inline i"
                 :class="{
                   actived: styleConfig.fontStyle === 'italic'
                 }"
                 @click="toggleFontStyle"
               >
                 I
-              </div>
+              </span>
             </el-tooltip>
           </div>
-          <el-popover ref="popover3" placement="bottom" trigger="hover">
-            <Color
-              :color="styleConfig.color"
-              @change="
-                color => {
-                  updateOuterFrame('color', color)
-                }
-              "
-            ></Color>
-          </el-popover>
         </div>
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.lineHeight') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="styleConfig.lineHeight"
               placeholder=""
@@ -252,7 +258,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.fontSize') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="styleConfig.fontSize"
               placeholder=""
@@ -276,12 +282,13 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.textFill') }}</span>
-            <span
-              class="block"
-              v-popover:popover4
-              :style="{ backgroundColor: styleConfig.textFill }"
-            ></span>
             <el-popover ref="popover4" placement="bottom" trigger="click">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: styleConfig.textFill }"
+                ></span>
+              </template>
               <Color
                 :color="styleConfig.textFill"
                 @change="
@@ -295,7 +302,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('nodeOuterFrame.textFillRadius') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="styleConfig.textFillRadius"
               placeholder=""
@@ -320,20 +327,20 @@
             <span class="name">{{ $t('nodeOuterFrame.textAlign') }}</span>
             <el-radio-group
               v-model="styleConfig.textAlign"
-              size="mini"
+              size="small"
               @change="
                 value => {
                   updateOuterFrame('textAlign', value)
                 }
               "
             >
-              <el-radio-button label="left">{{
+              <el-radio-button value="left">{{
                 $t('nodeOuterFrame.left')
               }}</el-radio-button>
-              <el-radio-button label="center">{{
+              <el-radio-button value="center">{{
                 $t('nodeOuterFrame.center')
               }}</el-radio-button>
-              <el-radio-button label="right">{{
+              <el-radio-button value="right">{{
                 $t('nodeOuterFrame.right')
               }}</el-radio-button>
             </el-radio-group>
@@ -376,6 +383,7 @@
 import Sidebar from './Sidebar.vue'
 import Color from './Color.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import {
   lineWidthList,
   borderDasharrayList,
@@ -413,6 +421,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     borderDasharrayList() {
       const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       return borderDasharrayList[locale] || borderDasharrayList.zh
@@ -597,6 +608,10 @@ export default {
         width: 100%;
         display: flex;
         justify-content: space-between;
+
+        .styleBtn-ref-wrap {
+          display: inline-block;
+        }
       }
 
       .rowItem {
@@ -631,6 +646,10 @@ export default {
         font-weight: bold;
         cursor: pointer;
         border-radius: 4px;
+
+        &.styleBtn--inline {
+          display: inline-flex;
+        }
 
         &.actived {
           background-color: #eee;

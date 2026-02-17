@@ -17,7 +17,7 @@
       <span class="label">请输入图片地址</span>
       <el-input
         v-model="imgUrl"
-        size="mini"
+        size="small"
         placeholder="http://xxx.com/xx.jpg"
         @keydown.native.stop
       ></el-input>
@@ -25,7 +25,7 @@
     <div class="title">可选</div>
     <div class="inputBox">
       <span class="label">{{ $t('nodeImage.imgTitle') }}</span>
-      <el-input v-model="imgTitle" size="mini" @keydown.native.stop></el-input>
+      <el-input v-model="imgTitle" size="small" @keydown.native.stop></el-input>
     </div>
     <span slot="footer" class="dialog-footer">
       <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>

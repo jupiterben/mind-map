@@ -1070,6 +1070,7 @@ export const generateColorByContent = str => {
 
 //  html转义
 export const htmlEscape = str => {
+  if (str == null || typeof str !== 'string') return str == null ? '' : str
   [
     ['&', '&amp;'],
     ['<', '&lt;'],

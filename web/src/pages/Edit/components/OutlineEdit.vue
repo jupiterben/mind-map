@@ -65,6 +65,7 @@
 
 <script>
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import {
   nodeRichTextToTextWithWrap,
   textToNodeRichTextWithWrap,
@@ -93,7 +94,14 @@ export default {
       currentData: null
     }
   },
-  computed: {},
+  computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
+    isOutlineEdit() {
+      return useStore().isOutlineEdit ?? false
+    }
+  },
   watch: {
     isOutlineEdit(val) {
       if (val) {
@@ -335,7 +343,7 @@ export default {
       height: max-content;
       margin: 0 auto;
 
-      /deep/ .customNode {
+      :deep(.customNode) {
         .nodeEdit {
           max-width: 800px;
         }

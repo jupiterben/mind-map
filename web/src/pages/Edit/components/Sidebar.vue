@@ -9,60 +9,61 @@
     <div class="sidebarHeader" v-if="title">
       {{ title }}
     </div>
-    <div class="sidebarContent customScrollbar" ref="sidebarContent">
+    <div class="sidebarContent customScrollbar" ref="sidebarContentRef">
       <slot></slot>
     </div>
   </div>
 </template>
 
-<script>
-import { store } from '@/config'
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { store as configStore } from '@/config'
 
-// 侧边栏容器
-export default {
-  mixins: [storeMixin],
-  props: {
-    title: {
-      type: String,
-      default: ''
-    }
-  },
-  data() {
-    return {
-      show: false,
-      zIndex: 0
-    }
-  },
-  computed: {},
-  watch: {
-    show(val, oldVal) {
-      if (val && !oldVal) {
-        this.zIndex = store.sidebarZIndex++
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('closeSideBar', this.handleCloseSidebar)
-  },
-  beforeUnmount() {
-    this.$bus.$off('closeSideBar', this.handleCloseSidebar)
-  },
-  methods: {
-    handleCloseSidebar() {
-      this.close()
-    },
+const props = withDefaults(
+  defineProps<{
+    title?: string
+  }>(),
+  { title: '' }
+)
+const store = useStore()
+const { isDark } = storeToRefs(store)
+const { setActiveSidebar } = store
+const bus = getBus()
 
-    close() {
-      this.show = false
-      this.setActiveSidebar(null)
-    },
+const sidebarContentRef = ref<HTMLElement | null>(null)
+const show = ref(false)
+const zIndex = ref(0)
 
-    getEl() {
-      return this.$refs.sidebarContent
-    }
+watch(show, (val, oldVal) => {
+  if (val && !oldVal) {
+    zIndex.value = configStore.sidebarZIndex++
   }
+})
+
+function handleCloseSidebar() {
+  close()
 }
+
+function close() {
+  show.value = false
+  setActiveSidebar(null)
+}
+
+function getEl() {
+  return sidebarContentRef.value
+}
+
+onMounted(() => {
+  bus.$on('closeSideBar', handleCloseSidebar)
+})
+onBeforeUnmount(() => {
+  bus.$off('closeSideBar', handleCloseSidebar)
+})
+
+defineExpose({ show, getEl })
 </script>
 
 <style lang="less" scoped>

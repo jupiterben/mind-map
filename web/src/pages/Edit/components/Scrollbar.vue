@@ -1,6 +1,5 @@
 <template>
   <div class="scrollbarContainer" :class="{ isDark: isDark }">
-    <!-- 竖向 -->
     <div
       class="scrollbar verticalScrollbar"
       ref="verticalScrollbarRef"
@@ -13,7 +12,6 @@
         @mousedown="onVerticalScrollbarMousedown"
       ></div>
     </div>
-    <!-- 横向 -->
     <div
       class="scrollbar horizontalScrollbar"
       ref="horizontalScrollbarRef"
@@ -29,86 +27,85 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
 
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      timer: null,
-      resizeTimer: null,
-      verticalScrollbarStyle: {},
-      horizontalScrollbarStyle: {}
-    }
-  },
-  computed: {},
-  mounted() {
-    this.setScrollBarWrapSize()
-    this.$bus.$on('scrollbar_change', this.updateScrollbar)
-    window.addEventListener('resize', this.onResize)
-  },
-  beforeUnmount() {
-    this.$bus.$off('scrollbar_change', this.updateScrollbar)
-    window.removeEventListener('resize', this.onResize)
-  },
-  methods: {
-    // 向插件传递滚动条宽高数据
-    setScrollBarWrapSize() {
-      if (!this.mindMap.scrollbar) return
-      const {
-        width
-      } = this.$refs.horizontalScrollbarRef.getBoundingClientRect()
-      const { height } = this.$refs.verticalScrollbarRef.getBoundingClientRect()
-      this.mindMap.scrollbar.setScrollBarWrapSize(width, height)
-    },
-
-    // 窗口尺寸变化
-    onResize() {
-      clearTimeout(this.resizeTimer)
-      this.resizeTimer = setTimeout(() => {
-        this.setScrollBarWrapSize()
-      }, 300)
-    },
-
-    // 调用插件方法更新滚动条位置和大小
-    updateScrollbar({ vertical, horizontal }) {
-      this.verticalScrollbarStyle = {
-        top: vertical.top + '%',
-        height: vertical.height + '%'
-      }
-      this.horizontalScrollbarStyle = {
-        left: horizontal.left + '%',
-        width: horizontal.width + '%'
-      }
-    },
-
-    // 垂直滚动条按下事件调用插件方法
-    onVerticalScrollbarMousedown(e) {
-      this.mindMap.scrollbar.onMousedown(e, 'vertical')
-    },
-
-    // 垂直滚动条点击事件调用插件方法
-    onVerticalScrollbarClick(e) {
-      this.mindMap.scrollbar.onClick(e, 'vertical')
-    },
-
-    // 水平滚动条按下事件调用插件方法
-    onHorizontalScrollbarMousedown(e) {
-      this.mindMap.scrollbar.onMousedown(e, 'horizontal')
-    },
-
-    // 水平滚动条点击事件调用插件方法
-    onHorizontalScrollbarClick(e) {
-      this.mindMap.scrollbar.onClick(e, 'horizontal')
+const props = defineProps<{
+  mindMap: {
+    scrollbar: {
+      setScrollBarWrapSize: (w: number, h: number) => void
+      onMousedown: (e: MouseEvent, dir: string) => void
+      onClick: (e: MouseEvent, dir: string) => void
     }
   }
+}>()
+const store = useStore()
+const { isDark } = storeToRefs(store)
+const bus = getBus()
+
+const verticalScrollbarRef = ref<HTMLElement | null>(null)
+const horizontalScrollbarRef = ref<HTMLElement | null>(null)
+const verticalScrollbarStyle = reactive<Record<string, string>>({})
+const horizontalScrollbarStyle = reactive<Record<string, string>>({})
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+
+function setScrollBarWrapSize() {
+  if (!props.mindMap.scrollbar) return
+  if (horizontalScrollbarRef.value && verticalScrollbarRef.value) {
+    const { width } = horizontalScrollbarRef.value.getBoundingClientRect()
+    const { height } = verticalScrollbarRef.value.getBoundingClientRect()
+    props.mindMap.scrollbar.setScrollBarWrapSize(width, height)
+  }
 }
+
+function onResize() {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    setScrollBarWrapSize()
+  }, 300)
+}
+
+function updateScrollbar({
+  vertical,
+  horizontal
+}: {
+  vertical: { top: number; height: number }
+  horizontal: { left: number; width: number }
+}) {
+  verticalScrollbarStyle.top = vertical.top + '%'
+  verticalScrollbarStyle.height = vertical.height + '%'
+  horizontalScrollbarStyle.left = horizontal.left + '%'
+  horizontalScrollbarStyle.width = horizontal.width + '%'
+}
+
+function onVerticalScrollbarMousedown(e: MouseEvent) {
+  props.mindMap.scrollbar.onMousedown(e, 'vertical')
+}
+
+function onVerticalScrollbarClick(e: MouseEvent) {
+  props.mindMap.scrollbar.onClick(e, 'vertical')
+}
+
+function onHorizontalScrollbarMousedown(e: MouseEvent) {
+  props.mindMap.scrollbar.onMousedown(e, 'horizontal')
+}
+
+function onHorizontalScrollbarClick(e: MouseEvent) {
+  props.mindMap.scrollbar.onClick(e, 'horizontal')
+}
+
+onMounted(() => {
+  setScrollBarWrapSize()
+  bus.$on('scrollbar_change', updateScrollbar)
+  window.addEventListener('resize', onResize)
+})
+onBeforeUnmount(() => {
+  bus.$off('scrollbar_change', updateScrollbar)
+  window.removeEventListener('resize', onResize)
+})
 </script>
 
 <style lang="less" scoped>

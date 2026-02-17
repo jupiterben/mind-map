@@ -12,7 +12,7 @@
           <div class="rowItem">
             <!-- <span class="name">{{ $t('style.fontFamily') }}</span> -->
             <el-select
-              size="mini"
+              size="small"
               style="width: 100px"
               v-model="style.fontFamily"
               placeholder=""
@@ -31,7 +31,7 @@
           <div class="rowItem">
             <!-- <span class="name">{{ $t('style.fontSize') }}</span> -->
             <el-select
-              size="mini"
+              size="small"
               style="width: 60px"
               v-model="style.fontSize"
               placeholder=""
@@ -49,7 +49,7 @@
           </div>
           <div class="rowItem">
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.textAlign"
               placeholder=""
@@ -67,15 +67,20 @@
         </div>
         <div class="row">
           <div class="btnGroup">
-            <el-tooltip :content="$t('style.color')" placement="bottom">
-              <div class="styleBtn" v-popover:popover>
-                A
-                <span
-                  class="colorShow"
-                  :style="{ backgroundColor: style.color || '#eee' }"
-                ></span>
-              </div>
-            </el-tooltip>
+            <el-popover ref="popover" placement="bottom" trigger="hover">
+              <template #reference>
+                <el-tooltip :content="$t('style.color')" placement="bottom">
+                  <div class="styleBtn">
+                    A
+                    <span
+                      class="colorShow"
+                      :style="{ backgroundColor: style.color || '#eee' }"
+                    ></span>
+                  </div>
+                </el-tooltip>
+              </template>
+              <Color :color="style.color" @change="changeFontColor"></Color>
+            </el-popover>
             <el-tooltip :content="$t('style.addFontWeight')" placement="bottom">
               <div
                 class="styleBtn"
@@ -98,54 +103,53 @@
                 I
               </div>
             </el-tooltip>
-            <el-tooltip
-              :content="$t('style.textDecoration')"
-              placement="bottom"
-            >
-              <div
-                class="styleBtn u"
-                :style="{ textDecoration: style.textDecoration || 'none' }"
-                v-popover:popover2
+            <el-popover ref="popover2" placement="bottom" trigger="hover">
+              <template #reference>
+                <el-tooltip
+                  :content="$t('style.textDecoration')"
+                  placement="bottom"
+                >
+                  <div
+                    class="styleBtn u"
+                    :style="{ textDecoration: style.textDecoration || 'none' }"
+                  >
+                    U
+                  </div>
+                </el-tooltip>
+              </template>
+              <el-radio-group
+                size="small"
+                v-model="style.textDecoration"
+                @change="update('textDecoration')"
               >
-                U
-              </div>
-            </el-tooltip>
+                <el-radio-button value="none">{{
+                  $t('style.none')
+                }}</el-radio-button>
+                <el-radio-button value="underline">{{
+                  $t('style.underline')
+                }}</el-radio-button>
+                <el-radio-button value="line-through">{{
+                  $t('style.lineThrough')
+                }}</el-radio-button>
+                <el-radio-button value="overline">{{
+                  $t('style.overline')
+                }}</el-radio-button>
+              </el-radio-group>
+            </el-popover>
           </div>
-          <el-popover ref="popover" placement="bottom" trigger="hover">
-            <Color :color="style.color" @change="changeFontColor"></Color>
-          </el-popover>
-          <el-popover ref="popover2" placement="bottom" trigger="hover">
-            <el-radio-group
-              size="mini"
-              v-model="style.textDecoration"
-              @change="update('textDecoration')"
-            >
-              <el-radio-button label="none">{{
-                $t('style.none')
-              }}</el-radio-button>
-              <el-radio-button label="underline">{{
-                $t('style.underline')
-              }}</el-radio-button>
-              <el-radio-button label="line-through">{{
-                $t('style.lineThrough')
-              }}</el-radio-button>
-              <el-radio-button label="overline">{{
-                $t('style.overline')
-              }}</el-radio-button>
-            </el-radio-group>
-          </el-popover>
         </div>
         <!-- 边框 -->
         <div class="title">{{ $t('style.border') }}</div>
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('style.color') }}</span>
-            <span
-              class="block"
-              v-popover:popover3
-              :style="{ width: '80px', backgroundColor: style.borderColor }"
-            ></span>
             <el-popover ref="popover3" placement="bottom" trigger="hover">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ width: '80px', backgroundColor: style.borderColor }"
+                ></span>
+              </template>
               <Color
                 :color="style.borderColor"
                 @change="changeBorderColor"
@@ -155,7 +159,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('style.style') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.borderDasharray"
               placeholder=""
@@ -192,7 +196,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('style.width') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.borderWidth"
               placeholder=""
@@ -216,7 +220,7 @@
           <div class="rowItem" v-show="style.shape === 'rectangle'">
             <span class="name">{{ $t('style.borderRadius') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.borderRadius"
               placeholder=""
@@ -237,12 +241,13 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('style.color') }}</span>
-            <span
-              class="block"
-              v-popover:popover4
-              :style="{ backgroundColor: style.fillColor }"
-            ></span>
             <el-popover ref="popover4" placement="bottom" trigger="hover">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: style.fillColor }"
+                ></span>
+              </template>
               <Color :color="style.fillColor" @change="changeFillColor"></Color>
             </el-popover>
             <span class="name" style="margin-left: 20px;">{{
@@ -257,12 +262,13 @@
         <div class="row" v-if="style.gradientStyle">
           <div class="rowItem">
             <span class="name">{{ $t('style.startColor') }}</span>
-            <span
-              class="block"
-              v-popover:popover6
-              :style="{ backgroundColor: style.startColor }"
-            ></span>
             <el-popover ref="popover6" placement="bottom" trigger="hover">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: style.startColor }"
+                ></span>
+              </template>
               <Color
                 :color="style.startColor"
                 @change="changeStartColor"
@@ -271,19 +277,20 @@
           </div>
           <div class="rowItem">
             <span class="name">{{ $t('style.endColor') }}</span>
-            <span
-              class="block"
-              v-popover:popover7
-              :style="{ backgroundColor: style.endColor }"
-            ></span>
             <el-popover ref="popover7" placement="bottom" trigger="hover">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ backgroundColor: style.endColor }"
+                ></span>
+              </template>
               <Color :color="style.endColor" @change="changeEndColor"></Color>
             </el-popover>
           </div>
           <div class="rowItem">
             <span class="name">{{ $t('style.direction') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.linearGradientDir"
               placeholder=""
@@ -305,7 +312,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('style.shape') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 120px"
               v-model="style.shape"
               placeholder=""
@@ -345,19 +352,20 @@
         <div class="row">
           <div class="rowItem">
             <span class="name">{{ $t('style.color') }}</span>
-            <span
-              class="block"
-              v-popover:popover5
-              :style="{ width: '80px', backgroundColor: style.lineColor }"
-            ></span>
             <el-popover ref="popover5" placement="bottom" trigger="hover">
+              <template #reference>
+                <span
+                  class="block"
+                  :style="{ width: '80px', backgroundColor: style.lineColor }"
+                ></span>
+              </template>
               <Color :color="style.lineColor" @change="changeLineColor"></Color>
             </el-popover>
           </div>
           <div class="rowItem">
             <span class="name">{{ $t('style.style') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.lineDasharray"
               placeholder=""
@@ -394,7 +402,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('style.width') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.lineWidth"
               placeholder=""
@@ -418,7 +426,7 @@
           <div class="rowItem">
             <span class="name">{{ $t('style.arrowDir') }}</span>
             <el-select
-              size="mini"
+              size="small"
               style="width: 80px"
               v-model="style.lineMarkerDir"
               placeholder=""
@@ -466,19 +474,19 @@
             <span class="name">{{ $t('style.placement') }}</span>
             <el-radio-group
               v-model="style.imgPlacement"
-              size="mini"
+              size="small"
               @change="update('imgPlacement')"
             >
-              <el-radio-button label="top">{{
+              <el-radio-button value="top">{{
                 $t('style.top')
               }}</el-radio-button>
-              <el-radio-button label="bottom">{{
+              <el-radio-button value="bottom">{{
                 $t('style.bottom')
               }}</el-radio-button>
-              <el-radio-button label="left">{{
+              <el-radio-button value="left">{{
                 $t('style.left')
               }}</el-radio-button>
-              <el-radio-button label="right">{{
+              <el-radio-button value="right">{{
                 $t('style.right')
               }}</el-radio-button>
             </el-radio-group>
@@ -491,13 +499,13 @@
             <span class="name">{{ $t('style.placement') }}</span>
             <el-radio-group
               v-model="style.tagPlacement"
-              size="mini"
+              size="small"
               @change="update('tagPlacement')"
             >
-              <el-radio-button label="right">{{
+              <el-radio-button value="right">{{
                 $t('style.right')
               }}</el-radio-button>
-              <el-radio-button label="bottom">{{
+              <el-radio-button value="bottom">{{
                 $t('style.bottom')
               }}</el-radio-button>
             </el-radio-group>
@@ -527,6 +535,7 @@ import {
   alignList
 } from '@/config'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 
 // 节点样式设置
 export default {
@@ -579,6 +588,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     fontFamilyList() {
       return fontFamilyList[this.$i18n?.locale?.value ?? this.$i18n?.locale] || fontFamilyList.zh
     },

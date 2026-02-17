@@ -1,5 +1,5 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('theme.title')">
+  <Sidebar ref="sidebarRef" :title="t('theme.title')">
     <div class="themeGroupList" :class="{ isDark: isDark }">
       <el-tabs v-model="activeName" class="tabBox">
         <el-tab-pane
@@ -27,176 +27,144 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { ElMessageBox } from 'element-plus'
 import Sidebar from './Sidebar.vue'
 import { storeData } from '@/api'
-import { storeMixin } from '@/mixins/storeMixin'
 import themeImgMap from 'simple-mind-map-plugin-themes/themeImgMap'
 import themeList from 'simple-mind-map-plugin-themes/themeList'
 
-// 主题
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  props: {
-    data: {
-      type: [Object, null],
-      default: null
-    },
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      themeList: [
-        {
-          name: '默认主题',
-          value: 'default',
-          dark: false
-        },
-        ...themeList
-      ].reverse(),
-      themeImgMap,
-      theme: '',
-      activeName: '',
-      defaultGroupList: []
-    }
-  },
-  computed: {
-    groupList() {
-      return [...this.defaultGroupList, ...this.extendThemeGroupList]
-    },
+const props = defineProps<{
+  data: { theme?: { config?: Record<string, unknown> } } | null
+  mindMap: {
+    getTheme: () => string
+    setTheme: (t: string) => void
+    setThemeConfig: (c: Record<string, unknown>, clear?: boolean) => void
+    getCustomThemeConfig: () => Record<string, unknown>
+    on: (e: string, fn: () => void) => void
+    off: (e: string, fn: () => void) => void
+  }
+}>()
+const { t } = useI18n()
+const store = useStore()
+const { isDark, extendThemeGroupList, activeSidebar } = storeToRefs(store)
+const { setLocalConfig } = store
+const bus = getBus()
 
-    currentList() {
-      return this.groupList.find(item => {
-        return item.name === this.activeName
-      }).list
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const themeListAll = ref([
+  { name: '默认主题', value: 'default', dark: false },
+  ...themeList
+].reverse())
+const theme = ref('')
+const activeName = ref('')
+const defaultGroupList = ref<{ name: string; list: { value: string; name: string; img?: string; dark?: boolean }[] }[]>([])
+
+const groupList = computed(() => [...defaultGroupList.value, ...extendThemeGroupList.value])
+
+const currentList = computed(() => {
+  const g = groupList.value.find((item) => item.name === activeName.value)
+  return g?.list ?? []
+})
+
+function handleViewThemeChange() {
+  theme.value = props.mindMap.getTheme()
+  handleDark()
+}
+
+function initGroup() {
+  const baiduThemes = [
+    'default', 'skyGreen', 'classic2', 'classic3', 'classicGreen', 'classicBlue',
+    'blueSky', 'brainImpairedPink', 'earthYellow', 'freshGreen', 'freshRed',
+    'romanticPurple', 'pinkGrape', 'mint'
+  ]
+  const baiduList: { value: string; name: string; img?: string; dark?: boolean }[] = []
+  const classicsList: { value: string; name: string; img?: string; dark?: boolean }[] = []
+  themeListAll.value.forEach((item) => {
+    if (baiduThemes.includes(item.value)) {
+      baiduList.push(item)
+    } else if (!item.dark) {
+      classicsList.push(item)
     }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'theme') {
-        this.theme = this.mindMap.getTheme()
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
+  })
+  defaultGroupList.value = [
+    { name: t('theme.classics'), list: classicsList },
+    { name: t('theme.dark'), list: themeListAll.value.filter((i) => i.dark) },
+    { name: t('theme.simple'), list: baiduList }
+  ]
+  activeName.value = defaultGroupList.value[0]?.name ?? ''
+}
+
+function useTheme(item: { value: string }) {
+  if (item.value === theme.value) return
+  theme.value = item.value
+  handleDark()
+  const customThemeConfig = props.mindMap.getCustomThemeConfig()
+  const hasCustomThemeConfig = Object.keys(customThemeConfig).length > 0
+  if (hasCustomThemeConfig) {
+    ElMessageBox.confirm(t('theme.coverTip'), t('theme.tip'), {
+      confirmButtonText: t('theme.cover'),
+      cancelButtonText: t('theme.reserve'),
+      type: 'warning',
+      distinguishCancelAndClose: true
+    }).then((action) => {
+      if (action === 'confirm') {
+        props.mindMap.setThemeConfig({}, true)
+        if (props.data?.theme) props.data.theme.config = {}
+        changeTheme(item, {})
+      } else if (action === 'cancel') {
+        changeTheme(item, customThemeConfig)
       }
-    }
-  },
-  created() {
-    this.initGroup()
-    this.theme = this.mindMap.getTheme()
-    this.mindMap.on('view_theme_change', this.handleViewThemeChange)
-  },
-  beforeUnmount() {
-    this.mindMap.off('view_theme_change', this.handleViewThemeChange)
-  },
-  methods: {
-    handleViewThemeChange() {
-      this.theme = this.mindMap.getTheme()
-      this.handleDark()
-    },
-
-    initGroup() {
-      const baiduThemes = [
-        'default',
-        'skyGreen',
-        'classic2',
-        'classic3',
-        'classicGreen',
-        'classicBlue',
-        'blueSky',
-        'brainImpairedPink',
-        'earthYellow',
-        'freshGreen',
-        'freshRed',
-        'romanticPurple',
-        'pinkGrape',
-        'mint'
-      ]
-      const baiduList = []
-      const classicsList = []
-      this.themeList.forEach(item => {
-        if (baiduThemes.includes(item.value)) {
-          baiduList.push(item)
-        } else if (!item.dark) {
-          classicsList.push(item)
-        }
-      })
-      this.defaultGroupList = [
-        {
-          name: this.$t('theme.classics'),
-          list: classicsList
-        },
-        {
-          name: this.$t('theme.dark'),
-          list: this.themeList.filter(item => {
-            return item.dark
-          })
-        },
-        {
-          name: this.$t('theme.simple'),
-          list: baiduList
-        }
-      ]
-      this.activeName = this.defaultGroupList[0].name
-    },
-
-    useTheme(theme) {
-      if (theme.value === this.theme) return
-      this.theme = theme.value
-      this.handleDark()
-      const customThemeConfig = this.mindMap.getCustomThemeConfig()
-      const hasCustomThemeConfig = Object.keys(customThemeConfig).length > 0
-      if (hasCustomThemeConfig) {
-        this.$confirm(this.$t('theme.coverTip'), this.$t('theme.tip'), {
-          confirmButtonText: this.$t('theme.cover'),
-          cancelButtonText: this.$t('theme.reserve'),
-          type: 'warning',
-          distinguishCancelAndClose: true,
-          callback: action => {
-            if (action === 'confirm') {
-              this.mindMap.setThemeConfig({}, true)
-              this.data.theme.config = {}
-              this.changeTheme(theme, {})
-            } else if (action === 'cancel') {
-              this.changeTheme(theme, customThemeConfig)
-            }
-          }
-        })
-      } else {
-        this.changeTheme(theme, customThemeConfig)
-      }
-    },
-
-    changeTheme(theme, config) {
-      this.$bus.$emit('showLoading')
-      this.mindMap.setTheme(theme.value)
-      storeData({
-        theme: {
-          template: theme.value,
-          config
-        }
-      })
-    },
-
-    handleDark() {
-      const extendThemeList = []
-      this.extendThemeGroupList.forEach(group => {
-        extendThemeList.push(...group.list)
-      })
-      let target = [...this.themeList, ...extendThemeList].find(item => {
-        return item.value === this.theme
-      })
-      this.setLocalConfig({
-        isDark: target.dark
-      })
-    }
+    }).catch(() => {})
+  } else {
+    changeTheme(item, customThemeConfig)
   }
 }
+
+function changeTheme(
+  themeItem: { value: string },
+  config: Record<string, unknown>
+) {
+  bus.$emit('showLoading')
+  props.mindMap.setTheme(themeItem.value)
+  storeData({ theme: { template: themeItem.value, config } })
+}
+
+function handleDark() {
+  const extendThemeList: { value: string; dark?: boolean }[] = []
+  extendThemeGroupList.value.forEach((group) => {
+    extendThemeList.push(...group.list)
+  })
+  const target = [...themeListAll.value, ...extendThemeList].find(
+    (item) => item.value === theme.value
+  )
+  setLocalConfig({ isDark: !!target?.dark })
+}
+
+watch(activeSidebar, (val) => {
+  if (sidebarRef.value) {
+    if (val === 'theme') {
+      theme.value = props.mindMap.getTheme()
+      sidebarRef.value.show = true
+    } else {
+      sidebarRef.value.show = false
+    }
+  }
+})
+
+onMounted(() => {
+  initGroup()
+  theme.value = props.mindMap.getTheme()
+  props.mindMap.on('view_theme_change', handleViewThemeChange)
+})
+onBeforeUnmount(() => {
+  props.mindMap.off('view_theme_change', handleViewThemeChange)
+})
 </script>
 
 <style lang="less" scoped>
@@ -215,7 +183,7 @@ export default {
   .tabBox {
     flex-shrink: 0;
 
-    /deep/ .el-tabs__nav-wrap {
+    :deep(.el-tabs__nav-wrap) {
       display: flex;
       justify-content: center;
     }

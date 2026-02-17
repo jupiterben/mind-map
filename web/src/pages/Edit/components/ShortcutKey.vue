@@ -1,5 +1,5 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('shortcutKey.title')">
+  <Sidebar ref="sidebarRef" :title="t('shortcutKey.title')">
     <div class="box" :class="{ isDark: isDark }">
       <div v-for="item in shortcutKeyList" :key="item.type">
         <div class="title">{{ item.type }}</div>
@@ -19,36 +19,30 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 import Sidebar from './Sidebar.vue'
-import { shortcutKeyList } from '@/config'
-import { storeMixin } from '@/mixins/storeMixin'
+import { shortcutKeyList as shortcutKeyListConfig } from '@/config'
 
-// 快捷键
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  data() {
-    return {}
-  },
-  computed: {
-    shortcutKeyList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return shortcutKeyList[locale] || shortcutKeyList.zh
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'shortcutKey') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
+const { t, locale } = useI18n()
+const store = useStore()
+const { activeSidebar, isDark } = storeToRefs(store)
+
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+
+const shortcutKeyList = computed(() => {
+  const loc = locale?.value ?? locale
+  return (shortcutKeyListConfig as Record<string, { type: string; list: { value: string; name: string; icon?: string }[] }[]>)[loc as string] || (shortcutKeyListConfig as { zh: { type: string; list: { value: string; name: string; icon?: string }[] }[] }).zh
+})
+
+watch(activeSidebar, (val) => {
+  if (sidebarRef.value) {
+    sidebarRef.value.show = val === 'shortcutKey'
   }
-}
+})
 </script>
 
 <style lang="less" scoped>

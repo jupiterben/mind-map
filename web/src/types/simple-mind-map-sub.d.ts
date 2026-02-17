@@ -69,3 +69,5 @@ declare module 'simple-mind-map/package.json' {
   const pkg: { version: string }
   export default pkg
 }
+
+export {}

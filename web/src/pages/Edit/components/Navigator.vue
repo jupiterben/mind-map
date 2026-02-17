@@ -3,14 +3,14 @@
     v-if="showMiniMap"
     class="navigatorBox"
     :class="{ isDark: isDark }"
-    ref="navigatorBox"
+    ref="navigatorBoxRef"
     :style="{ width: width + 'px' }"
     @mousedown="onMousedown"
     @mousemove="onMousemove"
   >
     <div
       class="svgBox"
-      ref="svgBox"
+      ref="svgBoxRef"
       :style="{
         transform: `scale(${svgBoxScale})`,
         left: svgBoxLeft + 'px',
@@ -29,166 +29,159 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, reactive, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
 
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      showMiniMap: false,
-      timer: null,
-      boxWidth: 0,
-      boxHeight: 0,
-      svgBoxScale: 1,
-      svgBoxLeft: 0,
-      svgBoxTop: 0,
-      viewBoxStyle: {
-        left: 0,
-        top: 0,
-        bottom: 0,
-        right: 0
-      },
-      mindMapImg: '',
-      width: 0,
-      setSizeTimer: null,
-      withTransition: true
-    }
-  },
-  computed: {},
-  mounted() {
-    this.setSize()
-    window.addEventListener('resize', this.setSize)
-    this.$bus.$on('toggle_mini_map', this.toggle_mini_map)
-    this.$bus.$on('data_change', this.data_change)
-    this.$bus.$on('view_data_change', this.data_change)
-    this.$bus.$on('node_tree_render_end', this.data_change)
-    window.addEventListener('mouseup', this.onMouseup)
-    this.mindMap.on(
-      'mini_map_view_box_position_change',
-      this.onViewBoxPositionChange
-    )
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.setSize)
-    this.$bus.$off('toggle_mini_map', this.toggle_mini_map)
-    this.$bus.$off('data_change', this.data_change)
-    this.$bus.$off('view_data_change', this.data_change)
-    this.$bus.$off('node_tree_render_end', this.data_change)
-    window.removeEventListener('mouseup', this.onMouseup)
-    this.mindMap.off(
-      'mini_map_view_box_position_change',
-      this.onViewBoxPositionChange
-    )
-  },
-  methods: {
-    // 切换显示小地图
-    toggle_mini_map(show) {
-      this.showMiniMap = show
-      this.$nextTick(() => {
-        if (this.$refs.navigatorBox) {
-          this.init()
-        }
-        if (this.$refs.svgBox) {
-          this.drawMiniMap()
-        }
-      })
-    },
-
-    // 思维导图数据改变，更新小地图
-    data_change() {
-      if (!this.showMiniMap) {
-        return
+const props = defineProps<{
+  mindMap: {
+    miniMap: {
+      calculationMiniMap: (w: number, h: number) => {
+        getImgUrl: (cb: (img: string) => void) => void
+        viewBoxStyle: { left: number; right: number; top: number; bottom: number }
+        miniMapBoxScale: number
+        miniMapBoxLeft: number
+        miniMapBoxTop: number
       }
-      clearTimeout(this.timer)
-      this.timer = setTimeout(() => {
-        this.drawMiniMap()
-      }, 500)
-    },
-
-    // 计算容器宽度
-    setSize() {
-      clearTimeout(this.setSizeTimer)
-      this.setSizeTimer = setTimeout(() => {
-        this.width = Math.min(window.innerWidth - 80, 370)
-        this.$nextTick(() => {
-          if (this.showMiniMap) {
-            this.init()
-            this.drawMiniMap()
-          }
-        })
-      }, 300)
-    },
-
-    // 获取宽高
-    init() {
-      let { width, height } = this.$refs.navigatorBox.getBoundingClientRect()
-      this.boxWidth = width
-      this.boxHeight = height
-    },
-
-    // 渲染小地图
-    drawMiniMap() {
-      let {
-        getImgUrl,
-        viewBoxStyle,
-        miniMapBoxScale,
-        miniMapBoxLeft,
-        miniMapBoxTop
-      } = this.mindMap.miniMap.calculationMiniMap(this.boxWidth, this.boxHeight)
-      // 渲染到小地图
-      getImgUrl(img => {
-        this.mindMapImg = img
-      })
-      this.viewBoxStyle = viewBoxStyle
-      this.svgBoxScale = miniMapBoxScale
-      this.svgBoxLeft = miniMapBoxLeft
-      this.svgBoxTop = miniMapBoxTop
-    },
-
-    // 小地图鼠标按下事件
-    onMousedown(e) {
-      this.mindMap.miniMap.onMousedown(e)
-    },
-
-    // 小地图鼠标移动事件
-    onMousemove(e) {
-      this.mindMap.miniMap.onMousemove(e)
-    },
-
-    // 鼠标松开事件，最好绑定要window
-    onMouseup(e) {
-      if (!this.withTransition) {
-        this.withTransition = true
-      }
-      if (this.mindMap.miniMap) this.mindMap.miniMap.onMouseup(e)
-    },
-
-    // 视口框的鼠标按下事件
-    onViewBoxMousedown(e) {
-      this.mindMap.miniMap.onViewBoxMousedown(e)
-    },
-
-    // 视口框的鼠标移动事件
-    onViewBoxMousemove(e) {
-      this.mindMap.miniMap.onViewBoxMousemove(e)
-    },
-
-    // 视口框的位置大小改变了，需要更新
-    onViewBoxPositionChange({ left, right, top, bottom }) {
-      this.withTransition = false
-      this.viewBoxStyle.left = left
-      this.viewBoxStyle.right = right
-      this.viewBoxStyle.top = top
-      this.viewBoxStyle.bottom = bottom
+      onMousedown: (e: MouseEvent) => void
+      onMousemove: (e: MouseEvent) => void
+      onMouseup: (e: MouseEvent) => void
+      onViewBoxMousedown: (e: MouseEvent) => void
+      onViewBoxMousemove: (e: MouseEvent) => void
     }
+    on: (e: string, fn: (...args: unknown[]) => void) => void
+    off: (e: string, fn: (...args: unknown[]) => void) => void
   }
+}>()
+const store = useStore()
+const { isDark } = storeToRefs(store)
+const bus = getBus()
+
+const navigatorBoxRef = ref<HTMLElement | null>(null)
+const svgBoxRef = ref<HTMLElement | null>(null)
+const showMiniMap = ref(false)
+let timer: ReturnType<typeof setTimeout> | null = null
+const boxWidth = ref(0)
+const boxHeight = ref(0)
+const svgBoxScale = ref(1)
+const svgBoxLeft = ref(0)
+const svgBoxTop = ref(0)
+const viewBoxStyle = reactive({ left: 0, top: 0, bottom: 0, right: 0 })
+const mindMapImg = ref('')
+const width = ref(0)
+let setSizeTimer: ReturnType<typeof setTimeout> | null = null
+const withTransition = ref(true)
+
+function toggle_mini_map(show: boolean) {
+  showMiniMap.value = show
+  nextTick(() => {
+    if (navigatorBoxRef.value) init()
+    if (svgBoxRef.value) drawMiniMap()
+  })
 }
+
+function data_change() {
+  if (!showMiniMap.value) return
+  if (timer) clearTimeout(timer)
+  timer = setTimeout(() => {
+    drawMiniMap()
+  }, 500)
+}
+
+function setSize() {
+  if (setSizeTimer) clearTimeout(setSizeTimer)
+  setSizeTimer = setTimeout(() => {
+    width.value = Math.min(window.innerWidth - 80, 370)
+    nextTick(() => {
+      if (showMiniMap.value) {
+        init()
+        drawMiniMap()
+      }
+    })
+  }, 300)
+}
+
+function init() {
+  if (!navigatorBoxRef.value) return
+  const { width: w, height: h } = navigatorBoxRef.value.getBoundingClientRect()
+  boxWidth.value = w
+  boxHeight.value = h
+}
+
+function drawMiniMap() {
+  const result = props.mindMap.miniMap.calculationMiniMap(boxWidth.value, boxHeight.value)
+  result.getImgUrl((img) => {
+    mindMapImg.value = img
+  })
+  viewBoxStyle.left = result.viewBoxStyle.left
+  viewBoxStyle.right = result.viewBoxStyle.right
+  viewBoxStyle.top = result.viewBoxStyle.top
+  viewBoxStyle.bottom = result.viewBoxStyle.bottom
+  svgBoxScale.value = result.miniMapBoxScale
+  svgBoxLeft.value = result.miniMapBoxLeft
+  svgBoxTop.value = result.miniMapBoxTop
+}
+
+function onMousedown(e: MouseEvent) {
+  props.mindMap.miniMap.onMousedown(e)
+}
+
+function onMousemove(e: MouseEvent) {
+  props.mindMap.miniMap.onMousemove(e)
+}
+
+function onMouseup(e: MouseEvent) {
+  if (!withTransition.value) withTransition.value = true
+  if (props.mindMap.miniMap) props.mindMap.miniMap.onMouseup(e)
+}
+
+function onViewBoxMousedown(e: MouseEvent) {
+  props.mindMap.miniMap.onViewBoxMousedown(e)
+}
+
+function onViewBoxMousemove(e: MouseEvent) {
+  props.mindMap.miniMap.onViewBoxMousemove(e)
+}
+
+function onViewBoxPositionChange({
+  left,
+  right,
+  top,
+  bottom
+}: {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}) {
+  withTransition.value = false
+  viewBoxStyle.left = left
+  viewBoxStyle.right = right
+  viewBoxStyle.top = top
+  viewBoxStyle.bottom = bottom
+}
+
+onMounted(() => {
+  setSize()
+  window.addEventListener('resize', setSize)
+  bus.$on('toggle_mini_map', toggle_mini_map)
+  bus.$on('data_change', data_change)
+  bus.$on('view_data_change', data_change)
+  bus.$on('node_tree_render_end', data_change)
+  window.addEventListener('mouseup', onMouseup)
+  props.mindMap.on('mini_map_view_box_position_change', onViewBoxPositionChange)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', setSize)
+  bus.$off('toggle_mini_map', toggle_mini_map)
+  bus.$off('data_change', data_change)
+  bus.$off('view_data_change', data_change)
+  bus.$off('node_tree_render_end', data_change)
+  window.removeEventListener('mouseup', onMouseup)
+  props.mindMap.off('mini_map_view_box_position_change', onViewBoxPositionChange)
+})
 </script>
 
 <style lang="less" scoped>

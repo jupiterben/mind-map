@@ -10,57 +10,53 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElLoading } from 'element-plus'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
+import { getLocalConfig } from '@/api'
 import Toolbar from './components/Toolbar.vue'
 import Edit from './components/Edit.vue'
-import { storeMixin } from '@/mixins/storeMixin'
-import { getLocalConfig } from '@/api'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Toolbar,
-    Edit
-  },
-  data() {
-    return {
-      show: false
-    }
-  },
-  computed: {},
-  watch: {
-    isDark() {
-      this.setBodyDark()
-    }
-  },
-  async created() {
-    this.initLocalConfig()
-    const loading = this.$loading({
-      lock: true,
-      text: this.$t('other.loading')
+const store = useStore()
+const { isDark, isZenMode, activeSidebar } = storeToRefs(store)
+const { setLocalConfig } = store
+const { t } = useI18n()
+
+const show = ref(false)
+
+function initLocalConfig() {
+  const config = getLocalConfig()
+  if (config) {
+    setLocalConfig({
+      ...store.localConfig,
+      ...config
     })
-    this.show = true
-    loading.close()
-    this.setBodyDark()
-  },
-  methods: {
-    initLocalConfig() {
-      let config = getLocalConfig()
-      if (config) {
-        this.setLocalConfig({
-          ...this.localConfig,
-          ...config
-        })
-      }
-    },
-
-    setBodyDark() {
-      this.isDark
-        ? document.body.classList.add('isDark')
-        : document.body.classList.remove('isDark')
-    }
   }
 }
+
+function setBodyDark() {
+  if (isDark.value) {
+    document.body.classList.add('isDark')
+  } else {
+    document.body.classList.remove('isDark')
+  }
+}
+
+watch(isDark, setBodyDark)
+
+onMounted(async () => {
+  initLocalConfig()
+  const loading = ElLoading.service({
+    lock: true,
+    text: t('other.loading')
+  })
+  show.value = true
+  loading.close()
+  setBodyDark()
+})
 </script>
 
 <style lang="less">

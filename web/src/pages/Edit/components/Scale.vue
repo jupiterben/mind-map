@@ -3,7 +3,7 @@
     <el-tooltip
       class="item"
       effect="dark"
-      :content="$t('scale.zoomOut')"
+      :content="t('scale.zoomOut')"
       placement="top"
     >
       <div class="btn el-icon-minus" @click="narrow"></div>
@@ -23,7 +23,7 @@
     <el-tooltip
       class="item"
       effect="dark"
-      :content="$t('scale.zoomIn')"
+      :content="t('scale.zoomIn')"
       placement="top"
     >
       <div class="btn el-icon-plus" @click="enlarge"></div>
@@ -31,83 +31,86 @@
   </div>
 </template>
 
-<script>
-// 放大缩小
-export default {
-  props: {
-    mindMap: {
-      type: Object
-    },
-    isDark: {
-      type: Boolean
-    }
-  },
-  data() {
-    return {
-      scaleNum: 100,
-      cacheScaleNum: 0
-    }
-  },
-  watch: {
-    mindMap(val, oldVal) {
-      if (val && !oldVal) {
-        this.mindMap.on('scale', this.onScale)
-        this.mindMap.on('draw_click', this.onDrawClick)
-        this.scaleNum = this.toPer(this.mindMap.view.scale)
-      }
-    }
-  },
-  beforeUnmount() {
-    this.mindMap.off('scale', this.onScale)
-    this.mindMap.off('draw_click', this.onDrawClick)
-  },
-  methods: {
-    // 转换成百分数
-    toPer(scale) {
-      return (scale * 100).toFixed(0)
-    },
+<script setup lang="ts">
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-    // 缩小
-    narrow() {
-      this.mindMap.view.narrow()
-    },
+interface MindMapProp {
+  view: { scale: number; narrow: () => void; enlarge: () => void; setScale: (s: number, x: number, y: number) => void }
+  on: (e: string, fn: (...args: unknown[]) => void) => void
+  off: (e: string, fn: (...args: unknown[]) => void) => void
+  width: number
+  height: number
+}
+const props = defineProps<{
+  mindMap: MindMapProp
+  isDark?: boolean
+}>()
+const { t } = useI18n()
 
-    // 放大
-    enlarge() {
-      this.mindMap.view.enlarge()
-    },
+const inputRef = ref<HTMLInputElement | null>(null)
+const scaleNum = ref('100')
+const cacheScaleNum = ref('100')
 
-    // 聚焦时缓存当前缩放倍数
-    onScaleNumInputFocus() {
-      this.cacheScaleNum = this.scaleNum
-    },
+function toPer(scale: number) {
+  return (scale * 100).toFixed(0)
+}
 
-    // 禁止输入非数字
-    onScaleNumInput() {
-      this.scaleNum = this.scaleNum.replace(/[^0-9]+/g, '')
-    },
+function narrow() {
+  props.mindMap.view.narrow()
+}
 
-    // 手动输入缩放倍数
-    onScaleNumChange() {
-      const scaleNum = Number(this.scaleNum)
-      if (Number.isNaN(scaleNum) || scaleNum <= 0) {
-        this.scaleNum = this.cacheScaleNum
-      } else {
-        const cx = this.mindMap.width / 2
-        const cy = this.mindMap.height / 2
-        this.mindMap.view.setScale(this.scaleNum / 100, cx, cy)
-      }
-    },
+function enlarge() {
+  props.mindMap.view.enlarge()
+}
 
-    onScale(scale) {
-      this.scaleNum = this.toPer(scale)
-    },
+function onScaleNumInputFocus() {
+  cacheScaleNum.value = scaleNum.value
+}
 
-    onDrawClick() {
-      if (this.$refs.inputRef) this.$refs.inputRef.blur()
-    }
+function onScaleNumInput() {
+  scaleNum.value = scaleNum.value.replace(/[^0-9]+/g, '')
+}
+
+function onScaleNumChange() {
+  const num = Number(scaleNum.value)
+  if (Number.isNaN(num) || num <= 0) {
+    scaleNum.value = cacheScaleNum.value
+  } else {
+    const cx = props.mindMap.width / 2
+    const cy = props.mindMap.height / 2
+    props.mindMap.view.setScale(num / 100, cx, cy)
   }
 }
+
+function onScale(scale: number) {
+  scaleNum.value = toPer(scale)
+}
+
+function onDrawClick() {
+  nextTick(() => {
+    if (inputRef.value) inputRef.value.blur()
+  })
+}
+
+watch(
+  () => props.mindMap,
+  (val, oldVal) => {
+    if (val && !oldVal) {
+      val.on('scale', onScale)
+      val.on('draw_click', onDrawClick)
+      scaleNum.value = toPer(val.view.scale)
+    }
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(() => {
+  if (props.mindMap) {
+    props.mindMap.off('scale', onScale)
+    props.mindMap.off('draw_click', onDrawClick)
+  }
+})
 </script>
 
 <style lang="less" scoped>

@@ -33,7 +33,7 @@
             <div class="rowItem">
               <span class="name">{{ $t('baseStyle.imageRepeat') }}</span>
               <el-select
-                size="mini"
+                size="small"
                 style="width: 120px"
                 v-model="style.backgroundRepeat"
                 placeholder=""
@@ -56,7 +56,7 @@
             <div class="rowItem">
               <span class="name">{{ $t('baseStyle.imagePosition') }}</span>
               <el-select
-                size="mini"
+                size="small"
                 style="width: 120px"
                 v-model="style.backgroundPosition"
                 placeholder=""
@@ -79,7 +79,7 @@
             <div class="rowItem">
               <span class="name">{{ $t('baseStyle.imageSize') }}</span>
               <el-select
-                size="mini"
+                size="small"
                 style="width: 120px"
                 v-model="style.backgroundSize"
                 placeholder=""
@@ -102,7 +102,7 @@
             <div
               class="rowItem spaceBetween"
               style="margin-top: 8px; margin-bottom: 8px;"
-              v-if="bgList.length > 0"
+              v-if="(bgList || []).length > 0"
             >
               <div class="name">{{ $t('baseStyle.builtInBackgroundImage') }}</div>
               <div
@@ -114,7 +114,7 @@
             <div class="bgList" :class="{ expand: bgListExpand }">
               <div
                 class="bgItem"
-                v-for="(item, index) in bgList"
+                v-for="(item, index) in (bgList || [])"
                 :key="index"
                 :class="{active: style.backgroundImage === item}"
                 @click="useBg(item)"
@@ -130,12 +130,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.color') }}</span>
-          <span
-            class="block"
-            v-popover:popover
-            :style="{ backgroundColor: style.lineColor }"
-          ></span>
           <el-popover ref="popover" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.lineColor }"
+              ></span>
+            </template>
             <Color
               :color="style.lineColor"
               @change="
@@ -149,7 +150,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.width') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.lineWidth"
             placeholder=""
@@ -180,7 +181,7 @@
         <div class="rowItem" v-if="lineStyleListShow.length > 1">
           <span class="name">{{ $t('baseStyle.style') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.lineStyle"
             placeholder=""
@@ -214,7 +215,7 @@
         >
           <span class="name">{{ $t('baseStyle.rootStyle') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.rootLineKeepSameInCurve"
             placeholder=""
@@ -237,7 +238,7 @@
           <!-- 连线圆角大小 -->
           <span class="name">{{ $t('baseStyle.lineRadius') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.lineRadius"
             placeholder=""
@@ -267,7 +268,7 @@
         >
           <span class="name">{{ $t('baseStyle.rootLineStartPos') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.rootLineStartPositionKeepSameInCurve"
             placeholder=""
@@ -310,38 +311,42 @@
             trigger="click"
             v-model="rainbowLinesPopoverVisible"
           >
-            <div class="rainbowLinesOptionsBox" :class="{ isDark: isDark }">
-              <div
-                class="optionItem"
-                v-for="item in rainbowLinesOptions"
-                :key="item.value"
-              >
+            <template #default>
+              <div class="rainbowLinesOptionsBox" :class="{ isDark: isDark }">
                 <div
-                  class="colorsBar"
-                  v-if="item.list"
-                  @click="updateRainbowLinesConfig(item)"
+                  class="optionItem"
+                  v-for="item in rainbowLinesOptions"
+                  :key="item.value"
                 >
+                  <div
+                    class="colorsBar"
+                    v-if="item.list"
+                    @click="updateRainbowLinesConfig(item)"
+                  >
+                    <span
+                      class="colorItem"
+                      v-for="color in item.list"
+                      :style="{ backgroundColor: color }"
+                    ></span>
+                  </div>
+                  <span v-else @click="updateRainbowLinesConfig(item)">{{
+                    $t('baseStyle.notUseRainbowLines')
+                  }}</span>
+                </div>
+              </div>
+            </template>
+            <template #reference>
+              <div class="curRainbowLine">
+                <div class="colorsBar" v-if="curRainbowLineColorList">
                   <span
                     class="colorItem"
-                    v-for="color in item.list"
+                    v-for="color in curRainbowLineColorList"
                     :style="{ backgroundColor: color }"
                   ></span>
                 </div>
-                <span v-else @click="updateRainbowLinesConfig(item)">{{
-                  $t('baseStyle.notUseRainbowLines')
-                }}</span>
+                <span v-else>{{ $t('baseStyle.notUseRainbowLines') }}</span>
               </div>
-            </div>
-            <div slot="reference" class="curRainbowLine">
-              <div class="colorsBar" v-if="curRainbowLineColorList">
-                <span
-                  class="colorItem"
-                  v-for="color in curRainbowLineColorList"
-                  :style="{ backgroundColor: color }"
-                ></span>
-              </div>
-              <span v-else>{{ $t('baseStyle.notUseRainbowLines') }}</span>
-            </div>
+            </template>
           </el-popover>
         </div>
       </div>
@@ -350,12 +355,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.color') }}</span>
-          <span
-            class="block"
-            v-popover:popover2
-            :style="{ backgroundColor: style.generalizationLineColor }"
-          ></span>
           <el-popover ref="popover2" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.generalizationLineColor }"
+              ></span>
+            </template>
             <Color
               :color="style.generalizationLineColor"
               @change="
@@ -369,7 +375,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.width') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.generalizationLineWidth"
             placeholder=""
@@ -400,12 +406,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.associativeLineColor') }}</span>
-          <span
-            class="block"
-            v-popover:popover4
-            :style="{ backgroundColor: style.associativeLineColor }"
-          ></span>
           <el-popover ref="popover4" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineColor"
               @change="
@@ -419,7 +426,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.associativeLineWidth') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineWidth"
             placeholder=""
@@ -450,12 +457,13 @@
           <span class="name">{{
             $t('baseStyle.associativeLineActiveColor')
           }}</span>
-          <span
-            class="block"
-            v-popover:popover5
-            :style="{ backgroundColor: style.associativeLineActiveColor }"
-          ></span>
           <el-popover ref="popover5" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineActiveColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineActiveColor"
               @change="
@@ -471,7 +479,7 @@
             $t('baseStyle.associativeLineActiveWidth')
           }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineActiveWidth"
             placeholder=""
@@ -501,7 +509,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('style.style') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineDasharray"
             placeholder=""
@@ -544,7 +552,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.fontFamily') }}</span>
           <el-select
-            size="mini"
+            size="small"
             v-model="style.associativeLineTextFontFamily"
             placeholder=""
             @change="update('associativeLineTextFontFamily', $event)"
@@ -563,12 +571,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.color') }}</span>
-          <span
-            class="block"
-            v-popover:popover6
-            :style="{ backgroundColor: style.associativeLineTextColor }"
-          ></span>
           <el-popover ref="popover6" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineTextColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineTextColor"
               @change="
@@ -582,7 +591,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.fontSize') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineTextFontSize"
             placeholder=""
@@ -794,6 +803,7 @@ import {
 import ImgUpload from '@/components/ImgUpload/index.vue'
 import { storeData, storeConfig } from '@/api'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import {
   supportLineStyleLayoutsMap,
   supportLineRadiusLayouts,
@@ -875,6 +885,12 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
+    bgList() {
+      return useStore().bgList ?? []
+    },
     lineStyleList() {
       const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       return lineStyleList[locale] || lineStyleList.zh

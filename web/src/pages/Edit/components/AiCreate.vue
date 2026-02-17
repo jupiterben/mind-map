@@ -18,7 +18,7 @@
           >、<a href="https://github.com/wanglin2/mind-map/releases">Github</a>
         </p>
         <p>{{ $t('ai.connectFailedCheckTip2') }}</p>
-        <P>{{ $t('ai.connectFailedCheckTip3') }}</P>
+        <p>{{ $t('ai.connectFailedCheckTip3') }}</p>
         <p>
           {{ $t('ai.connectFailedCheckTip4')
           }}<el-button size="small" @click="testConnect">{{
@@ -602,7 +602,7 @@ export default {
 <style lang="less" scoped>
 .clientTipDialog,
 .createDialog {
-  /deep/ .el-dialog__body {
+  :deep(.el-dialog__body) {
     padding: 12px 20px;
   }
 }

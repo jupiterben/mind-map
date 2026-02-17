@@ -2,11 +2,11 @@
   <Sidebar ref="sidebar" :title="$t('ai.chatTitle')">
     <div class="aiChatBox" :class="{ isDark: isDark }">
       <div class="chatHeader">
-        <el-button size="mini" @click="clear">
+        <el-button size="small" @click="clear">
           <span class="el-icon-delete"></span>
           {{ $t('ai.clearRecords') }}
         </el-button>
-        <el-button size="mini" @click="modifyAiConfig">
+        <el-button size="small" @click="modifyAiConfig">
           <span class="el-icon-edit"></span>
           {{ $t('ai.modifyAIConfiguration') }}
         </el-button>
@@ -39,13 +39,13 @@
           :placeholder="$t('ai.chatInputPlaceholder')"
           @keydown="onKeydown"
         ></textarea>
-        <el-button class="btn" size="mini" @click="send" :loading="isCreating">
+        <el-button class="btn" size="small" @click="send" :loading="isCreating">
           {{ $t('ai.send') }}
           <span class="el-icon-position"></span>
         </el-button>
         <el-button
           class="stop"
-          size="mini"
+          size="small"
           type="warning"
           @click="stop"
           v-show="isCreating"
@@ -60,6 +60,7 @@
 <script>
 import Sidebar from './Sidebar.vue'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 import { createUid } from 'simple-mind-map/src/utils'
 import MarkdownIt from 'markdown-it'
 
@@ -77,7 +78,11 @@ export default {
       isCreating: false
     }
   },
-  computed: {},
+  computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    }
+  },
   watch: {
     activeSidebar(val) {
       if (val === 'ai') {
@@ -253,7 +258,7 @@ export default {
           }
         }
 
-        /deep/ .content {
+        :deep(.content) {
           width: 100%;
           overflow: hidden;
           color: #3f4a54;

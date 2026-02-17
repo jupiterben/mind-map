@@ -3,7 +3,7 @@
     <el-tooltip
       class="item"
       effect="dark"
-      :content="$t('fullscreen.fullscreenShow')"
+      :content="t('fullscreen.fullscreenShow')"
       placement="top"
     >
       <div class="btn iconfont iconquanping" @click="toFullscreenShow"></div>
@@ -11,7 +11,7 @@
     <el-tooltip
       class="item"
       effect="dark"
-      :content="$t('fullscreen.fullscreenEdit')"
+      :content="t('fullscreen.fullscreenEdit')"
       placement="top"
     >
       <div class="btn iconfont iconquanping1" @click="toFullscreenEdit"></div>
@@ -19,40 +19,31 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fullscrrenEvent, fullScreen } from '@/utils'
 
-// 全屏
-export default {
-  props: {
-    mindMap: {
-      type: Object
-    },
-    isDark: {
-      type: Boolean
-    }
-  },
-  data() {
-    return {}
-  },
-  created() {
-    document[fullscrrenEvent] = () => {
-      setTimeout(() => {
-        this.mindMap.resize()
-      }, 1000)
-    }
-  },
-  methods: {
-    // 全屏查看
-    toFullscreenShow() {
-      fullScreen(this.mindMap.el)
-    },
+const props = defineProps<{
+  mindMap: { el: HTMLElement; resize: () => void }
+  isDark?: boolean
+}>()
+const { t } = useI18n()
 
-    // 全屏编辑
-    toFullscreenEdit() {
-      fullScreen(document.body)
-    }
+onMounted(() => {
+  document[fullscrrenEvent] = () => {
+    setTimeout(() => {
+      props.mindMap.resize()
+    }, 1000)
   }
+})
+
+function toFullscreenShow() {
+  fullScreen(props.mindMap.el)
+}
+
+function toFullscreenEdit() {
+  fullScreen(document.body)
 }
 </script>
 

@@ -5,12 +5,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.associativeLineColor') }}</span>
-          <span
-            class="block"
-            v-popover:popover4
-            :style="{ backgroundColor: style.associativeLineColor }"
-          ></span>
           <el-popover ref="popover4" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineColor"
               @change="
@@ -24,7 +25,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.associativeLineWidth') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineWidth"
             placeholder=""
@@ -55,12 +56,13 @@
           <span class="name">{{
             $t('baseStyle.associativeLineActiveColor')
           }}</span>
-          <span
-            class="block"
-            v-popover:popover5
-            :style="{ backgroundColor: style.associativeLineActiveColor }"
-          ></span>
           <el-popover ref="popover5" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineActiveColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineActiveColor"
               @change="
@@ -76,7 +78,7 @@
             $t('baseStyle.associativeLineActiveWidth')
           }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineActiveWidth"
             placeholder=""
@@ -106,7 +108,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('style.style') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineDasharray"
             placeholder=""
@@ -149,7 +151,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.fontFamily') }}</span>
           <el-select
-            size="mini"
+            size="small"
             v-model="style.associativeLineTextFontFamily"
             placeholder=""
             @change="update('associativeLineTextFontFamily', $event)"
@@ -168,12 +170,13 @@
       <div class="row">
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.color') }}</span>
-          <span
-            class="block"
-            v-popover:popover6
-            :style="{ backgroundColor: style.associativeLineTextColor }"
-          ></span>
           <el-popover ref="popover6" placement="bottom" trigger="click">
+            <template #reference>
+              <span
+                class="block"
+                :style="{ backgroundColor: style.associativeLineTextColor }"
+              ></span>
+            </template>
             <Color
               :color="style.associativeLineTextColor"
               @change="
@@ -187,7 +190,7 @@
         <div class="rowItem">
           <span class="name">{{ $t('baseStyle.fontSize') }}</span>
           <el-select
-            size="mini"
+            size="small"
             style="width: 80px"
             v-model="style.associativeLineTextFontSize"
             placeholder=""
@@ -218,6 +221,7 @@ import {
   borderDasharrayList
 } from '@/config'
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 
 const defaultStyle = {
   associativeLineColor: '',
@@ -253,6 +257,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     fontFamilyList() {
       const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
       return fontFamilyList[locale] || fontFamilyList.zh

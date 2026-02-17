@@ -132,8 +132,10 @@ export default {
     },
 
     initFormData() {
-      Object.keys(this.aiConfig).forEach(key => {
-        this.ruleForm[key] = this.aiConfig[key]
+      const config = this.aiConfig
+      if (!config || typeof config !== 'object') return
+      Object.keys(config).forEach(key => {
+        this.ruleForm[key] = config[key]
       })
     },
 
@@ -159,7 +161,7 @@ export default {
 
 <style lang="less" scoped>
 .aiConfigDialog {
-  /deep/ .el-dialog__body {
+  :deep(.el-dialog__body) {
     padding: 12px 20px;
   }
 

@@ -195,6 +195,7 @@
 
 <script>
 import { storeMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
 
 export default {
   mixins: [storeMixin],
@@ -222,6 +223,9 @@ export default {
     }
   },
   computed: {
+    isDark() {
+      return useStore().isDark ?? false
+    },
     hasRoot() {
       return (
         this.activeNodes.findIndex(node => {

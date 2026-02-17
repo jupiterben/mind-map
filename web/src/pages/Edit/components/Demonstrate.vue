@@ -3,7 +3,7 @@
     <el-tooltip
       class="item"
       effect="dark"
-      :content="$t('demonstrate.demonstrate')"
+      :content="t('demonstrate.demonstrate')"
       placement="top"
     >
       <div class="btn iconfont iconyanshibofang" @click="enterDemoMode"></div>
@@ -50,72 +50,77 @@
   </div>
 </template>
 
-<script>
-export default {
-  props: {
-    mindMap: {
-      type: Object
-    },
-    isDark: {
-      type: Boolean
+<script setup lang="ts">
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getBus } from '@/bus'
+
+const props = defineProps<{
+  mindMap: { demonstrate: { enter: () => void; exit: () => void; prev: () => void; next: () => void; jump: (n: number) => void } }
+  isDark?: boolean
+}>()
+const { t } = useI18n()
+const bus = getBus()
+
+const exitDemonstrateBtnRef = ref<HTMLElement | null>(null)
+const stepBoxRef = ref<HTMLElement | null>(null)
+const isEnterDemonstrate = ref(false)
+const curStepIndex = ref(0)
+const totalStep = ref(0)
+const inputStep = ref('')
+
+function enterDemoMode() {
+  isEnterDemonstrate.value = true
+  nextTick(() => {
+    const el = document.querySelector('#mindMapContainer')
+    if (el && exitDemonstrateBtnRef.value && stepBoxRef.value) {
+      el.appendChild(exitDemonstrateBtnRef.value)
+      el.appendChild(stepBoxRef.value)
     }
-  },
-  data() {
-    return {
-      isEnterDemonstrate: false,
-      curStepIndex: 0,
-      totalStep: 0,
-      inputStep: ''
-    }
-  },
-  created() {
-    this.$bus.$on('demonstrate_jump', this.onJump)
-    this.$bus.$on('exit_demonstrate', this.onExit)
-  },
-  methods: {
-    enterDemoMode() {
-      this.isEnterDemonstrate = true
-      this.$nextTick(() => {
-        const el = document.querySelector('#mindMapContainer')
-        el.appendChild(this.$refs.exitDemonstrateBtnRef)
-        el.appendChild(this.$refs.stepBoxRef)
-      })
-      this.mindMap.demonstrate.enter()
-    },
+    props.mindMap.demonstrate.enter()
+  })
+}
 
-    exit() {
-      this.mindMap.demonstrate.exit()
-    },
+function exit() {
+  props.mindMap.demonstrate.exit()
+}
 
-    onExit() {
-      this.isEnterDemonstrate = false
-      this.curStepIndex = 0
-      this.totalStep = 0
-    },
+function onExit() {
+  isEnterDemonstrate.value = false
+  curStepIndex.value = 0
+  totalStep.value = 0
+}
 
-    onJump(index, total) {
-      this.curStepIndex = index
-      this.totalStep = total
-    },
+function onJump(index: number, total: number) {
+  curStepIndex.value = index
+  totalStep.value = total
+}
 
-    prev() {
-      this.mindMap.demonstrate.prev()
-    },
+function prev() {
+  props.mindMap.demonstrate.prev()
+}
 
-    next() {
-      this.mindMap.demonstrate.next()
-    },
+function next() {
+  props.mindMap.demonstrate.next()
+}
 
-    onEnter() {
-      const num = Number(this.inputStep)
-      if (Number.isNaN(num)) {
-        this.inputStep = ''
-      } else if (num >= 1 && num <= this.totalStep) {
-        this.mindMap.demonstrate.jump(num - 1)
-      }
-    }
+function onEnter() {
+  const num = Number(inputStep.value)
+  if (Number.isNaN(num)) {
+    inputStep.value = ''
+  } else if (num >= 1 && num <= totalStep.value) {
+    props.mindMap.demonstrate.jump(num - 1)
   }
 }
+
+onMounted(() => {
+  bus.$on('demonstrate_jump', onJump)
+  bus.$on('exit_demonstrate', onExit)
+})
+onBeforeUnmount(() => {
+  bus.$off('demonstrate_jump', onJump)
+  bus.$off('exit_demonstrate', onExit)
+})
 </script>
 
 <style lang="less" scoped>

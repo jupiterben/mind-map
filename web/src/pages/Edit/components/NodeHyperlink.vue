@@ -10,7 +10,7 @@
       <span class="name">{{ $t('nodeHyperlink.link') }}</span>
       <el-input
         v-model="link"
-        size="mini"
+        size="small"
         placeholder="http://xxxx.com/"
         @keyup.native.stop
         @keydown.native.stop
@@ -27,7 +27,7 @@
       <span class="name">{{ $t('nodeHyperlink.name') }}</span>
       <el-input
         v-model="linkTitle"
-        size="mini"
+        size="small"
         @keyup.native.stop
         @keydown.native.stop
       ></el-input>

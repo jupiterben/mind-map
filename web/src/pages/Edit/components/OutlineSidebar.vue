@@ -1,10 +1,10 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('outline.title')">
+  <Sidebar ref="sidebarRef" :title="t('outline.title')">
     <div class="btnList">
       <el-tooltip
         class="item"
         effect="dark"
-        :content="$t('outline.print')"
+        :content="t('outline.print')"
         placement="top"
       >
         <div class="btn" @click="onPrint">
@@ -14,7 +14,7 @@
       <el-tooltip
         class="item"
         effect="dark"
-        :content="$t('outline.fullscreen')"
+        :content="t('outline.fullscreen')"
         placement="top"
       >
         <div
@@ -35,54 +35,50 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { storeToRefs } from 'pinia'
+import { useStore } from '@/store'
 import Sidebar from './Sidebar.vue'
-import { storeMixin } from '@/mixins/storeMixin'
 import Outline from './Outline.vue'
 import { printOutline } from '@/utils'
 
-// 大纲侧边栏
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar,
-    Outline
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  computed: {},
-  watch: {
-    activeSidebar(val) {
-      if (val === 'outline') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  methods: {
-    onChangeToOutlineEdit() {
-      this.setActiveSidebar(null)
-      this.setIsOutlineEdit(true)
-    },
+const props = defineProps<{
+  mindMap: unknown
+}>()
+const { t } = useI18n()
+const store = useStore()
+const { activeSidebar, isDark } = storeToRefs(store)
+const { setActiveSidebar, setIsOutlineEdit } = store
 
-    onScrollTo(y) {
-      let container = this.$refs.sidebar.getEl()
-      let height = container.offsetHeight
-      let top = container.scrollTop
-      if (y > top + height) {
-        container.scrollTo(0, y - height / 2)
-      }
-    },
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const outlineRef = ref<InstanceType<typeof Outline> | null>(null)
 
-    // 打印
-    onPrint() {
-      printOutline(this.$refs.outlineRef.$el)
-    }
+watch(activeSidebar, (val) => {
+  if (sidebarRef.value) {
+    sidebarRef.value.show = val === 'outline'
   }
+})
+
+function onChangeToOutlineEdit() {
+  setActiveSidebar(null)
+  setIsOutlineEdit(true)
+}
+
+function onScrollTo(y: number) {
+  const container = sidebarRef.value?.getEl()
+  if (!container) return
+  const height = container.offsetHeight
+  const top = container.scrollTop
+  if (y > top + height) {
+    container.scrollTo(0, y - height / 2)
+  }
+}
+
+function onPrint() {
+  const el = outlineRef.value && (outlineRef.value as { $el?: HTMLElement }).$el
+  if (el) printOutline(el)
 }
 </script>
 

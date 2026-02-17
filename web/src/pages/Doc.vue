@@ -1,4 +1,4 @@
-T<template>
+<template>
   <div class="doc">
     文档已迁移至：<a href="https://wanglin2.github.io/mind-map-docs/">新地址</a>
   </div>
