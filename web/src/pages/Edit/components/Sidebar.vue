@@ -56,6 +56,10 @@ function getEl() {
   return sidebarContentRef.value
 }
 
+function setShow(val: boolean) {
+  show.value = val
+}
+
 onMounted(() => {
   bus.$on('closeSideBar', handleCloseSidebar)
 })
@@ -63,7 +67,7 @@ onBeforeUnmount(() => {
   bus.$off('closeSideBar', handleCloseSidebar)
 })
 
-defineExpose({ show, getEl })
+defineExpose({ show, getEl, setShow })
 </script>
 
 <style lang="less" scoped>

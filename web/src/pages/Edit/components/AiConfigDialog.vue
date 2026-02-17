@@ -2,21 +2,15 @@
   <el-dialog
     class="aiConfigDialog"
     :title="$t('ai.AIConfiguration')"
-    :visible.sync="aiConfigDialogVisible"
+    v-model="aiConfigDialogVisible"
     width="550px"
     append-to-body
   >
     <div class="aiConfigBox">
-      <el-form
-        :model="ruleForm"
-        :rules="rules"
-        ref="ruleFormRef"
-        label-width="100px"
-      >
+      <el-form :model="ruleForm" :rules="rulesRef" ref="ruleFormRef" label-width="100px">
         <p class="title">{{ $t('ai.VolcanoArkLargeModelConfiguration') }}</p>
         <p class="desc">
-          {{ $t('ai.configTip') }}<a href="https://mp.weixin.qq.com/s/JNb7PH4sCjWzIZ9G8wStGQ" target="_blank">{{ $t('ai.course') }}</a
-          >。
+          {{ $t('ai.configTip') }}<a href="https://mp.weixin.qq.com/s/JNb7PH4sCjWzIZ9G8wStGQ" target="_blank">{{ $t('ai.course') }}</a>。
         </p>
         <el-form-item label="API Key" prop="key">
           <el-input v-model="ruleForm.key"></el-input>
@@ -24,139 +18,102 @@
         <el-form-item :label="$t('ai.inferenceAccessPoint')" prop="model">
           <el-input v-model="ruleForm.model"></el-input>
         </el-form-item>
-        <!-- <el-form-item label="接口" prop="api">
-          <el-input v-model="ruleForm.api"></el-input>
-        </el-form-item>
-        <el-form-item label="请求方式" prop="method">
-          <el-select v-model="ruleForm.method" placeholder="请选择">
-            <el-option key="POST" label="POST" value="POST"></el-option>
-            <el-option key="GET" label="GET" value="GET"></el-option>
-          </el-select>
-        </el-form-item> -->
-        <!-- <p class="title">{{ $t('ai.mindMappingClientConfiguration') }}</p>
-        <el-form-item :label="$t('ai.port')" prop="port">
-          <el-input v-model="ruleForm.port"></el-input>
-        </el-form-item> -->
       </el-form>
     </div>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="cancel">{{ $t('ai.cancel') }}</el-button>
-      <el-button type="primary" @click="confirm">{{
-        $t('ai.confirm')
-      }}</el-button>
-    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="cancel">{{ $t('ai.cancel') }}</el-button>
+        <el-button type="primary" @click="confirm">{{ $t('ai.confirm') }}</el-button>
+      </div>
+    </template>
   </el-dialog>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, reactive, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { useStoreMixin } from '@/mixins/storeMixin'
 
-export default {
-  mixins: [storeMixin],
-  model: {
-    prop: 'visible',
-    event: 'change'
-  },
-  props: {
-    visible: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data() {
-    return {
-      aiConfigDialogVisible: false,
-      ruleForm: {
-        api: '',
-        key: '',
-        model: '',
-        port: '',
-        method: ''
-      },
-      rules: {
-        api: [
-          {
-            required: true,
-            message: this.$t('ai.apiValidateTip'),
-            trigger: 'blur'
-          }
-        ],
-        key: [
-          {
-            required: true,
-            message: this.$t('ai.keyValidateTip'),
-            trigger: 'blur'
-          }
-        ],
-        model: [
-          {
-            required: true,
-            message: this.$t('ai.modelValidateTip'),
-            trigger: 'blur'
-          }
-        ],
-        port: [
-          {
-            required: true,
-            message: this.$t('ai.portValidateTip'),
-            trigger: 'blur'
-          }
-        ],
-        method: [
-          {
-            required: true,
-            message: this.$t('ai.methodValidateTip'),
-            trigger: 'blur'
-          }
-        ]
-      }
-    }
-  },
-  computed: {},
-  watch: {
-    visible(val) {
-      this.aiConfigDialogVisible = val
-    },
-    aiConfigDialogVisible(val, oldVal) {
-      if (!val && oldVal) {
-        this.close()
-      }
-    }
-  },
-  created() {
-    this.initFormData()
-  },
-  methods: {
-    close() {
-      this.$emit('change', false)
-    },
+const props = withDefaults(
+  defineProps<{
+    visible?: boolean
+  }>(),
+  { visible: false }
+)
 
-    initFormData() {
-      const config = this.aiConfig
-      if (!config || typeof config !== 'object') return
-      Object.keys(config).forEach(key => {
-        this.ruleForm[key] = config[key]
-      })
-    },
+const emit = defineEmits<{
+  (e: 'change', value: boolean): void
+}>()
 
-    cancel() {
-      this.close()
-      this.initFormData()
-    },
+const { aiConfig, setLocalConfig } = useStoreMixin()
+const { t } = useI18n()
 
-    confirm() {
-      this.$refs.ruleFormRef.validate(valid => {
-        if (valid) {
-          this.close()
-          this.setLocalConfig({
-            ...this.ruleForm
-          })
-          this.$message.success(this.$t('ai.configSaveSuccessTip'))
-        }
-      })
-    }
-  }
+const aiConfigDialogVisible = ref(false)
+const ruleFormRef = ref<any>(null)
+const ruleForm = reactive({
+  api: '',
+  key: '',
+  model: '',
+  port: '',
+  method: ''
+})
+
+const rulesRef = ref({
+  api: [{ required: true, message: '', trigger: 'blur' }],
+  key: [{ required: true, message: '', trigger: 'blur' }],
+  model: [{ required: true, message: '', trigger: 'blur' }],
+  port: [{ required: true, message: '', trigger: 'blur' }],
+  method: [{ required: true, message: '', trigger: 'blur' }]
+})
+
+function close() {
+  emit('change', false)
 }
+
+function initFormData() {
+  const config = aiConfig.value
+  if (!config || typeof config !== 'object') return
+  Object.keys(config).forEach((key) => {
+    ;(ruleForm as any)[key] = config[key]
+  })
+}
+
+function cancel() {
+  close()
+  initFormData()
+}
+
+function confirm() {
+  ruleFormRef.value?.validate((valid: boolean) => {
+    if (valid) {
+      close()
+      setLocalConfig({ ...ruleForm })
+      ElMessage.success(t('ai.configSaveSuccessTip'))
+    }
+  })
+}
+
+watch(
+  () => props.visible,
+  (val) => {
+    aiConfigDialogVisible.value = val
+  },
+  { immediate: true }
+)
+
+watch(aiConfigDialogVisible, (val, oldVal) => {
+  if (!val && oldVal) close()
+})
+
+onMounted(() => {
+  rulesRef.value.api[0].message = t('ai.apiValidateTip')
+  rulesRef.value.key[0].message = t('ai.keyValidateTip')
+  rulesRef.value.model[0].message = t('ai.modelValidateTip')
+  rulesRef.value.port[0].message = t('ai.portValidateTip')
+  rulesRef.value.method[0].message = t('ai.methodValidateTip')
+  initFormData()
+})
 </script>
 
 <style lang="less" scoped>

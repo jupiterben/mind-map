@@ -4,7 +4,7 @@
     <el-dialog
       class="clientTipDialog"
       :title="$t('ai.connectFailedTitle')"
-      :visible.sync="clientTipDialogVisible"
+      v-model="clientTipDialogVisible"
       width="400px"
       append-to-body
     >
@@ -26,17 +26,19 @@
           }}</el-button>
         </p>
       </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="clientTipDialogVisible = false">{{
-          $t('ai.close')
-        }}</el-button>
-      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="clientTipDialogVisible = false">{{
+            $t('ai.close')
+          }}</el-button>
+        </div>
+      </template>
     </el-dialog>
     <!-- ai内容输入弹窗 -->
     <el-dialog
       class="createDialog"
       :title="$t('ai.createMindMapTitle')"
-      :visible.sync="createDialogVisible"
+      v-model="createDialogVisible"
       width="450px"
       append-to-body
     >
@@ -58,14 +60,12 @@
           }}</el-button>
         </div>
       </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="closeAiCreateDialog">{{
-          $t('ai.cancel')
-        }}</el-button>
-        <el-button type="primary" @click="doAiCreate">{{
-          $t('ai.confirm')
-        }}</el-button>
-      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="closeAiCreateDialog">{{ $t('ai.cancel') }}</el-button>
+          <el-button type="primary" @click="doAiCreate">{{ $t('ai.confirm') }}</el-button>
+        </div>
+      </template>
     </el-dialog>
     <!-- ai生成中添加一个透明层，防止期间用户进行操作 -->
     <div
@@ -77,526 +77,393 @@
         $t('ai.stopGenerating')
       }}</el-button>
     </div>
-    <AiConfigDialog v-model="aiConfigDialogVisible"></AiConfigDialog>
+    <AiConfigDialog :visible="aiConfigDialogVisible" @change="(v: boolean) => (aiConfigDialogVisible = v)"></AiConfigDialog>
     <!-- AI续写 -->
     <el-dialog
       class="createDialog"
       :title="$t('ai.aiCreatePart')"
-      :visible.sync="createPartDialogVisible"
+      v-model="createPartDialogVisible"
       width="450px"
       append-to-body
     >
       <div class="inputBox">
         <el-input type="textarea" :rows="5" v-model="aiPartInput"> </el-input>
       </div>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="closeAiCreatePartDialog">{{
-          $t('ai.cancel')
-        }}</el-button>
-        <el-button type="primary" @click="confirmAiCreatePart">{{
-          $t('ai.confirm')
-        }}</el-button>
-      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="closeAiCreatePartDialog">{{ $t('ai.cancel') }}</el-button>
+          <el-button type="primary" @click="confirmAiCreatePart">{{ $t('ai.confirm') }}</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import Ai from '@/utils/ai'
 import { transformMarkdownTo } from 'simple-mind-map/src/parse/markdownTo'
 import {
   createUid,
   isUndef,
-  checkNodeOuter,
+  checkNodeOuter as checkNodeOuterUtil,
   getStrWithBrFromHtml
 } from 'simple-mind-map/src/utils'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
+import { getBus } from '@/bus'
 import AiConfigDialog from './AiConfigDialog.vue'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    AiConfigDialog
-  },
-  props: {
-    mindMap: {
-      type: Object
+const props = defineProps<{ mindMap: any }>()
+const { aiConfig } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
+
+const aiCreatingMaskRef = ref<HTMLElement | null>(null)
+const aiInstance = ref<any>(null)
+const isAiCreating = ref(false)
+const aiCreatingContent = ref('')
+const isLoopRendering = ref(false)
+const uidMap = reactive<Record<string, string>>({})
+const latestUid = ref('')
+const clientTipDialogVisible = ref(false)
+const createDialogVisible = ref(false)
+const aiInput = ref('')
+const aiCreatingMaskVisible = ref(false)
+const aiConfigDialogVisible = ref(false)
+const mindMapDataCache = ref('')
+const beingAiCreateNodeUid = ref('')
+const createPartDialogVisible = ref(false)
+const aiPartInput = ref('')
+const beingCreatePartNode = ref<any>(null)
+
+function showAiConfigDialog() {
+  aiConfigDialogVisible.value = true
+}
+
+async function testConnect() {
+  try {
+    await fetch(`http://localhost:${aiConfig.value.port}/ai/test`, { method: 'GET' })
+    ElMessage.success(t('ai.connectSuccessful'))
+    clientTipDialogVisible.value = false
+    createDialogVisible.value = true
+  } catch (error) {
+    ElMessage.error(t('ai.connectFailed'))
+  }
+}
+
+async function aiTest() {
+  const config = aiConfig.value
+  if (!(config?.api && config?.key && config?.model && config?.port)) {
+    showAiConfigDialog()
+    throw new Error(t('ai.configurationMissing'))
+  }
+  try {
+    await fetch(`http://localhost:${config.port}/ai/test`, { method: 'GET' })
+  } catch (error) {
+    clientTipDialogVisible.value = true
+    throw new Error(t('ai.connectFailed'))
+  }
+}
+
+async function aiCrateAll() {
+  try {
+    await aiTest()
+    createDialogVisible.value = true
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+function closeAiCreateDialog() {
+  createDialogVisible.value = false
+  aiInput.value = ''
+}
+
+function doAiCreate() {
+  const aiInputText = aiInput.value.trim()
+  if (!aiInputText) {
+    ElMessage.warning(t('ai.noInputTip'))
+    return
+  }
+  closeAiCreateDialog()
+  aiCreatingMaskVisible.value = true
+  isAiCreating.value = true
+  aiInstance.value = new Ai({ port: aiConfig.value.port })
+  aiInstance.value.init('huoshan', aiConfig.value)
+  props.mindMap.renderer.setRootNodeCenter()
+  props.mindMap.setData(null)
+  aiInstance.value.request(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: `${t('ai.aiCreateMsgPrefix')}${aiInputText}${t('ai.aiCreateMsgPostfix')}`
+        }
+      ]
+    },
+    (content: string) => {
+      if (content) {
+        const arr = content.split(/\n+/)
+        aiCreatingContent.value = arr.splice(0, arr.length - 1).join('\n')
+      }
+      loopRenderOnAiCreating()
+    },
+    (content: string) => {
+      aiCreatingContent.value = content
+      resetOnAiCreatingStop()
+    },
+    () => {
+      resetOnAiCreatingStop()
+      resetOnRenderEnd()
+      ElMessage.error(t('ai.generationFailed'))
     }
-  },
-  data() {
-    return {
-      aiInstance: null,
-      isAiCreating: false,
-      aiCreatingContent: '',
+  )
+}
 
-      isLoopRendering: false,
-      uidMap: {},
-      latestUid: '',
+function resetOnAiCreatingStop() {
+  aiCreatingMaskVisible.value = false
+  isAiCreating.value = false
+  aiInstance.value = null
+}
 
-      clientTipDialogVisible: false,
-      createDialogVisible: false,
-      aiInput: '',
-      aiCreatingMaskVisible: false,
-      aiConfigDialogVisible: false,
+function resetOnRenderEnd() {
+  isLoopRendering.value = false
+  Object.keys(uidMap).forEach((k) => delete uidMap[k])
+  aiCreatingContent.value = ''
+  mindMapDataCache.value = ''
+  beingAiCreateNodeUid.value = ''
+}
 
-      mindMapDataCache: '',
-      beingAiCreateNodeUid: '',
+function stopCreate() {
+  aiInstance.value?.stop()
+  isAiCreating.value = false
+  aiCreatingMaskVisible.value = false
+  ElMessage.success(t('ai.stoppedGenerating'))
+}
 
-      createPartDialogVisible: false,
-      aiPartInput: '',
-      beingCreatePartNode: null
+function loopRenderOnAiCreating() {
+  if (!aiCreatingContent.value.trim() || isLoopRendering.value) return
+  isLoopRendering.value = true
+  const treeData = transformMarkdownTo(aiCreatingContent.value)
+  addUid(treeData)
+  let lastTreeData = JSON.stringify(treeData)
+
+  const onRenderEnd = () => {
+    checkNodeOuter()
+    if (!isAiCreating.value && !aiCreatingContent.value) {
+      props.mindMap.off('node_tree_render_end', onRenderEnd)
+      latestUid.value = ''
+      return
     }
-  },
-  computed: {},
-  created() {
-    this.$bus.$on('ai_create_all', this.aiCrateAll)
-    this.$bus.$on('ai_create_part', this.showAiCreatePartDialog)
-    this.$bus.$on('ai_chat', this.aiChat)
-    this.$bus.$on('ai_chat_stop', this.aiChatStop)
-    this.$bus.$on('showAiConfigDialog', this.showAiConfigDialog)
-  },
-  mounted() {
-    document.body.appendChild(this.$refs.aiCreatingMaskRef)
-  },
-  beforeUnmount() {
-    this.$bus.$off('ai_create_all', this.aiCrateAll)
-    this.$bus.$off('ai_create_part', this.showAiCreatePartDialog)
-    this.$bus.$off('ai_chat', this.aiChat)
-    this.$bus.$off('ai_chat_stop', this.aiChatStop)
-    this.$bus.$off('showAiConfigDialog', this.showAiConfigDialog)
-  },
-  methods: {
-    // 显示AI配置修改弹窗
-    showAiConfigDialog() {
-      this.aiConfigDialogVisible = true
-    },
-
-    // 客户端连接检测
-    async testConnect() {
-      try {
-        await fetch(`http://localhost:${this.aiConfig.port}/ai/test`, {
-          method: 'GET'
-        })
-        this.$message.success(this.$t('ai.connectSuccessful'))
-        this.clientTipDialogVisible = false
-        this.createDialogVisible = true
-      } catch (error) {
-        console.log(error)
-        this.$message.error(this.$t('ai.connectFailed'))
-      }
-    },
-
-    // 检测ai是否可用
-    async aiTest() {
-      // 检查配置
-      if (
-        !(
-          this.aiConfig.api &&
-          this.aiConfig.key &&
-          this.aiConfig.model &&
-          this.aiConfig.port
-        )
-      ) {
-        this.showAiConfigDialog()
-        throw new Error(this.$t('ai.configurationMissing'))
-      }
-      // 检查连接
-      let isConnect = false
-      try {
-        await fetch(`http://localhost:${this.aiConfig.port}/ai/test`, {
-          method: 'GET'
-        })
-        isConnect = true
-      } catch (error) {
-        console.log(error)
-        this.clientTipDialogVisible = true
-      }
-      if (!isConnect) {
-        throw new Error(this.$t('ai.connectFailed'))
-      }
-    },
-
-    // AI生成整体
-    async aiCrateAll() {
-      try {
-        await this.aiTest()
-        this.createDialogVisible = true
-      } catch (error) {
-        console.log(error)
-      }
-    },
-
-    // 关闭ai内容输入弹窗
-    closeAiCreateDialog() {
-      this.createDialogVisible = false
-      this.aiInput = ''
-    },
-
-    // 确认生成
-    doAiCreate() {
-      const aiInputText = this.aiInput.trim()
-      if (!aiInputText) {
-        this.$message.warning(this.$t('ai.noInputTip'))
+    const treeData2 = transformMarkdownTo(aiCreatingContent.value)
+    addUid(treeData2)
+    if (isAiCreating.value) {
+      const curTreeData = JSON.stringify(treeData2)
+      if (curTreeData === lastTreeData) {
+        setTimeout(onRenderEnd, 500)
         return
       }
-      this.closeAiCreateDialog()
-      this.aiCreatingMaskVisible = true
-      // 发起请求
-      this.isAiCreating = true
-      this.aiInstance = new Ai({
-        port: this.aiConfig.port
-      })
-      this.aiInstance.init('huoshan', this.aiConfig)
-      this.mindMap.renderer.setRootNodeCenter()
-      this.mindMap.setData(null)
-      this.aiInstance.request(
-        {
-          messages: [
-            {
-              role: 'user',
-              content: `${this.$t(
-                'ai.aiCreateMsgPrefix'
-              )}${aiInputText}${this.$t('ai.aiCreateMsgPostfix')}`
-            }
-          ]
-        },
-        content => {
-          if (content) {
-            const arr = content.split(/\n+/)
-            this.aiCreatingContent = arr.splice(0, arr.length - 1).join('\n')
-          }
-          this.loopRenderOnAiCreating()
-        },
-        content => {
-          this.aiCreatingContent = content
-          this.resetOnAiCreatingStop()
-        },
-        () => {
-          this.resetOnAiCreatingStop()
-          this.resetOnRenderEnd()
-          this.$message.error(this.$t('ai.generationFailed'))
-        }
+      lastTreeData = curTreeData
+      props.mindMap.updateData(treeData2)
+    } else {
+      props.mindMap.updateData(treeData2)
+      resetOnRenderEnd()
+      ElMessage.success(t('ai.aiGenerationSuccess'))
+    }
+  }
+  props.mindMap.on('node_tree_render_end', onRenderEnd)
+  props.mindMap.setData(treeData)
+}
+
+function checkNodeOuter() {
+  if (latestUid.value) {
+    const latestNode = props.mindMap.renderer.findNodeByUid(latestUid.value)
+    if (latestNode) {
+      const { isOuter, offsetLeft, offsetTop } = checkNodeOuterUtil(
+        props.mindMap,
+        latestNode,
+        100,
+        100
       )
-    },
-
-    // AI请求完成或出错后需要复位的数据
-    resetOnAiCreatingStop() {
-      this.aiCreatingMaskVisible = false
-      this.isAiCreating = false
-      this.aiInstance = null
-    },
-
-    // 渲染结束后需要复位的数据
-    resetOnRenderEnd() {
-      this.isLoopRendering = false
-      this.uidMap = {}
-      this.aiCreatingContent = ''
-      this.mindMapDataCache = ''
-      this.beingAiCreateNodeUid = ''
-    },
-
-    // 停止生成
-    stopCreate() {
-      this.aiInstance.stop()
-      this.isAiCreating = false
-      this.aiCreatingMaskVisible = false
-      this.$message.success(this.$t('ai.stoppedGenerating'))
-    },
-
-    // 轮询进行渲染
-    loopRenderOnAiCreating() {
-      if (!this.aiCreatingContent.trim() || this.isLoopRendering) return
-      this.isLoopRendering = true
-      const treeData = transformMarkdownTo(this.aiCreatingContent)
-      this.addUid(treeData)
-      let lastTreeData = JSON.stringify(treeData)
-
-      // 在当前渲染完成时再进行下一次渲染
-      const onRenderEnd = () => {
-        // 处理超出画布的节点
-        this.checkNodeOuter()
-
-        // 如果生成结束数据渲染完毕，那么解绑事件
-        if (!this.isAiCreating && !this.aiCreatingContent) {
-          this.mindMap.off('node_tree_render_end', onRenderEnd)
-          this.latestUid = ''
-          return
-        }
-
-        const treeData = transformMarkdownTo(this.aiCreatingContent)
-        this.addUid(treeData)
-        // 正在生成中
-        if (this.isAiCreating) {
-          // 如果和上次数据一样则不触发重新渲染
-          const curTreeData = JSON.stringify(treeData)
-          if (curTreeData === lastTreeData) {
-            setTimeout(() => {
-              onRenderEnd()
-            }, 500)
-            return
-          }
-          lastTreeData = curTreeData
-          this.mindMap.updateData(treeData)
-        } else {
-          // 已经生成结束
-          // 还要触发一遍渲染，否则会丢失数据
-          this.mindMap.updateData(treeData)
-          this.resetOnRenderEnd()
-          this.$message.success(this.$t('ai.aiGenerationSuccess'))
-        }
-      }
-      this.mindMap.on('node_tree_render_end', onRenderEnd)
-
-      this.mindMap.setData(treeData)
-    },
-
-    // 处理超出画布的节点
-    checkNodeOuter() {
-      if (this.latestUid) {
-        const latestNode = this.mindMap.renderer.findNodeByUid(this.latestUid)
-        if (latestNode) {
-          const { isOuter, offsetLeft, offsetTop } = checkNodeOuter(
-            this.mindMap,
-            latestNode,
-            100,
-            100
-          )
-          if (isOuter) {
-            this.mindMap.view.translateXY(offsetLeft, offsetTop)
-          }
-        }
-      }
-    },
-
-    // 给AI生成的数据添加uid
-    addUid(data) {
-      const checkRepeatUidMap = {}
-      const walk = (node, pUid = '') => {
-        if (!node.data) {
-          node.data = {}
-        }
-        if (isUndef(node.data.uid)) {
-          // 根据pUid+文本内容来复用上一次生成数据的uid
-          const key = pUid + '-' + node.data.text
-          node.data.uid = this.uidMap[key] || createUid()
-          // 当前uid和之前的重复，那么重新生成一个。这种情况很少，但是以防万一
-          if (checkRepeatUidMap[node.data.uid]) {
-            node.data.uid = createUid()
-          }
-          this.latestUid = this.uidMap[key] = node.data.uid
-          checkRepeatUidMap[node.data.uid] = true
-        }
-        if (node.children && node.children.length > 0) {
-          node.children.forEach(child => {
-            walk(child, node.data.uid)
-          })
-        }
-      }
-      walk(data)
-    },
-
-    // 显示AI续写弹窗
-    showAiCreatePartDialog(node) {
-      this.beingCreatePartNode = node
-      const currentMindMapData = this.mindMap.getData()
-      // 填充默认内容
-      this.aiPartInput = `${this.$t(
-        'ai.aiCreatePartMsgPrefix'
-      )}${getStrWithBrFromHtml(currentMindMapData.data.text)}${this.$t(
-        'ai.aiCreatePartMsgCenter'
-      )}${getStrWithBrFromHtml(node.getData('text'))}${this.$t(
-        'ai.aiCreatePartMsgPostfix'
-      )}`
-      this.createPartDialogVisible = true
-    },
-
-    // 关闭AI续写弹窗
-    closeAiCreatePartDialog() {
-      this.createPartDialogVisible = false
-    },
-
-    // 复位AI续写弹窗数据
-    resetAiCreatePartDialog() {
-      this.beingCreatePartNode = null
-      this.aiPartInput = ''
-    },
-
-    // 确认AI续写
-    confirmAiCreatePart() {
-      if (!this.aiPartInput.trim()) return
-      this.closeAiCreatePartDialog()
-      this.aiCreatePart()
-    },
-
-    // AI生成部分
-    async aiCreatePart() {
-      try {
-        if (!this.beingCreatePartNode) {
-          return
-        }
-        await this.aiTest()
-        this.beingAiCreateNodeUid = this.beingCreatePartNode.getData('uid')
-        const currentMindMapData = this.mindMap.getData()
-        this.mindMapDataCache = JSON.stringify(currentMindMapData)
-        this.aiCreatingMaskVisible = true
-        // 发起请求
-        this.isAiCreating = true
-        this.aiInstance = new Ai({
-          port: this.aiConfig.port
-        })
-        this.aiInstance.init('huoshan', this.aiConfig)
-        this.aiInstance.request(
-          {
-            messages: [
-              {
-                role: 'user',
-                content:
-                  this.aiPartInput.trim() + this.$t('ai.aiCreatePartMsgHelp')
-              }
-            ]
-          },
-          content => {
-            if (content) {
-              const arr = content.split(/\n+/)
-              this.aiCreatingContent = arr.splice(0, arr.length - 1).join('\n')
-            }
-
-            this.loopRenderOnAiCreatingPart()
-          },
-          content => {
-            this.aiCreatingContent = content
-            this.resetOnAiCreatingStop()
-            this.resetAiCreatePartDialog()
-          },
-          () => {
-            this.resetOnAiCreatingStop()
-            this.resetAiCreatePartDialog()
-            this.resetOnRenderEnd()
-            this.$message.error(this.$t('ai.generationFailed'))
-          }
-        )
-      } catch (error) {
-        console.log(error)
-      }
-    },
-
-    // 将生成的数据添加到指定节点上
-    addToTargetNode(newChildren = []) {
-      const initData = JSON.parse(this.mindMapDataCache)
-      const walk = node => {
-        if (node.data.uid === this.beingAiCreateNodeUid) {
-          if (!node.children) {
-            node.children = []
-          }
-          node.children.push(...newChildren)
-          return
-        }
-        if (node.children && node.children.length > 0) {
-          node.children.forEach(child => {
-            walk(child)
-          })
-        }
-      }
-      walk(initData)
-      return initData
-    },
-
-    // 轮询进行部分渲染
-    loopRenderOnAiCreatingPart() {
-      if (!this.aiCreatingContent.trim() || this.isLoopRendering) return
-      this.isLoopRendering = true
-      const partData = transformMarkdownTo(this.aiCreatingContent)
-      this.addUid(partData)
-      let lastPartData = JSON.stringify(partData)
-      const treeData = this.addToTargetNode(partData.children || [])
-
-      // 在当前渲染完成时再进行下一次渲染
-      const onRenderEnd = () => {
-        // 处理超出画布的节点
-        this.checkNodeOuter()
-
-        // 如果生成结束数据渲染完毕，那么解绑事件
-        if (!this.isAiCreating && !this.aiCreatingContent) {
-          this.mindMap.off('node_tree_render_end', onRenderEnd)
-          this.latestUid = ''
-          return
-        }
-
-        const partData = transformMarkdownTo(this.aiCreatingContent)
-        this.addUid(partData)
-        const treeData = this.addToTargetNode(partData.children || [])
-
-        if (this.isAiCreating) {
-          // 如果和上次数据一样则不触发重新渲染
-          const curPartData = JSON.stringify(partData)
-          if (curPartData === lastPartData) {
-            setTimeout(() => {
-              onRenderEnd()
-            }, 500)
-            return
-          }
-          lastPartData = curPartData
-          this.mindMap.updateData(treeData)
-        } else {
-          this.mindMap.updateData(treeData)
-          this.resetOnRenderEnd()
-          this.$message.success(this.$t('ai.aiGenerationSuccess'))
-        }
-      }
-      this.mindMap.on('node_tree_render_end', onRenderEnd)
-      // 因为是续写，所以首次也直接使用updateData方法渲染
-      this.mindMap.updateData(treeData)
-    },
-
-    // AI对话
-    async aiChat(
-      messageList = [],
-      progress = () => {},
-      end = () => {},
-      err = () => {}
-    ) {
-      try {
-        await this.aiTest()
-        // 发起请求
-        this.isAiCreating = true
-        this.aiInstance = new Ai({
-          port: this.aiConfig.port
-        })
-        this.aiInstance.init('huoshan', this.aiConfig)
-        this.aiInstance.request(
-          {
-            messages: messageList.map(msg => {
-              return {
-                role: 'user',
-                content: msg
-              }
-            })
-          },
-          content => {
-            progress(content)
-          },
-          content => {
-            end(content)
-          },
-          error => {
-            err(error)
-          }
-        )
-      } catch (error) {
-        console.log(error)
-      }
-    },
-
-    // AI对话停止
-    aiChatStop() {
-      if (this.aiInstance) {
-        this.aiInstance.stop()
-        this.isAiCreating = false
-        this.aiInstance = null
-      }
+      if (isOuter) props.mindMap.view.translateXY(offsetLeft, offsetTop)
     }
   }
 }
+
+function addUid(data: any) {
+  const checkRepeatUidMap: Record<string, boolean> = {}
+  const walk = (node: any, pUid = '') => {
+    if (!node.data) node.data = {}
+    if (isUndef(node.data.uid)) {
+      const key = pUid + '-' + node.data.text
+      node.data.uid = uidMap[key] || createUid()
+      if (checkRepeatUidMap[node.data.uid]) node.data.uid = createUid()
+      latestUid.value = uidMap[key] = node.data.uid
+      checkRepeatUidMap[node.data.uid] = true
+    }
+    if (node.children?.length) {
+      node.children.forEach((child: any) => walk(child, node.data.uid))
+    }
+  }
+  walk(data)
+}
+
+function showAiCreatePartDialog(node: any) {
+  beingCreatePartNode.value = node
+  const currentMindMapData = props.mindMap.getData()
+  aiPartInput.value = `${t('ai.aiCreatePartMsgPrefix')}${getStrWithBrFromHtml(currentMindMapData.data.text)}${t('ai.aiCreatePartMsgCenter')}${getStrWithBrFromHtml(node.getData('text'))}${t('ai.aiCreatePartMsgPostfix')}`
+  createPartDialogVisible.value = true
+}
+
+function closeAiCreatePartDialog() {
+  createPartDialogVisible.value = false
+}
+
+function resetAiCreatePartDialog() {
+  beingCreatePartNode.value = null
+  aiPartInput.value = ''
+}
+
+function confirmAiCreatePart() {
+  if (!aiPartInput.value.trim()) return
+  closeAiCreatePartDialog()
+  aiCreatePart()
+}
+
+async function aiCreatePart() {
+  try {
+    if (!beingCreatePartNode.value) return
+    await aiTest()
+    beingAiCreateNodeUid.value = beingCreatePartNode.value.getData('uid')
+    mindMapDataCache.value = JSON.stringify(props.mindMap.getData())
+    aiCreatingMaskVisible.value = true
+    isAiCreating.value = true
+    aiInstance.value = new Ai({ port: aiConfig.value.port })
+    aiInstance.value.init('huoshan', aiConfig.value)
+    aiInstance.value.request(
+      { messages: [{ role: 'user', content: aiPartInput.value.trim() + t('ai.aiCreatePartMsgHelp') }] },
+      (content: string) => {
+        if (content) {
+          const arr = content.split(/\n+/)
+          aiCreatingContent.value = arr.splice(0, arr.length - 1).join('\n')
+        }
+        loopRenderOnAiCreatingPart()
+      },
+      (content: string) => {
+        aiCreatingContent.value = content
+        resetOnAiCreatingStop()
+        resetAiCreatePartDialog()
+      },
+      () => {
+        resetOnAiCreatingStop()
+        resetAiCreatePartDialog()
+        resetOnRenderEnd()
+        ElMessage.error(t('ai.generationFailed'))
+      }
+    )
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+function addToTargetNode(newChildren: any[] = []) {
+  const initData = JSON.parse(mindMapDataCache.value)
+  const walk = (node: any) => {
+    if (node.data.uid === beingAiCreateNodeUid.value) {
+      if (!node.children) node.children = []
+      node.children.push(...newChildren)
+      return
+    }
+    if (node.children?.length) node.children.forEach((child: any) => walk(child))
+  }
+  walk(initData)
+  return initData
+}
+
+function loopRenderOnAiCreatingPart() {
+  if (!aiCreatingContent.value.trim() || isLoopRendering.value) return
+  isLoopRendering.value = true
+  const partData = transformMarkdownTo(aiCreatingContent.value)
+  addUid(partData)
+  let lastPartData = JSON.stringify(partData)
+  const treeData = addToTargetNode(partData.children || [])
+
+  const onRenderEnd = () => {
+    checkNodeOuter()
+    if (!isAiCreating.value && !aiCreatingContent.value) {
+      props.mindMap.off('node_tree_render_end', onRenderEnd)
+      latestUid.value = ''
+      return
+    }
+    const partData2 = transformMarkdownTo(aiCreatingContent.value)
+    addUid(partData2)
+    const treeData2 = addToTargetNode(partData2.children || [])
+    if (isAiCreating.value) {
+      const curPartData = JSON.stringify(partData2)
+      if (curPartData === lastPartData) {
+        setTimeout(onRenderEnd, 500)
+        return
+      }
+      lastPartData = curPartData
+      props.mindMap.updateData(treeData2)
+    } else {
+      props.mindMap.updateData(treeData2)
+      resetOnRenderEnd()
+      ElMessage.success(t('ai.aiGenerationSuccess'))
+    }
+  }
+  props.mindMap.on('node_tree_render_end', onRenderEnd)
+  props.mindMap.updateData(treeData)
+}
+
+async function aiChat(
+  messageList: string[] = [],
+  progress: (c: string) => void = () => {},
+  end: (c: string) => void = () => {},
+  err: (e: any) => void = () => {}
+) {
+  try {
+    await aiTest()
+    isAiCreating.value = true
+    aiInstance.value = new Ai({ port: aiConfig.value.port })
+    aiInstance.value.init('huoshan', aiConfig.value)
+    aiInstance.value.request(
+      { messages: messageList.map((msg) => ({ role: 'user', content: msg })) },
+      (content: string) => progress(content),
+      (content: string) => end(content),
+      (error: any) => err(error)
+    )
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+function aiChatStop() {
+  if (aiInstance.value) {
+    aiInstance.value.stop()
+    isAiCreating.value = false
+    aiInstance.value = null
+  }
+}
+
+onMounted(() => {
+  bus.$on('ai_create_all', aiCrateAll)
+  bus.$on('ai_create_part', showAiCreatePartDialog)
+  bus.$on('ai_chat', aiChat)
+  bus.$on('ai_chat_stop', aiChatStop)
+  bus.$on('showAiConfigDialog', showAiConfigDialog)
+  if (aiCreatingMaskRef.value) document.body.appendChild(aiCreatingMaskRef.value)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('ai_create_all', aiCrateAll)
+  bus.$off('ai_create_part', showAiCreatePartDialog)
+  bus.$off('ai_chat', aiChat)
+  bus.$off('ai_chat_stop', aiChatStop)
+  bus.$off('showAiConfigDialog', showAiConfigDialog)
+})
 </script>
 
 <style lang="less" scoped>

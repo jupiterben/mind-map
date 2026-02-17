@@ -12,12 +12,7 @@
         </el-button>
       </div>
       <div class="chatResBox customScrollbar" ref="chatResBoxRef">
-        <div
-          class="chatItem"
-          v-for="item in chatList"
-          :key="item.id"
-          :class="[item.type]"
-        >
+        <div class="chatItem" v-for="item in chatList" :key="item.id" :class="[item.type]">
           <div class="chatItemInner" v-if="item.type === 'user'">
             <div class="avatar">
               <span class="icon el-icon-user"></span>
@@ -43,13 +38,7 @@
           {{ $t('ai.send') }}
           <span class="el-icon-position"></span>
         </el-button>
-        <el-button
-          class="stop"
-          size="small"
-          type="warning"
-          @click="stop"
-          v-show="isCreating"
-        >
+        <el-button class="stop" size="small" type="warning" @click="stop" v-show="isCreating">
           {{ $t('ai.stopGenerating') }}
         </el-button>
       </div>
@@ -57,113 +46,88 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch, nextTick } from 'vue'
 import Sidebar from './Sidebar.vue'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
 import { createUid } from 'simple-mind-map/src/utils'
 import MarkdownIt from 'markdown-it'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-let md = null
+let md: MarkdownIt | null = null
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  data() {
-    return {
-      text: '',
-      chatList: [],
-      isCreating: false
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'ai') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {},
-  beforeUnmount() {},
-  methods: {
-    onKeydown(e) {
-      if (e.keyCode === 13) {
-        if (!e.shiftKey) {
-          e.preventDefault()
-          this.send()
-        } else {
-        }
-      }
-    },
+const { activeSidebar } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
 
-    send() {
-      if (this.isCreating) return
-      const text = this.text.trim()
-      if (!text) {
-        return
-      }
-      this.text = ''
-      const historyUserMsgList = this.chatList
-        .filter(item => {
-          return item.type === 'user'
-        })
-        .map(item => {
-          return item.content
-        })
-      this.chatList.push({
-        id: createUid(),
-        type: 'user',
-        content: text
-      })
-      this.chatList.push({
-        id: createUid(),
-        type: 'ai',
-        content: ''
-      })
-      this.isCreating = true
-      const textList = [...historyUserMsgList, text]
-      this.$bus.$emit(
-        'ai_chat',
-        textList,
-        res => {
-          if (!md) {
-            md = new MarkdownIt()
-          }
-          this.chatList[this.chatList.length - 1].content = md.render(res)
-          this.$refs.chatResBoxRef.scrollTop = this.$refs.chatResBoxRef.scrollHeight
-        },
-        () => {
-          this.isCreating = false
-        },
-        () => {
-          this.isCreating = false
-          this.$message.error(this.$t('ai.generationFailed'))
-        }
-      )
-    },
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const chatResBoxRef = ref<HTMLElement | null>(null)
+const text = ref('')
+const chatList = ref<Array<{ id: string; type: string; content: string }>>([])
+const isCreating = ref(false)
 
-    stop() {
-      this.$bus.$emit('ai_chat_stop')
-      this.isCreating = false
-    },
+const isDark = computed(() => useStore().isDark ?? false)
 
-    clear() {
-      this.chatList = []
-    },
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (s?.setShow) s.setShow(val === 'ai')
+})
 
-    modifyAiConfig() {
-      this.$bus.$emit('showAiConfigDialog')
-    }
+function onKeydown(e: KeyboardEvent) {
+  if (e.keyCode === 13 && !e.shiftKey) {
+    e.preventDefault()
+    send()
   }
+}
+
+function send() {
+  if (isCreating.value) return
+  const content = text.value.trim()
+  if (!content) return
+  text.value = ''
+  const historyUserMsgList = chatList.value
+    .filter((item) => item.type === 'user')
+    .map((item) => item.content)
+  chatList.value.push({ id: createUid(), type: 'user', content })
+  chatList.value.push({ id: createUid(), type: 'ai', content: '' })
+  isCreating.value = true
+  const textList = [...historyUserMsgList, content]
+  bus.$emit(
+    'ai_chat',
+    textList,
+    (res: string) => {
+      if (!md) md = new MarkdownIt()
+      chatList.value[chatList.value.length - 1].content = md!.render(res)
+      nextTick(() => {
+        if (chatResBoxRef.value) {
+          chatResBoxRef.value.scrollTop = chatResBoxRef.value.scrollHeight
+        }
+      })
+    },
+    () => {
+      isCreating.value = false
+    },
+    () => {
+      isCreating.value = false
+      ElMessage.error(t('ai.generationFailed'))
+    }
+  )
+}
+
+function stop() {
+  bus.$emit('ai_chat_stop')
+  isCreating.value = false
+}
+
+function clear() {
+  chatList.value = []
+}
+
+function modifyAiConfig() {
+  bus.$emit('showAiConfigDialog')
 }
 </script>
 

@@ -3,8 +3,8 @@
     class="noteContentViewer customScrollbar"
     ref="noteContentViewer"
     :style="{
-      left: this.left + 'px',
-      top: this.top + 'px',
+      left: left + 'px',
+      top: top + 'px',
       visibility: show ? 'visible' : 'hidden'
     }"
     @click.stop
@@ -17,112 +17,98 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import Viewer from '@toast-ui/editor/dist/toastui-editor-viewer'
 import '@toast-ui/editor/dist/toastui-editor-viewer.css'
+import { getBus } from '@/bus'
 
-// 节点备注内容显示
-export default {
-  props: {
-    mindMap: {
-      type: Object,
-      default() {
-        return null
-      }
-    }
-  },
-  data() {
-    return {
-      editor: null,
-      show: false,
-      left: 0,
-      top: 0,
-      node: null
-    }
-  },
-  created() {
-    this.$bus.$on('showNoteContent', this.onShowNoteContent)
-    this.$bus.$on('hideNoteContent', this.hideNoteContent)
-    document.body.addEventListener('click', this.hideNoteContent)
-    this.$bus.$on('node_active', this.onNodeActive)
-    this.$bus.$on('scale', this.onScale)
-    this.$bus.$on('translate', this.onScale)
-    this.$bus.$on('svg_mousedown', this.hideNoteContent)
-    this.$bus.$on('expand_btn_click', this.hideNoteContent)
-  },
-  mounted() {
-    this.mindMap.el.appendChild(this.$refs.noteContentViewer)
-    this.initEditor()
-  },
-  beforeUnmount() {
-    this.$bus.$off('showNoteContent', this.onShowNoteContent)
-    this.$bus.$off('hideNoteContent', this.hideNoteContent)
-    document.body.removeEventListener('click', this.hideNoteContent)
-    this.$bus.$off('node_active', this.onNodeActive)
-    this.$bus.$off('scale', this.onScale)
-    this.$bus.$off('translate', this.onScale)
-    this.$bus.$off('svg_mousedown', this.hideNoteContent)
-    this.$bus.$off('expand_btn_click', this.hideNoteContent)
-  },
-  methods: {
-    onNodeActive(...args) {
-      const nodes = [...args[1]]
-      if (nodes.length > 0) {
-        if (nodes[0] !== this.node) {
-          this.hideNoteContent()
-        }
-      } else {
-        this.hideNoteContent()
-      }
-    },
+const props = defineProps<{
+  mindMap: any
+}>()
 
-    // 显示备注浮层
-    onShowNoteContent(content, left, top, node) {
-      this.node = node
-      this.editor.setMarkdown(content)
-      this.handleALink()
-      this.updateNoteContentPosition(left, top)
-      this.show = true
-    },
+const bus = getBus()
 
-    // 超链接新窗口打开
-    handleALink() {
-      const list = this.$refs.noteContentViewer.querySelectorAll('a')
-      Array.from(list).forEach(a => {
-        a.setAttribute('target', '_blank')
-      })
-    },
+const noteContentViewer = ref<HTMLElement | null>(null)
+const noteContentWrap = ref<HTMLElement | null>(null)
+const editor = ref<any>(null)
+const show = ref(false)
+const left = ref(0)
+const top = ref(0)
+const node = ref<any>(null)
 
-    // 更新位置
-    updateNoteContentPosition(left, top) {
-      const { width, height } = this.$refs.noteContentViewer.getBoundingClientRect()
-      const { right, bottom } = this.mindMap.elRect
-      this.left = left + width > right ? right - width : left
-      this.top = top + height > bottom ? bottom - height : top
-    },
-
-    // 画布缩放事件
-    onScale() {
-      if (!this.node || !this.show) return
-      const { left, top } = this.node.getNoteContentPosition()
-      this.updateNoteContentPosition(left, top)
-    },
-
-    // 隐藏备注浮层
-    hideNoteContent() {
-      this.show = false
-    },
-
-    // 初始化编辑器
-    initEditor() {
-      if (!this.editor) {
-        this.editor = new Viewer({
-          el: this.$refs.noteContentWrap
-        })
-      }
-    }
+function onNodeActive(...args: any[]) {
+  const nodes = [...args[1]]
+  if (nodes.length > 0) {
+    if (nodes[0] !== node.value) hideNoteContent()
+  } else {
+    hideNoteContent()
   }
 }
+
+function onShowNoteContent(content: string, x: number, y: number, n: any) {
+  node.value = n
+  editor.value?.setMarkdown(content)
+  handleALink()
+  updateNoteContentPosition(x, y)
+  show.value = true
+}
+
+function handleALink() {
+  const list = noteContentViewer.value?.querySelectorAll('a')
+  list && Array.from(list).forEach((a) => a.setAttribute('target', '_blank'))
+}
+
+function updateNoteContentPosition(x: number, y: number) {
+  const el = noteContentViewer.value
+  if (!el || !props.mindMap?.elRect) return
+  const { width, height } = el.getBoundingClientRect()
+  const { right, bottom } = props.mindMap.elRect
+  left.value = x + width > right ? right - width : x
+  top.value = y + height > bottom ? bottom - height : y
+}
+
+function onScale() {
+  if (!node.value || !show.value) return
+  const pos = node.value.getNoteContentPosition()
+  updateNoteContentPosition(pos.left, pos.top)
+}
+
+function hideNoteContent() {
+  show.value = false
+}
+
+function initEditor() {
+  if (!editor.value && noteContentWrap.value) {
+    editor.value = new Viewer({ el: noteContentWrap.value })
+  }
+}
+
+onMounted(() => {
+  bus.$on('showNoteContent', onShowNoteContent)
+  bus.$on('hideNoteContent', hideNoteContent)
+  document.body.addEventListener('click', hideNoteContent)
+  bus.$on('node_active', onNodeActive)
+  bus.$on('scale', onScale)
+  bus.$on('translate', onScale)
+  bus.$on('svg_mousedown', hideNoteContent)
+  bus.$on('expand_btn_click', hideNoteContent)
+  if (props.mindMap?.el && noteContentViewer.value) {
+    props.mindMap.el.appendChild(noteContentViewer.value)
+  }
+  initEditor()
+})
+
+onBeforeUnmount(() => {
+  bus.$off('showNoteContent', onShowNoteContent)
+  bus.$off('hideNoteContent', hideNoteContent)
+  document.body.removeEventListener('click', hideNoteContent)
+  bus.$off('node_active', onNodeActive)
+  bus.$off('scale', onScale)
+  bus.$off('translate', onScale)
+  bus.$off('svg_mousedown', hideNoteContent)
+  bus.$off('expand_btn_click', hideNoteContent)
+})
 </script>
 
 <style lang="less" scoped>

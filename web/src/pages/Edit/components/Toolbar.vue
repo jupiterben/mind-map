@@ -60,13 +60,13 @@
           <span class="icon iconfont iconlingcunwei"></span>
           <span class="text">{{ $t('toolbar.saveAs') }}</span>
         </div>
-        <div class="toolbarBtn" @click="$bus.$emit('showImport')">
+        <div class="toolbarBtn" @click="emitShowImport">
           <span class="icon iconfont icondaoru"></span>
           <span class="text">{{ $t('toolbar.import') }}</span>
         </div>
         <div
           class="toolbarBtn"
-          @click="$bus.$emit('showExport')"
+          @click="emitShowExport"
           style="margin-right: 0;"
         >
           <span class="icon iconfont iconexport"></span>
@@ -104,33 +104,35 @@
               node-key="id"
               lazy
             >
-              <span class="customTreeNode" slot-scope="{ node, data }">
-                <div class="treeNodeInfo">
-                  <span
-                    class="treeNodeIcon iconfont"
-                    :class="[
-                      data.type === 'file' ? 'iconwenjian' : 'icondakai'
-                    ]"
-                  ></span>
-                  <span class="treeNodeName">{{ node.label }}</span>
-                </div>
-                <div class="treeNodeBtnList" v-if="data.type === 'file'">
-                  <el-button
-                    type="text"
-                    size="small"
-                    v-if="data.enableEdit"
-                    @click="editLocalFile(data)"
+              <template #default="{ node, data }">
+                <span class="customTreeNode">
+                  <div class="treeNodeInfo">
+                    <span
+                      class="treeNodeIcon iconfont"
+                      :class="[
+                        data.type === 'file' ? 'iconwenjian' : 'icondakai'
+                      ]"
+                    ></span>
+                    <span class="treeNodeName">{{ node.label }}</span>
+                  </div>
+                  <div class="treeNodeBtnList" v-if="data.type === 'file'">
+                    <el-button
+                      type="text"
+                      size="small"
+                      v-if="data.enableEdit"
+                      @click="editLocalFile(data)"
                     >编辑</el-button
-                  >
-                  <el-button
-                    type="text"
-                    size="small"
-                    v-else
-                    @click="importLocalFile(data)"
+                    >
+                    <el-button
+                      type="text"
+                      size="small"
+                      v-else
+                      @click="importLocalFile(data)"
                     >导入</el-button
-                  >
-                </div>
-              </span>
+                    >
+                  </div>
+                </span>
+              </template>
             </el-tree>
           </div>
         </div>
@@ -146,7 +148,8 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import NodeImage from './NodeImage.vue'
 import NodeHyperlink from './NodeHyperlink.vue'
 import NodeIcon from './NodeIcon.vue'
@@ -154,386 +157,273 @@ import NodeNote from './NodeNote.vue'
 import NodeTag from './NodeTag.vue'
 import Export from './Export.vue'
 import Import from './Import.vue'
+import ToolbarNodeBtnList from './ToolbarNodeBtnList.vue'
 import { storeMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
-import { ElNotification } from 'element-plus'
+import { getBus } from '@/bus'
+import { ElNotification, ElMessage, ElLoading } from 'element-plus'
 import exampleData from 'simple-mind-map/example/exampleData'
-import { getData } from '../../../api'
-import ToolbarNodeBtnList from './ToolbarNodeBtnList.vue'
-import { throttle, isMobile } from 'simple-mind-map/src/utils/index'
+import { getData } from '@/api'
+import { throttle, isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
+import { useI18n } from 'vue-i18n'
+import { useStoreMixin } from '@/mixins/storeMixin'
 
-// 工具栏
-let fileHandle = null
 const defaultBtnList = [
-  'back',
-  'forward',
-  'painter',
-  'siblingNode',
-  'childNode',
-  'deleteNode',
-  'image',
-  'icon',
-  'link',
-  'note',
-  'tag',
-  'summary',
-  'associativeLine',
-  'formula',
-  // 'attachment',
-  'outerFrame',
-  'annotation',
-  'ai'
+  'back', 'forward', 'painter', 'siblingNode', 'childNode', 'deleteNode',
+  'image', 'icon', 'link', 'note', 'tag', 'summary', 'associativeLine',
+  'formula', 'outerFrame', 'annotation', 'ai'
 ]
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    NodeImage,
-    NodeHyperlink,
-    NodeIcon,
-    NodeNote,
-    NodeTag,
-    Export,
-    Import,
-    ToolbarNodeBtnList
-  },
-  data() {
-    return {
-      isMobile: isMobile(),
-      horizontalList: [],
-      verticalList: [],
-      showMoreBtn: true,
-      popoverShow: false,
-      fileTreeProps: {
-        label: 'name',
-        children: 'children',
-        isLeaf: 'leaf'
-      },
-      fileTreeVisible: false,
-      rootDirName: '',
-      fileTreeExpand: true,
-      waitingWriteToLocalFile: false
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    btnLit() {
-      let res = [...defaultBtnList]
-      if (!this.openNodeRichText) {
-        res = res.filter(item => {
-          return item !== 'formula'
-        })
-      }
-      if (!this.enableAi) {
-        res = res.filter(item => {
-          return item !== 'ai'
-        })
-      }
-      return res
-    }
-  },
-  watch: {
-    isHandleLocalFile(val) {
-      if (!val) {
-        ElNotification.closeAll()
-      }
-    },
-    btnLit: {
-      deep: true,
-      handler() {
-        this.computeToolbarShow()
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('write_local_file', this.onWriteLocalFile)
-  },
-  mounted() {
-    this.computeToolbarShow()
-    this.computeToolbarShowThrottle = throttle(this.computeToolbarShow, 300)
-    window.addEventListener('resize', this.computeToolbarShowThrottle)
-    this.$bus.$on('lang_change', this.computeToolbarShowThrottle)
-    window.addEventListener('beforeunload', this.onUnload)
-    this.$bus.$on('node_note_dblclick', this.onNodeNoteDblclick)
-  },
-  beforeUnmount() {
-    this.$bus.$off('write_local_file', this.onWriteLocalFile)
-    window.removeEventListener('resize', this.computeToolbarShowThrottle)
-    this.$bus.$off('lang_change', this.computeToolbarShowThrottle)
-    window.removeEventListener('beforeunload', this.onUnload)
-    this.$bus.$off('node_note_dblclick', this.onNodeNoteDblclick)
-  },
-  methods: {
-    // 计算工具按钮如何显示
-    computeToolbarShow() {
-      if (!this.$refs.toolbarRef) return
-      const windowWidth = window.innerWidth - 40
-      const all = [...this.btnLit]
-      let index = 1
-      const loopCheck = () => {
-        if (index > all.length) return done()
-        this.horizontalList = all.slice(0, index)
-        this.$nextTick(() => {
-          const width = this.$refs.toolbarRef.getBoundingClientRect().width
-          if (width < windowWidth) {
-            index++
-            loopCheck()
-          } else if (index > 0 && width > windowWidth) {
-            index--
-            this.horizontalList = all.slice(0, index)
-            done()
-          }
-        })
-      }
-      const done = () => {
-        this.verticalList = all.slice(index)
-        this.showMoreBtn = this.verticalList.length > 0
-      }
-      loopCheck()
-    },
+let fileHandle: any = null
+const { openNodeRichText, enableAi, isHandleLocalFile, setIsHandleLocalFile } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
 
-    // 监听本地文件读写
-    onWriteLocalFile(content) {
-      clearTimeout(this.timer)
-      if (fileHandle && this.isHandleLocalFile) {
-        this.waitingWriteToLocalFile = true
+const toolbarRef = ref<HTMLElement | null>(null)
+const ImportRef = ref<InstanceType<typeof Import> | null>(null)
+const isMobile = checkIsMobile()
+const horizontalList = ref<string[]>([])
+const verticalList = ref<string[]>([])
+const showMoreBtn = ref(true)
+const popoverShow = ref(false)
+const fileTreeProps = { label: 'name', children: 'children', isLeaf: 'leaf' }
+const fileTreeVisible = ref(false)
+const rootDirName = ref('')
+const fileTreeExpand = ref(true)
+const waitingWriteToLocalFile = ref(false)
+const isFullDataFile = ref(false)
+const timer = ref<ReturnType<typeof setTimeout> | null>(null)
+
+const isDark = computed(() => useStore().isDark ?? false)
+const btnLit = computed(() => {
+  let res = [...defaultBtnList]
+  if (!openNodeRichText.value) res = res.filter((item) => item !== 'formula')
+  if (!enableAi.value) res = res.filter((item) => item !== 'ai')
+  return res
+})
+
+function emitShowImport() {
+  bus.$emit('showImport')
+}
+function emitShowExport() {
+  bus.$emit('showExport')
+}
+
+function computeToolbarShow() {
+  if (!toolbarRef.value) return
+  const windowWidth = window.innerWidth - 40
+  const all = [...btnLit.value]
+  let index = 1
+  const done = () => {
+    verticalList.value = all.slice(index)
+    showMoreBtn.value = verticalList.value.length > 0
+  }
+  const loopCheck = () => {
+    if (index > all.length) return done()
+    horizontalList.value = all.slice(0, index)
+    nextTick(() => {
+      const width = toolbarRef.value!.getBoundingClientRect().width
+      if (width < windowWidth) {
+        index++
+        loopCheck()
+      } else if (index > 0 && width > windowWidth) {
+        index--
+        horizontalList.value = all.slice(0, index)
+        done()
       }
-      this.timer = setTimeout(() => {
-        this.writeLocalFile(content)
-      }, 1000)
-    },
+    })
+  }
+  loopCheck()
+}
 
-    onUnload(e) {
-      if (this.waitingWriteToLocalFile) {
-        const msg = '存在未保存的数据'
-        e.returnValue = msg
-        return msg
-      }
-    },
+function onWriteLocalFile(content: any) {
+  if (timer.value) clearTimeout(timer.value)
+  if (fileHandle && isHandleLocalFile.value) waitingWriteToLocalFile.value = true
+  timer.value = setTimeout(() => writeLocalFile(content), 1000)
+}
 
-    // 加载本地文件树
-    async loadFileTreeNode(node, resolve) {
-      try {
-        let dirHandle
-        if (node.level === 0) {
-          dirHandle = await window.showDirectoryPicker()
-          this.rootDirName = dirHandle.name
-        } else {
-          dirHandle = node.data.handle
-        }
-        const dirList = []
-        const fileList = []
-        for await (const [key, value] of dirHandle.entries()) {
-          const isFile = value.kind === 'file'
-          if (isFile && !/\.(smm|xmind|md|json)$/.test(value.name)) {
-            continue
-          }
-          const enableEdit = isFile && /\.smm$/.test(value.name)
-          const data = {
-            id: key,
-            name: value.name,
-            type: value.kind,
-            handle: value,
-            leaf: isFile,
-            enableEdit
-          }
-          if (isFile) {
-            fileList.push(data)
-          } else {
-            dirList.push(data)
-          }
-        }
-        resolve([...dirList, ...fileList])
-      } catch (error) {
-        console.log(error)
-        this.fileTreeVisible = false
-        resolve([])
-        if (error.toString().includes('aborted')) {
-          return
-        }
-        this.$message.warning(this.$t('toolbar.notSupportTip'))
-      }
-    },
-
-    // 扫描本地文件夹
-    openDirectory() {
-      this.fileTreeVisible = false
-      this.fileTreeExpand = true
-      this.rootDirName = ''
-      this.$nextTick(() => {
-        this.fileTreeVisible = true
-      })
-    },
-
-    // 编辑指定文件
-    editLocalFile(data) {
-      if (data.handle) {
-        fileHandle = data.handle
-        this.readFile()
-      }
-    },
-
-    // 导入指定文件
-    async importLocalFile(data) {
-      try {
-        const file = await data.handle.getFile()
-        this.$refs.ImportRef.onChange({
-          raw: file,
-          name: file.name
-        })
-        this.$refs.ImportRef.confirm()
-      } catch (error) {
-        console.log(error)
-      }
-    },
-
-    // 打开本地文件
-    async openLocalFile() {
-      try {
-        let [_fileHandle] = await window.showOpenFilePicker({
-          types: [
-            {
-              description: '',
-              accept: {
-                'application/json': ['.smm']
-              }
-            }
-          ],
-          excludeAcceptAllOption: true,
-          multiple: false
-        })
-        if (!_fileHandle) {
-          return
-        }
-        fileHandle = _fileHandle
-        if (fileHandle.kind === 'directory') {
-          this.$message.warning(this.$t('toolbar.selectFileTip'))
-          return
-        }
-        this.readFile()
-      } catch (error) {
-        console.log(error)
-        if (error.toString().includes('aborted')) {
-          return
-        }
-        this.$message.warning(this.$t('toolbar.notSupportTip'))
-      }
-    },
-
-    // 读取本地文件
-    async readFile() {
-      let file = await fileHandle.getFile()
-      let fileReader = new FileReader()
-      fileReader.onload = async () => {
-        this.setIsHandleLocalFile(true)
-        this.setData(fileReader.result)
-        Notification.closeAll()
-        Notification({
-          title: this.$t('toolbar.tip'),
-          message: `${this.$t('toolbar.editingLocalFileTipFront')}${
-            file.name
-          }${this.$t('toolbar.editingLocalFileTipEnd')}`,
-          duration: 0,
-          showClose: true
-        })
-      }
-      fileReader.readAsText(file)
-    },
-
-    // 渲染读取的数据
-    setData(str) {
-      try {
-        let data = JSON.parse(str)
-        if (typeof data !== 'object') {
-          throw new Error(this.$t('toolbar.fileContentError'))
-        }
-        if (data.root) {
-          this.isFullDataFile = true
-        } else {
-          this.isFullDataFile = false
-          data = {
-            ...exampleData,
-            root: data
-          }
-        }
-        this.$bus.$emit('setData', data)
-      } catch (error) {
-        console.log(error)
-        this.$message.error(this.$t('toolbar.fileOpenFailed'))
-      }
-    },
-
-    // 写入本地文件
-    async writeLocalFile(content) {
-      if (!fileHandle || !this.isHandleLocalFile) {
-        this.waitingWriteToLocalFile = false
-        return
-      }
-      if (!this.isFullDataFile) {
-        content = content.root
-      }
-      let string = JSON.stringify(content)
-      const writable = await fileHandle.createWritable()
-      await writable.write(string)
-      await writable.close()
-      this.waitingWriteToLocalFile = false
-    },
-
-    // 创建本地文件
-    async createNewLocalFile() {
-      await this.createLocalFile(exampleData)
-    },
-
-    // 另存为
-    async saveLocalFile() {
-      let data = getData()
-      await this.createLocalFile(data)
-    },
-
-    // 创建本地文件
-    async createLocalFile(content) {
-      try {
-        let _fileHandle = await window.showSaveFilePicker({
-          types: [
-            {
-              description: '',
-              accept: { 'application/json': ['.smm'] }
-            }
-          ],
-          suggestedName: this.$t('toolbar.defaultFileName')
-        })
-        if (!_fileHandle) {
-          return
-        }
-        const loading = this.$loading({
-          lock: true,
-          text: this.$t('toolbar.creatingTip'),
-          spinner: 'el-icon-loading',
-          background: 'rgba(0, 0, 0, 0.7)'
-        })
-        fileHandle = _fileHandle
-        this.setIsHandleLocalFile(true)
-        this.isFullDataFile = true
-        await this.writeLocalFile(content)
-        await this.readFile()
-        loading.close()
-      } catch (error) {
-        console.log(error)
-        if (error.toString().includes('aborted')) {
-          return
-        }
-        this.$message.warning(this.$t('toolbar.notSupportTip'))
-      }
-    },
-
-    onNodeNoteDblclick(node, e) {
-      e.stopPropagation()
-      this.$bus.$emit('showNodeNote', node)
-    }
+function onUnload(e: BeforeUnloadEvent) {
+  if (waitingWriteToLocalFile.value) {
+    e.returnValue = '存在未保存的数据'
+    return '存在未保存的数据'
   }
 }
+
+async function loadFileTreeNode(node: any, resolve: (data: any[]) => void) {
+  try {
+    let dirHandle: any
+    if (node.level === 0) {
+      dirHandle = await window.showDirectoryPicker()
+      rootDirName.value = dirHandle.name
+    } else {
+      dirHandle = node.data.handle
+    }
+    const dirList: any[] = []
+    const fileList: any[] = []
+    for await (const [key, value] of dirHandle.entries()) {
+      const isFile = value.kind === 'file'
+      if (isFile && !/\.(smm|xmind|md|json)$/.test(value.name)) continue
+      const enableEdit = isFile && /\.smm$/.test(value.name)
+      const data = { id: key, name: value.name, type: value.kind, handle: value, leaf: isFile, enableEdit }
+      if (isFile) fileList.push(data)
+      else dirList.push(data)
+    }
+    resolve([...dirList, ...fileList])
+  } catch (error) {
+    console.log(error)
+    fileTreeVisible.value = false
+    resolve([])
+    if (!String(error).includes('aborted')) ElMessage.warning(t('toolbar.notSupportTip'))
+  }
+}
+
+function openDirectory() {
+  fileTreeVisible.value = false
+  fileTreeExpand.value = true
+  rootDirName.value = ''
+  nextTick(() => { fileTreeVisible.value = true })
+}
+
+function editLocalFile(data: any) {
+  if (data.handle) {
+    fileHandle = data.handle
+    readFile()
+  }
+}
+
+async function importLocalFile(data: any) {
+  try {
+    const file = await data.handle.getFile()
+    ImportRef.value?.onChange?.({ raw: file, name: file.name })
+    ImportRef.value?.confirm?.()
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+async function openLocalFile() {
+  try {
+    const [_fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: '', accept: { 'application/json': ['.smm'] } }],
+      excludeAcceptAllOption: true,
+      multiple: false
+    })
+    if (!_fileHandle) return
+    fileHandle = _fileHandle
+    if (fileHandle.kind === 'directory') {
+      ElMessage.warning(t('toolbar.selectFileTip'))
+      return
+    }
+    readFile()
+  } catch (error) {
+    if (!String(error).includes('aborted')) ElMessage.warning(t('toolbar.notSupportTip'))
+  }
+}
+
+async function readFile() {
+  const file = await fileHandle.getFile()
+  const fileReader = new FileReader()
+  fileReader.onload = () => {
+    setIsHandleLocalFile(true)
+    setData(fileReader.result as string)
+    ElNotification.closeAll()
+    ElNotification({
+      title: t('toolbar.tip'),
+      message: `${t('toolbar.editingLocalFileTipFront')}${file.name}${t('toolbar.editingLocalFileTipEnd')}`,
+      duration: 0,
+      showClose: true
+    })
+  }
+  fileReader.readAsText(file)
+}
+
+function setData(str: string) {
+  try {
+    let data = JSON.parse(str)
+    if (typeof data !== 'object') throw new Error(t('toolbar.fileContentError'))
+    if (data.root) {
+      isFullDataFile.value = true
+    } else {
+      isFullDataFile.value = false
+      data = { ...exampleData, root: data }
+    }
+    bus.$emit('setData', data)
+  } catch (error) {
+    ElMessage.error(t('toolbar.fileOpenFailed'))
+  }
+}
+
+async function writeLocalFile(content: any) {
+  if (!fileHandle || !isHandleLocalFile.value) {
+    waitingWriteToLocalFile.value = false
+    return
+  }
+  if (!isFullDataFile.value) content = content.root
+  const writable = await fileHandle.createWritable()
+  await writable.write(JSON.stringify(content))
+  await writable.close()
+  waitingWriteToLocalFile.value = false
+}
+
+async function createNewLocalFile() {
+  await createLocalFile(exampleData)
+}
+
+async function saveLocalFile() {
+  await createLocalFile(getData())
+}
+
+async function createLocalFile(content: any) {
+  try {
+    const _fileHandle = await window.showSaveFilePicker({
+      types: [{ description: '', accept: { 'application/json': ['.smm'] } }],
+      suggestedName: t('toolbar.defaultFileName')
+    })
+    if (!_fileHandle) return
+    const loading = ElLoading.service({
+      lock: true,
+      text: t('toolbar.creatingTip'),
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+    fileHandle = _fileHandle
+    setIsHandleLocalFile(true)
+    isFullDataFile.value = true
+    await writeLocalFile(content)
+    await readFile()
+    loading.close()
+  } catch (error) {
+    if (!String(error).includes('aborted')) ElMessage.warning(t('toolbar.notSupportTip'))
+  }
+}
+
+function onNodeNoteDblclick(node: any, e: Event) {
+  e.stopPropagation()
+  bus.$emit('showNodeNote', node)
+}
+
+const computeToolbarShowThrottle = throttle(computeToolbarShow, 300)
+
+watch(isHandleLocalFile, (val) => {
+  if (!val) ElNotification.closeAll()
+})
+watch(btnLit, () => computeToolbarShow(), { deep: true })
+
+onMounted(() => {
+  bus.$on('write_local_file', onWriteLocalFile)
+  computeToolbarShow()
+  window.addEventListener('resize', computeToolbarShowThrottle)
+  bus.$on('lang_change', computeToolbarShowThrottle)
+  window.addEventListener('beforeunload', onUnload)
+  bus.$on('node_note_dblclick', onNodeNoteDblclick)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('write_local_file', onWriteLocalFile)
+  window.removeEventListener('resize', computeToolbarShowThrottle)
+  bus.$off('lang_change', computeToolbarShowThrottle)
+  window.removeEventListener('beforeunload', onUnload)
+  bus.$off('node_note_dblclick', onNodeNoteDblclick)
+})
 </script>
 
 <style lang="less" scoped>

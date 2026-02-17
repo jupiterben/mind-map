@@ -14,31 +14,19 @@
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.italic')" placement="top">
-      <div
-        class="btn"
-        :class="{ active: formatInfo.italic }"
-        @click="toggleItalic"
-      >
+      <div class="btn" :class="{ active: formatInfo.italic }" @click="toggleItalic">
         <span class="icon iconfont iconzitixieti"></span>
       </div>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.underline')" placement="top">
-      <div
-        class="btn"
-        :class="{ active: formatInfo.underline }"
-        @click="toggleUnderline"
-      >
+      <div class="btn" :class="{ active: formatInfo.underline }" @click="toggleUnderline">
         <span class="icon iconfont iconzitixiahuaxian"></span>
       </div>
     </el-tooltip>
 
     <el-tooltip :content="$t('richTextToolbar.strike')" placement="top">
-      <div
-        class="btn"
-        :class="{ active: formatInfo.strike }"
-        @click="toggleStrike"
-      >
+      <div class="btn" :class="{ active: formatInfo.strike }" @click="toggleStrike">
         <span class="icon iconfont iconshanchuxian"></span>
       </div>
     </el-tooltip>
@@ -76,7 +64,7 @@
             <div class="fontOptionsList" :class="{ isDark: isDark }">
               <div
                 class="fontOptionItem"
-                v-for="item in fontSizeList"
+                v-for="item in fontSizeListRef"
                 :key="item"
                 :style="{
                   fontSize: item + 'px',
@@ -113,17 +101,11 @@
       </span>
     </el-tooltip>
 
-    <el-tooltip
-      :content="$t('richTextToolbar.backgroundColor')"
-      placement="top"
-    >
+    <el-tooltip :content="$t('richTextToolbar.backgroundColor')" placement="top">
       <span class="btn-wrap">
         <el-popover placement="bottom" trigger="hover">
           <template #default>
-            <Color
-              :color="fontBackgroundColor"
-              @change="changeFontBackgroundColor"
-            ></Color>
+            <Color :color="fontBackgroundColor" @change="changeFontBackgroundColor"></Color>
           </template>
           <template #reference>
             <div class="btn">
@@ -167,136 +149,103 @@
   </div>
 </template>
 
-<script>
-import { fontFamilyList, fontSizeList, alignList } from '@/config'
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { fontFamilyList as fontFamilyConfig, fontSizeList, alignList as alignListConfig } from '@/config'
 import Color from './Color.vue'
-import { storeMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Color
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      fontSizeList,
-      showRichTextToolbar: false,
-      style: {
-        left: 0,
-        top: 0
-      },
-      fontColor: '',
-      fontBackgroundColor: '',
-      formatInfo: {}
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    fontFamilyList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return fontFamilyList[locale] || fontFamilyList.zh
-    },
+const props = defineProps<{
+  mindMap: any
+}>()
 
-    alignList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return alignList[locale] || alignList.zh
-    }
-  },
-  created() {
-    this.$bus.$on('rich_text_selection_change', this.onRichTextSelectionChange)
-  },
-  mounted() {
-    document.body.append(this.$refs.richTextToolbar)
-  },
-  beforeUnmount() {
-    this.$bus.$off('rich_text_selection_change', this.onRichTextSelectionChange)
-  },
-  methods: {
-    onRichTextSelectionChange(hasRange, rect, formatInfo) {
-      if (hasRange) {
-        this.style.left = rect.left + rect.width / 2 + 'px'
-        this.style.top = rect.top - 60 + 'px'
-        this.formatInfo = { ...(formatInfo || {}) }
-      }
-      this.showRichTextToolbar = hasRange
-    },
+const bus = getBus()
+const { locale } = useI18n()
 
-    toggleBold() {
-      this.formatInfo.bold = !this.formatInfo.bold
-      this.mindMap.richText.formatText({
-        bold: this.formatInfo.bold
-      })
-    },
+const richTextToolbar = ref<HTMLElement | null>(null)
+const showRichTextToolbar = ref(false)
+const style = reactive({ left: '0px', top: '0px' })
+const fontColor = ref('')
+const fontBackgroundColor = ref('')
+const formatInfo = reactive<Record<string, any>>({})
 
-    toggleItalic() {
-      this.formatInfo.italic = !this.formatInfo.italic
-      this.mindMap.richText.formatText({
-        italic: this.formatInfo.italic
-      })
-    },
+const isDark = computed(() => useStore().isDark ?? false)
+const fontFamilyList = computed(
+  () => fontFamilyConfig[locale.value ?? (locale as any)] || fontFamilyConfig.zh
+)
+const alignList = computed(
+  () => alignListConfig[locale.value ?? (locale as any)] || alignListConfig.zh
+)
+const fontSizeListRef = fontSizeList
 
-    toggleUnderline() {
-      this.formatInfo.underline = !this.formatInfo.underline
-      this.mindMap.richText.formatText({
-        underline: this.formatInfo.underline
-      })
-    },
-
-    toggleStrike() {
-      this.formatInfo.strike = !this.formatInfo.strike
-      this.mindMap.richText.formatText({
-        strike: this.formatInfo.strike
-      })
-    },
-
-    changeFontFamily(font) {
-      this.formatInfo.font = font
-      this.mindMap.richText.formatText({
-        font
-      })
-    },
-
-    changeFontSize(size) {
-      this.formatInfo.size = size
-      this.mindMap.richText.formatText({
-        size: size + 'px'
-      })
-    },
-
-    changeFontColor(color) {
-      this.formatInfo.color = color
-      this.mindMap.richText.formatText({
-        color
-      })
-    },
-
-    changeFontBackgroundColor(background) {
-      this.formatInfo.background = background
-      this.mindMap.richText.formatText({
-        background
-      })
-    },
-
-    changeTextAlign(align) {
-      this.formatInfo.align = align
-      this.mindMap.richText.formatText({
-        align
-      })
-    },
-
-    removeFormat() {
-      this.mindMap.richText.removeFormat()
-    }
+function onRichTextSelectionChange(hasRange: boolean, rect: any, info: any) {
+  if (hasRange) {
+    style.left = rect.left + rect.width / 2 + 'px'
+    style.top = rect.top - 60 + 'px'
+    Object.assign(formatInfo, info || {})
   }
+  showRichTextToolbar.value = hasRange
 }
+
+function toggleBold() {
+  formatInfo.bold = !formatInfo.bold
+  props.mindMap.richText.formatText({ bold: formatInfo.bold })
+}
+
+function toggleItalic() {
+  formatInfo.italic = !formatInfo.italic
+  props.mindMap.richText.formatText({ italic: formatInfo.italic })
+}
+
+function toggleUnderline() {
+  formatInfo.underline = !formatInfo.underline
+  props.mindMap.richText.formatText({ underline: formatInfo.underline })
+}
+
+function toggleStrike() {
+  formatInfo.strike = !formatInfo.strike
+  props.mindMap.richText.formatText({ strike: formatInfo.strike })
+}
+
+function changeFontFamily(font: string) {
+  formatInfo.font = font
+  props.mindMap.richText.formatText({ font })
+}
+
+function changeFontSize(size: number) {
+  formatInfo.size = size + 'px'
+  props.mindMap.richText.formatText({ size: size + 'px' })
+}
+
+function changeFontColor(color: string) {
+  formatInfo.color = color
+  props.mindMap.richText.formatText({ color })
+}
+
+function changeFontBackgroundColor(background: string) {
+  formatInfo.background = background
+  props.mindMap.richText.formatText({ background })
+}
+
+function changeTextAlign(align: string) {
+  formatInfo.align = align
+  props.mindMap.richText.formatText({ align })
+}
+
+function removeFormat() {
+  props.mindMap.richText.removeFormat()
+}
+
+onMounted(() => {
+  bus.$on('rich_text_selection_change', onRichTextSelectionChange)
+  if (richTextToolbar.value) document.body.append(richTextToolbar.value)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('rich_text_selection_change', onRichTextSelectionChange)
+})
 </script>
 
 <style lang="less" scoped>

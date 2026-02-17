@@ -181,341 +181,259 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
 import { getTextFromHtml, imgToDataUrl } from 'simple-mind-map/src/utils'
 import { transformToMarkdown } from 'simple-mind-map/src/parse/toMarkdown'
 import { transformToTxt } from 'simple-mind-map/src/parse/toTxt'
 import { setDataToClipboard, setImgToClipboard, copy } from '@/utils'
 import { numberTypeList, numberLevelList } from '@/config'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-// 右键菜单
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
+const props = defineProps<{ mindMap: any }>()
+const { setLocalConfig, isZenMode, enableAi } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
+
+const contextmenuRef = ref<HTMLElement | null>(null)
+const isShow = ref(false)
+const left = ref(0)
+const top = ref(0)
+const node = ref<any>(null)
+const type = ref('')
+const isMousedown = ref(false)
+const mosuedownX = ref(0)
+const mosuedownY = ref(0)
+const enableCopyToClipboardApi = !!navigator.clipboard
+const numberType = ref('')
+const numberLevel = ref('')
+const subItemsShowLeft = ref(false)
+const isNodeMousedown = ref(false)
+
+const isDark = computed(() => useStore().isDark ?? false)
+const expandList = computed(() => [
+  t('contextmenu.level1'),
+  t('contextmenu.level2'),
+  t('contextmenu.level3'),
+  t('contextmenu.level4'),
+  t('contextmenu.level5'),
+  t('contextmenu.level6')
+])
+const copyList = computed(() => {
+  const list = [
+    { name: t('contextmenu.copyToSmm'), value: 'smm' },
+    { name: t('contextmenu.copyToJson'), value: 'json' },
+    { name: t('contextmenu.copyToMarkdown'), value: 'md' },
+    { name: t('contextmenu.copyToTxt'), value: 'txt' }
+  ]
+  if (enableCopyToClipboardApi) list.push({ name: t('contextmenu.copyToPng'), value: 'png' })
+  return list
+})
+const insertNodeBtnDisabled = computed(
+  () => !node.value || node.value.isRoot || node.value.isGeneralization
+)
+const upNodeBtnDisabled = computed(() => {
+  if (!node.value || node.value.isRoot || node.value.isGeneralization) return true
+  return node.value.parent.children.findIndex((item: any) => item === node.value) === 0
+})
+const downNodeBtnDisabled = computed(() => {
+  if (!node.value || node.value.isRoot || node.value.isGeneralization) return true
+  const children = node.value.parent.children
+  return children.findIndex((item: any) => item === node.value) === children.length - 1
+})
+const isGeneralization = computed(() => node.value?.isGeneralization)
+const hasHyperlink = computed(() => !!node.value?.getData('hyperlink'))
+const hasNote = computed(() => !!node.value?.getData('note'))
+const { locale } = useI18n()
+const numberTypeListComputed = computed(
+  () => numberTypeList[locale.value ?? (locale as any)] || numberTypeList.zh
+)
+const numberLevelListComputed = computed(
+  () => numberLevelList[locale.value ?? (locale as any)] || numberLevelList.zh
+)
+const hasCheckbox = computed(() => !!node.value?.getData('checkbox'))
+const hasNodeLink = computed(() => !!node.value?.getData('nodeLink'))
+
+function getShowPosition(x: number, y: number) {
+  const rect = contextmenuRef.value?.getBoundingClientRect()
+  if (!rect) return { x, y }
+  if (x + rect.width > window.innerWidth) x = x - rect.width - 20
+  subItemsShowLeft.value = x + rect.width + 150 > window.innerWidth
+  if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10
+  return { x, y }
+}
+
+function show(e: MouseEvent, n: any) {
+  type.value = 'node'
+  isShow.value = true
+  node.value = n
+  const number = n.getData('number')
+  if (number) {
+    numberType.value = number.type || 1
+    numberLevel.value = number.level === '' ? 1 : number.level
+  }
+  nextTick(() => {
+    const pos = getShowPosition(e.clientX + 10, e.clientY + 10)
+    left.value = pos.x
+    top.value = pos.y
+  })
+}
+
+function onNodeMousedown() {
+  isNodeMousedown.value = true
+}
+
+function onMousedown(e: MouseEvent) {
+  if (e.which !== 3) return
+  mosuedownX.value = e.clientX
+  mosuedownY.value = e.clientY
+  isMousedown.value = true
+}
+
+function onMouseup(e: MouseEvent) {
+  if (!isMousedown.value) return
+  if (isNodeMousedown.value) {
+    isNodeMousedown.value = false
+    return
+  }
+  isMousedown.value = false
+  if (Math.abs(mosuedownX.value - e.clientX) > 3 || Math.abs(mosuedownY.value - e.clientY) > 3) {
+    hide()
+    return
+  }
+  show2(e)
+}
+
+function show2(e: MouseEvent) {
+  type.value = 'svg'
+  isShow.value = true
+  nextTick(() => {
+    const pos = getShowPosition(e.clientX + 10, e.clientY + 10)
+    left.value = pos.x
+    top.value = pos.y
+  })
+}
+
+function hide() {
+  isShow.value = false
+  left.value = -9999
+  top.value = -9999
+  type.value = ''
+  node.value = null
+  numberType.value = ''
+  numberLevel.value = ''
+}
+
+function exec(key: string, disabled: boolean, ...args: any[]) {
+  if (disabled) return
+  switch (key) {
+    case 'COPY_NODE':
+      props.mindMap.renderer.copy()
+      break
+    case 'CUT_NODE':
+      props.mindMap.renderer.cut()
+      break
+    case 'PASTE_NODE':
+      props.mindMap.renderer.paste()
+      break
+    case 'RETURN_CENTER':
+      props.mindMap.renderer.setRootNodeCenter()
+      break
+    case 'TOGGLE_ZEN_MODE':
+      setLocalConfig({ isZenMode: !isZenMode.value })
+      break
+    case 'FIT_CANVAS':
+      props.mindMap.view.fit()
+      break
+    case 'REMOVE_HYPERLINK':
+      node.value?.setHyperlink('', '')
+      break
+    case 'REMOVE_NOTE':
+      node.value?.setNote('')
+      break
+    case 'EXPORT_CUR_NODE_TO_PNG':
+      props.mindMap.export('png', true, getTextFromHtml(node.value.getData('text')), false, node.value)
+      break
+    case 'UNEXPAND_ALL':
+      bus.$emit('execCommand', key, !node.value?.uid, node.value?.uid)
+      break
+    case 'EXPAND_ALL':
+      bus.$emit('execCommand', key, node.value?.uid ?? '')
+      break
+    default:
+      bus.$emit('execCommand', key, ...args)
+      break
+  }
+  hide()
+}
+
+async function copyToClipboard(typeVal: string) {
+  try {
+    hide()
+    let data: any
+    let str: string | undefined
+    switch (typeVal) {
+      case 'smm':
+      case 'json':
+        data = props.mindMap.getData(true)
+        str = JSON.stringify(data)
+        break
+      case 'md':
+        data = props.mindMap.getData()
+        str = transformToMarkdown(data)
+        break
+      case 'txt':
+        data = props.mindMap.getData()
+        str = transformToTxt(data)
+        break
+      case 'png':
+        const png = await props.mindMap.export('png', false)
+        const blob = await imgToDataUrl(png, true)
+        setImgToClipboard(blob)
+        break
+      default:
+        break
     }
-  },
-  data() {
-    return {
-      isShow: false,
-      left: 0,
-      top: 0,
-      node: null,
-      type: '',
-      isMousedown: false,
-      mosuedownX: 0,
-      mosuedownY: 0,
-      enableCopyToClipboardApi: navigator.clipboard,
-      numberType: '',
-      numberLevel: '',
-      subItemsShowLeft: false,
-      isNodeMousedown: false
+    if (str) {
+      if (enableCopyToClipboardApi) setDataToClipboard(str)
+      else copy(str)
     }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    expandList() {
-      return [
-        this.$t('contextmenu.level1'),
-        this.$t('contextmenu.level2'),
-        this.$t('contextmenu.level3'),
-        this.$t('contextmenu.level4'),
-        this.$t('contextmenu.level5'),
-        this.$t('contextmenu.level6')
-      ]
-    },
-    copyList() {
-      const list = [
-        {
-          name: this.$t('contextmenu.copyToSmm'),
-          value: 'smm'
-        },
-        {
-          name: this.$t('contextmenu.copyToJson'),
-          value: 'json'
-        },
-        {
-          name: this.$t('contextmenu.copyToMarkdown'),
-          value: 'md'
-        },
-        {
-          name: this.$t('contextmenu.copyToTxt'),
-          value: 'txt'
-        }
-      ]
-      if (this.enableCopyToClipboardApi) {
-        list.push({
-          name: this.$t('contextmenu.copyToPng'),
-          value: 'png'
-        })
-      }
-      return list
-    },
-    insertNodeBtnDisabled() {
-      return !this.node || this.node.isRoot || this.node.isGeneralization
-    },
-    upNodeBtnDisabled() {
-      if (!this.node || this.node.isRoot || this.node.isGeneralization) {
-        return true
-      }
-      let isFirst =
-        this.node.parent.children.findIndex(item => {
-          return item === this.node
-        }) === 0
-      return isFirst
-    },
-    downNodeBtnDisabled() {
-      if (!this.node || this.node.isRoot || this.node.isGeneralization) {
-        return true
-      }
-      let children = this.node.parent.children
-      let isLast =
-        children.findIndex(item => {
-          return item === this.node
-        }) ===
-        children.length - 1
-      return isLast
-    },
-    isGeneralization() {
-      return this.node.isGeneralization
-    },
-    hasHyperlink() {
-      return !!this.node.getData('hyperlink')
-    },
-    hasNote() {
-      return !!this.node.getData('note')
-    },
-    numberTypeList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return numberTypeList[locale] || numberTypeList.zh
-    },
-    numberLevelList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return numberLevelList[locale] || numberLevelList.zh
-    },
-    hasCheckbox() {
-      return !!this.node.getData('checkbox')
-    },
-    hasNodeLink() {
-      return !!this.node.getData('nodeLink')
-    }
-  },
-  created() {
-    this.$bus.$on('node_contextmenu', this.show)
-    this.$bus.$on('node_click', this.hide)
-    this.$bus.$on('draw_click', this.hide)
-    this.$bus.$on('expand_btn_click', this.hide)
-    this.$bus.$on('svg_mousedown', this.onMousedown)
-    this.$bus.$on('mouseup', this.onMouseup)
-    this.$bus.$on('translate', this.hide)
-    this.$bus.$on('node_mousedown', this.onNodeMousedown)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_contextmenu', this.show)
-    this.$bus.$off('node_click', this.hide)
-    this.$bus.$off('draw_click', this.hide)
-    this.$bus.$off('expand_btn_click', this.hide)
-    this.$bus.$off('svg_mousedown', this.onMousedown)
-    this.$bus.$off('mouseup', this.onMouseup)
-    this.$bus.$off('translate', this.hide)
-    this.$bus.$off('node_mousedown', this.onNodeMousedown)
-  },
-  methods: {
-    // 计算右键菜单元素的显示位置
-    getShowPosition(x, y) {
-      const rect = this.$refs.contextmenuRef.getBoundingClientRect()
-      if (x + rect.width > window.innerWidth) {
-        x = x - rect.width - 20
-      }
-      this.subItemsShowLeft = x + rect.width + 150 > window.innerWidth
-      if (y + rect.height > window.innerHeight) {
-        y = window.innerHeight - rect.height - 10
-      }
-      return { x, y }
-    },
-
-    // 节点右键显示
-    show(e, node) {
-      this.type = 'node'
-      this.isShow = true
-      this.node = node
-      const number = this.node.getData('number')
-      if (number) {
-        this.numberType = number.type || 1
-        this.numberLevel = number.level === '' ? 1 : number.level
-      }
-      this.$nextTick(() => {
-        const { x, y } = this.getShowPosition(e.clientX + 10, e.clientY + 10)
-        this.left = x
-        this.top = y
-      })
-    },
-
-    onNodeMousedown() {
-      this.isNodeMousedown = true
-    },
-
-    // 鼠标按下事件
-    onMousedown(e) {
-      if (e.which !== 3) {
-        return
-      }
-      this.mosuedownX = e.clientX
-      this.mosuedownY = e.clientY
-      this.isMousedown = true
-    },
-
-    // 鼠标松开事件
-    onMouseup(e) {
-      if (!this.isMousedown) {
-        return
-      }
-      if (this.isNodeMousedown) {
-        this.isNodeMousedown = false
-        return
-      }
-      this.isMousedown = false
-      if (
-        Math.abs(this.mosuedownX - e.clientX) > 3 ||
-        Math.abs(this.mosuedownY - e.clientY) > 3
-      ) {
-        this.hide()
-        return
-      }
-      this.show2(e)
-    },
-
-    // 画布右键显示
-    show2(e) {
-      this.type = 'svg'
-      this.isShow = true
-      this.$nextTick(() => {
-        const { x, y } = this.getShowPosition(e.clientX + 10, e.clientY + 10)
-        this.left = x
-        this.top = y
-      })
-    },
-
-    // 隐藏
-    hide() {
-      this.isShow = false
-      this.left = -9999
-      this.top = -9999
-      this.type = ''
-      this.node = ''
-      this.numberType = ''
-      this.numberLevel = ''
-    },
-
-    // 执行命令
-    exec(key, disabled, ...args) {
-      if (disabled) {
-        return
-      }
-      switch (key) {
-        case 'COPY_NODE':
-          this.mindMap.renderer.copy()
-          break
-        case 'CUT_NODE':
-          this.mindMap.renderer.cut()
-          break
-        case 'PASTE_NODE':
-          this.mindMap.renderer.paste()
-          break
-        case 'RETURN_CENTER':
-          this.mindMap.renderer.setRootNodeCenter()
-          break
-        case 'TOGGLE_ZEN_MODE':
-          this.setLocalConfig({
-            isZenMode: !this.isZenMode
-          })
-          break
-        case 'FIT_CANVAS':
-          this.mindMap.view.fit()
-          break
-        case 'REMOVE_HYPERLINK':
-          this.node.setHyperlink('', '')
-          break
-        case 'REMOVE_NOTE':
-          this.node.setNote('')
-          break
-        case 'EXPORT_CUR_NODE_TO_PNG':
-          this.mindMap.export(
-            'png',
-            true,
-            getTextFromHtml(this.node.getData('text')),
-            false,
-            this.node
-          )
-          break
-        case 'UNEXPAND_ALL':
-          const uid = this.node ? this.node.uid : ''
-          this.$bus.$emit('execCommand', key, !uid, uid)
-          break
-        case 'EXPAND_ALL':
-          this.$bus.$emit('execCommand', key, this.node ? this.node.uid : '')
-          break
-        default:
-          this.$bus.$emit('execCommand', key, ...args)
-          break
-      }
-      this.hide()
-    },
-
-    // 复制到剪贴板
-    async copyToClipboard(type) {
-      try {
-        this.hide()
-        let data
-        let str
-        switch (type) {
-          case 'smm':
-          case 'json':
-            data = this.mindMap.getData(true)
-            str = JSON.stringify(data)
-            break
-          case 'md':
-            data = this.mindMap.getData()
-            str = transformToMarkdown(data)
-            break
-          case 'txt':
-            data = this.mindMap.getData()
-            str = transformToTxt(data)
-            break
-          case 'png':
-            const png = await this.mindMap.export('png', false)
-            const blob = await imgToDataUrl(png, true)
-            setImgToClipboard(blob)
-            break
-          default:
-            break
-        }
-        if (str) {
-          if (this.enableCopyToClipboardApi) {
-            setDataToClipboard(str)
-          } else {
-            copy(str)
-          }
-        }
-        this.$message.success(this.$t('contextmenu.copySuccess'))
-      } catch (error) {
-        console.log(error)
-        this.$message.error(this.$t('contextmenu.copyFail'))
-      }
-    },
-
-    // AI续写
-    aiCreate() {
-      this.$bus.$emit('ai_create_part', this.node)
-      this.hide()
-    }
+    ElMessage.success(t('contextmenu.copySuccess'))
+  } catch (error) {
+    ElMessage.error(t('contextmenu.copyFail'))
   }
 }
+
+function aiCreate() {
+  bus.$emit('ai_create_part', node.value)
+  hide()
+}
+
+onMounted(() => {
+  bus.$on('node_contextmenu', show)
+  bus.$on('node_click', hide)
+  bus.$on('draw_click', hide)
+  bus.$on('expand_btn_click', hide)
+  bus.$on('svg_mousedown', onMousedown)
+  bus.$on('mouseup', onMouseup)
+  bus.$on('translate', hide)
+  bus.$on('node_mousedown', onNodeMousedown)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_contextmenu', show)
+  bus.$off('node_click', hide)
+  bus.$off('draw_click', hide)
+  bus.$off('expand_btn_click', hide)
+  bus.$off('svg_mousedown', onMousedown)
+  bus.$off('mouseup', onMouseup)
+  bus.$off('translate', hide)
+  bus.$off('node_mousedown', onNodeMousedown)
+})
 </script>
 
 <style lang="less" scoped>

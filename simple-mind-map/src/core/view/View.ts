@@ -1,317 +1,144 @@
 // @ts-nocheck
-import { Polygon, Path, SVG } from '@svgdotjs/svg.js'
-import { CONSTANTS } from '../../../constants/constant'
+// 视图操作类：画布缩放、平移、fit、get/setTransformData 等
 
-//  节点形状类
-export default class Shape {
-  constructor(node) {
-    this.node = node
-    this.mindMap = node.mindMap
+export default class View {
+  constructor({ mindMap }) {
+    this.mindMap = mindMap
+    const draw = mindMap.draw
+    const t = draw ? draw.transform() : {}
+    this.scale = t.scaleX ?? 1
+    this.x = t.translateX ?? 0
+    this.y = t.translateY ?? 0
   }
 
-  //  形状需要的padding
-  getShapePadding(width, height, paddingX, paddingY) {
-    const shape = this.node.getShape()
-    const defaultPaddingX = 15
-    const defaultPaddingY = 5
-    const actWidth = width + paddingX * 2
-    const actHeight = height + paddingY * 2
-    const actOffset = Math.abs(actWidth - actHeight)
-    switch (shape) {
-      case CONSTANTS.SHAPE.ROUNDED_RECTANGLE:
-        return {
-          paddingX: height > width ? (height - width) / 2 : 0,
-          paddingY: 0
-        }
-      case CONSTANTS.SHAPE.DIAMOND:
-        return {
-          paddingX: width / 2,
-          paddingY: height / 2
-        }
-      case CONSTANTS.SHAPE.PARALLELOGRAM:
-        return {
-          paddingX: paddingX <= 0 ? defaultPaddingX : 0,
-          paddingY: 0
-        }
-      case CONSTANTS.SHAPE.OUTER_TRIANGULAR_RECTANGLE:
-        return {
-          paddingX: paddingX <= 0 ? defaultPaddingX : 0,
-          paddingY: 0
-        }
-      case CONSTANTS.SHAPE.INNER_TRIANGULAR_RECTANGLE:
-        return {
-          paddingX: paddingX <= 0 ? defaultPaddingX : 0,
-          paddingY: 0
-        }
-      case CONSTANTS.SHAPE.ELLIPSE:
-        return {
-          paddingX: paddingX <= 0 ? defaultPaddingX : 0,
-          paddingY: paddingY <= 0 ? defaultPaddingY : 0
-        }
-      case CONSTANTS.SHAPE.CIRCLE:
-        return {
-          paddingX: actHeight > actWidth ? actOffset / 2 : 0,
-          paddingY: actHeight < actWidth ? actOffset / 2 : 0
-        }
-    }
-    const extendShape = this.getShapeFromExtendList(shape)
-    if (extendShape) {
-      return (
-        extendShape.getPadding({
-          node: this.node,
-          width,
-          height,
-          paddingX,
-          paddingY
-        }) || {
-          paddingX: 0,
-          paddingY: 0
-        }
-      )
-    } else {
-      return {
-        paddingX: 0,
-        paddingY: 0
-      }
-    }
-  }
-
-  // 从形状扩展列表里获取指定名称的形状
-  getShapeFromExtendList(shape) {
-    return this.mindMap.extendShapeList.find(item => {
-      return item.name === shape
+  transform() {
+    const draw = this.mindMap.draw
+    if (!draw) return
+    draw.transform({
+      scaleX: this.scale,
+      scaleY: this.scale,
+      translateX: this.x,
+      translateY: this.y
     })
   }
 
-  //  创建形状节点
-  createShape() {
-    const shape = this.node.getShape()
-    let node = null
-    // 矩形
-    if (shape === CONSTANTS.SHAPE.RECTANGLE) {
-      node = this.createRect()
-    } else if (shape === CONSTANTS.SHAPE.DIAMOND) {
-      // 菱形
-      node = this.createDiamond()
-    } else if (shape === CONSTANTS.SHAPE.PARALLELOGRAM) {
-      // 平行四边形
-      node = this.createParallelogram()
-    } else if (shape === CONSTANTS.SHAPE.ROUNDED_RECTANGLE) {
-      // 圆角矩形
-      node = this.createRoundedRectangle()
-    } else if (shape === CONSTANTS.SHAPE.OCTAGONAL_RECTANGLE) {
-      // 八角矩形
-      node = this.createOctagonalRectangle()
-    } else if (shape === CONSTANTS.SHAPE.OUTER_TRIANGULAR_RECTANGLE) {
-      // 外三角矩形
-      node = this.createOuterTriangularRectangle()
-    } else if (shape === CONSTANTS.SHAPE.INNER_TRIANGULAR_RECTANGLE) {
-      // 内三角矩形
-      node = this.createInnerTriangularRectangle()
-    } else if (shape === CONSTANTS.SHAPE.ELLIPSE) {
-      // 椭圆
-      node = this.createEllipse()
-    } else if (shape === CONSTANTS.SHAPE.CIRCLE) {
-      // 圆
-      node = this.createCircle()
-    }
-    if (!node) {
-      const extendShape = this.getShapeFromExtendList(shape)
-      if (extendShape) {
-        node = extendShape.createShape(this.node)
+  getTransformData() {
+    const draw = this.mindMap.draw
+    const transform = draw ? draw.transform() : { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0, shear: 0, rotate: 0, originX: 0, originY: 0, a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
+    return {
+      transform: { ...transform },
+      state: {
+        scale: this.scale,
+        x: this.x,
+        y: this.y,
+        sx: 0,
+        sy: 0
       }
     }
-    return node || this.createRect()
   }
 
-  // 获取节点减去节点边框宽度、hover节点边框宽度后的尺寸
-  getNodeSize() {
-    const borderWidth = this.node.getBorderWidth()
-    let { width, height } = this.node
-    width -= borderWidth
-    height -= borderWidth
-    return {
-      width,
-      height
+  setTransformData(data) {
+    if (!data) return
+    if (data.transform) {
+      this.mindMap.draw.transform(data.transform)
+      const t = data.transform
+      this.scale = t.scaleX ?? this.scale
+      this.x = t.translateX ?? this.x
+      this.y = t.translateY ?? this.y
+    }
+    if (data.state) {
+      this.scale = data.state.scale ?? this.scale
+      this.x = data.state.x ?? this.x
+      this.y = data.state.y ?? this.y
     }
   }
 
-  // 创建路径节点
-  createPath(pathStr) {
-    const { customCreateNodePath } = this.mindMap.opt
-    if (customCreateNodePath) {
-      return SVG(customCreateNodePath(pathStr))
+  reset() {
+    this.scale = 1
+    this.x = 0
+    this.y = 0
+    this.transform()
+  }
+
+  fit(getRect, padding, paddingVal) {
+    const mindMap = this.mindMap
+    const draw = mindMap.draw
+    if (!draw) return
+    const width = mindMap.width
+    const height = mindMap.height
+    let rect
+    if (typeof getRect === 'function') {
+      rect = getRect()
+      if (paddingVal != null) padding = paddingVal
+    } else {
+      const root = mindMap.renderer?.root?.group
+      rect = root ? root.rbox() : draw.rbox()
+      padding = padding ?? 50
     }
-    return new Path().plot(pathStr)
+    const paddingX = padding ?? 0
+    const paddingY = padding ?? 0
+    const contentW = (rect.width || 0) + paddingX * 2
+    const contentH = (rect.height || 0) + paddingY * 2
+    if (contentW <= 0 || contentH <= 0) return
+    const scale = Math.min(width / contentW, height / contentH)
+    const cx = (rect.x || 0) + (rect.width || 0) / 2
+    const cy = (rect.y || 0) + (rect.height || 0) / 2
+    this.scale = scale
+    this.x = width / 2 - cx * scale
+    this.y = height / 2 - cy * scale
+    this.transform()
   }
 
-  // 创建多边形节点
-  createPolygon(points) {
-    const { customCreateNodePolygon } = this.mindMap.opt
-    if (customCreateNodePolygon) {
-      return SVG(customCreateNodePolygon(points))
-    }
-    return new Polygon().plot(points)
+  translateX(step) {
+    this.x += step
+    this.transform()
   }
 
-  // 创建矩形
-  createRect() {
-    let { width, height } = this.getNodeSize()
-    let borderRadius = this.node.style.merge('borderRadius')
-    const pathStr = `
-      M${borderRadius},0
-      L${width - borderRadius},0
-      C${width - borderRadius},0 ${width},${0} ${width},${borderRadius}
-      L${width},${height - borderRadius}
-      C${width},${height - borderRadius} ${width},${height} ${
-      width - borderRadius
-    },${height}
-      L${borderRadius},${height}
-      C${borderRadius},${height} ${0},${height} ${0},${height - borderRadius}
-      L${0},${borderRadius}
-      C${0},${borderRadius} ${0},${0} ${borderRadius},${0}
-      Z
-    `
-    return this.createPath(pathStr)
+  translateY(step) {
+    this.y += step
+    this.transform()
   }
 
-  //  创建菱形
-  createDiamond() {
-    let { width, height } = this.getNodeSize()
-    let halfWidth = width / 2
-    let halfHeight = height / 2
-    let topX = halfWidth
-    let topY = 0
-    let rightX = width
-    let rightY = halfHeight
-    let bottomX = halfWidth
-    let bottomY = height
-    let leftX = 0
-    let leftY = halfHeight
-    const points = [
-      [topX, topY],
-      [rightX, rightY],
-      [bottomX, bottomY],
-      [leftX, leftY]
-    ]
-    return this.createPolygon(points)
+  translateXTo(x) {
+    this.x = x
+    this.transform()
   }
 
-  //  创建平行四边形
-  createParallelogram() {
-    let { paddingX } = this.node.getPaddingVale()
-    paddingX = paddingX || this.node.shapePadding.paddingX
-    let { width, height } = this.getNodeSize()
-    const points = [
-      [paddingX, 0],
-      [width, 0],
-      [width - paddingX, height],
-      [0, height]
-    ]
-    return this.createPolygon(points)
+  translateYTo(y) {
+    this.y = y
+    this.transform()
   }
 
-  //  创建圆角矩形
-  createRoundedRectangle() {
-    let { width, height } = this.getNodeSize()
-    let halfHeight = height / 2
-    const pathStr = `
-      M${halfHeight},0
-      L${width - halfHeight},0
-      A${height / 2},${height / 2} 0 0,1 ${width - halfHeight},${height} 
-      L${halfHeight},${height}
-      A${height / 2},${height / 2} 0 0,1 ${halfHeight},${0}
-    `
-    return this.createPath(pathStr)
+  translateXY(ox, oy) {
+    this.x += ox
+    this.y += oy
+    this.transform()
   }
 
-  //  创建八角矩形
-  createOctagonalRectangle() {
-    let w = 5
-    let { width, height } = this.getNodeSize()
-    const points = [
-      [0, w],
-      [w, 0],
-      [width - w, 0],
-      [width, w],
-      [width, height - w],
-      [width - w, height],
-      [w, height],
-      [0, height - w]
-    ]
-    return this.createPolygon(points)
+  setScale(scale, cx, cy) {
+    const mindMap = this.mindMap
+    if (cx == null) cx = mindMap.width / 2
+    if (cy == null) cy = mindMap.height / 2
+    const ratio = scale / this.scale
+    this.x = cx - (cx - this.x) * ratio
+    this.y = cy - (cy - this.y) * ratio
+    this.scale = scale
+    this.transform()
   }
 
-  //  创建外三角矩形
-  createOuterTriangularRectangle() {
-    let { paddingX } = this.node.getPaddingVale()
-    paddingX = paddingX || this.node.shapePadding.paddingX
-    let { width, height } = this.getNodeSize()
-    const points = [
-      [paddingX, 0],
-      [width - paddingX, 0],
-      [width, height / 2],
-      [width - paddingX, height],
-      [paddingX, height],
-      [0, height / 2]
-    ]
-    return this.createPolygon(points)
+  narrow(cx, cy) {
+    const { scaleRatio, minZoomRatio } = this.mindMap.opt
+    const minScale = minZoomRatio != null ? minZoomRatio / 100 : 0.2
+    let scale = this.scale * (1 - (scaleRatio ?? 0.2))
+    if (scale < minScale) scale = minScale
+    this.setScale(scale, cx, cy)
   }
 
-  //  创建内三角矩形
-  createInnerTriangularRectangle() {
-    let { paddingX } = this.node.getPaddingVale()
-    paddingX = paddingX || this.node.shapePadding.paddingX
-    let { width, height } = this.getNodeSize()
-    const points = [
-      [0, 0],
-      [width, 0],
-      [width - paddingX / 2, height / 2],
-      [width, height],
-      [0, height],
-      [paddingX / 2, height / 2]
-    ]
-    return this.createPolygon(points)
-  }
-
-  //  创建椭圆
-  createEllipse() {
-    let { width, height } = this.getNodeSize()
-    let halfWidth = width / 2
-    let halfHeight = height / 2
-    const pathStr = `
-      M${halfWidth},0
-      A${halfWidth},${halfHeight} 0 0,1 ${halfWidth},${height} 
-      M${halfWidth},${height} 
-      A${halfWidth},${halfHeight} 0 0,1 ${halfWidth},${0} 
-    `
-    return this.createPath(pathStr)
-  }
-
-  //  创建圆
-  createCircle() {
-    let { width, height } = this.getNodeSize()
-    let halfWidth = width / 2
-    let halfHeight = height / 2
-    const pathStr = `
-      M${halfWidth},0
-      A${halfWidth},${halfHeight} 0 0,1 ${halfWidth},${height} 
-      M${halfWidth},${height} 
-      A${halfWidth},${halfHeight} 0 0,1 ${halfWidth},${0} 
-    `
-    return this.createPath(pathStr)
+  enlarge(cx, cy) {
+    const { scaleRatio, maxZoomRatio } = this.mindMap.opt
+    const maxScale = maxZoomRatio === -1 ? Infinity : (maxZoomRatio ?? 400) / 100
+    let scale = this.scale * (1 + (scaleRatio ?? 0.2))
+    if (scale > maxScale) scale = maxScale
+    this.setScale(scale, cx, cy)
   }
 }
-
-// 形状列表
-export const shapeList = [
-  CONSTANTS.SHAPE.RECTANGLE,
-  CONSTANTS.SHAPE.DIAMOND,
-  CONSTANTS.SHAPE.PARALLELOGRAM,
-  CONSTANTS.SHAPE.ROUNDED_RECTANGLE,
-  CONSTANTS.SHAPE.OCTAGONAL_RECTANGLE,
-  CONSTANTS.SHAPE.OUTER_TRIANGULAR_RECTANGLE,
-  CONSTANTS.SHAPE.INNER_TRIANGULAR_RECTANGLE,
-  CONSTANTS.SHAPE.ELLIPSE,
-  CONSTANTS.SHAPE.CIRCLE
-]

@@ -2,7 +2,7 @@
   <el-dialog
     class="nodeHyperlinkDialog"
     :title="$t('nodeHyperlink.title')"
-    :visible.sync="dialogVisible"
+    v-model="dialogVisible"
     :width="isMobile ? '90%' : '50%'"
     :top="isMobile ? '20px' : '15vh'"
   >
@@ -12,107 +12,102 @@
         v-model="link"
         size="small"
         placeholder="http://xxxx.com/"
-        @keyup.native.stop
-        @keydown.native.stop
+        @keyup.stop
+        @keydown.stop
         @blur="handleUrl()"
       >
-        <el-select v-model="protocol" slot="prepend" style="width: 80px;">
-          <el-option label="https" value="https"></el-option>
-          <el-option label="http" value="http"></el-option>
-          <el-option label="无" value="none"></el-option>
-        </el-select>
+        <template #prepend>
+          <el-select v-model="protocol" style="width: 80px">
+            <el-option label="https" value="https"></el-option>
+            <el-option label="http" value="http"></el-option>
+            <el-option label="无" value="none"></el-option>
+          </el-select>
+        </template>
       </el-input>
     </div>
     <div class="item">
       <span class="name">{{ $t('nodeHyperlink.name') }}</span>
-      <el-input
-        v-model="linkTitle"
-        size="small"
-        @keyup.native.stop
-        @keydown.native.stop
-      ></el-input>
+      <el-input v-model="linkTitle" size="small" @keyup.stop @keydown.stop></el-input>
     </div>
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
-      <el-button type="primary" @click="confirm">{{
-        $t('dialog.confirm')
-      }}</el-button>
-    </span>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
+        <el-button type="primary" @click="confirm">{{ $t('dialog.confirm') }}</el-button>
+      </span>
+    </template>
   </el-dialog>
 </template>
 
-<script>
-import { isMobile } from 'simple-mind-map/src/utils/index'
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { getBus } from '@/bus'
+import { isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
 
-// 节点超链接内容设置
-export default {
-  data() {
-    return {
-      dialogVisible: false,
-      link: '',
-      linkTitle: '',
-      activeNodes: [],
-      protocol: 'https',
-      isMobile: isMobile()
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.handleNodeActive)
-    this.$bus.$on('showNodeLink', this.handleShowNodeLink)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.handleNodeActive)
-    this.$bus.$off('showNodeLink', this.handleShowNodeLink)
-  },
-  methods: {
-    handleNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-      if (this.activeNodes.length > 0) {
-        let firstNode = this.activeNodes[0]
-        this.link = firstNode.getData('hyperlink') || ''
-        this.handleUrl(true)
-        this.linkTitle = firstNode.getData('hyperlinkTitle') || ''
-      } else {
-        this.link = ''
-        this.linkTitle = ''
-      }
-    },
+const bus = getBus()
 
-    removeProtocol(url) {
-      return url.replace(/^https?:\/\//, '')
-    },
+const dialogVisible = ref(false)
+const link = ref('')
+const linkTitle = ref('')
+const activeNodes = ref<any[]>([])
+const protocol = ref('https')
+const isMobile = checkIsMobile()
 
-    handleUrl(setProtocolNoneIfNotExist) {
-      const res = this.link.match(/^(https?):\/\//)
-      if (res && res[1]) {
-        this.protocol = res[1]
-      } else if (!this.link) {
-        this.protocol = 'https'
-      } else if (setProtocolNoneIfNotExist) {
-        this.protocol = 'none'
-      }
-      this.link = this.removeProtocol(this.link)
-    },
-
-    handleShowNodeLink() {
-      this.dialogVisible = true
-    },
-
-    cancel() {
-      this.dialogVisible = false
-    },
-
-    confirm() {
-      this.activeNodes.forEach(node => {
-        node.setHyperlink(
-          (this.protocol === 'none' ? '' : this.protocol + '://') + this.link,
-          this.linkTitle
-        )
-        this.cancel()
-      })
-    }
+function handleNodeActive(...args: any[]) {
+  activeNodes.value = [...args[1]]
+  if (activeNodes.value.length > 0) {
+    const firstNode = activeNodes.value[0]
+    link.value = firstNode.getData('hyperlink') || ''
+    handleUrl(true)
+    linkTitle.value = firstNode.getData('hyperlinkTitle') || ''
+  } else {
+    link.value = ''
+    linkTitle.value = ''
   }
 }
+
+function removeProtocol(url: string) {
+  return url.replace(/^https?:\/\//, '')
+}
+
+function handleUrl(setProtocolNoneIfNotExist?: boolean) {
+  const res = link.value.match(/^(https?):\/\//)
+  if (res?.[1]) {
+    protocol.value = res[1]
+  } else if (!link.value) {
+    protocol.value = 'https'
+  } else if (setProtocolNoneIfNotExist) {
+    protocol.value = 'none'
+  }
+  link.value = removeProtocol(link.value)
+}
+
+function handleShowNodeLink() {
+  dialogVisible.value = true
+}
+
+function cancel() {
+  dialogVisible.value = false
+}
+
+function confirm() {
+  activeNodes.value.forEach((node) => {
+    node.setHyperlink(
+      (protocol.value === 'none' ? '' : protocol.value + '://') + link.value,
+      linkTitle.value
+    )
+  })
+  cancel()
+}
+
+onMounted(() => {
+  bus.$on('node_active', handleNodeActive)
+  bus.$on('showNodeLink', handleShowNodeLink)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', handleNodeActive)
+  bus.$off('showNodeLink', handleShowNodeLink)
+})
 </script>
 
 <style lang="less" scoped>

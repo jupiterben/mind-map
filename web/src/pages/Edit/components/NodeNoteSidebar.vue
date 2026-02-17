@@ -4,80 +4,63 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
+import { getBus } from '@/bus'
 import Viewer from '@toast-ui/editor/dist/toastui-editor-viewer'
 import '@toast-ui/editor/dist/toastui-editor-viewer.css'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      editor: null,
-      node: null
-    }
-  },
-  computed: {},
-  watch: {
-    activeSidebar(val) {
-      if (val === 'noteSidebar') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.onNodeActive)
-    this.mindMap.on('node_note_click', this.onNodeNoteClick)
-  },
-  mounted() {
-    this.initEditor()
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.onNodeActive)
-    this.mindMap.off('node_note_click', this.onNodeNoteClick)
-  },
-  methods: {
-    onNodeActive(...args) {
-      if (this.activeSidebar !== 'noteSidebar') {
-        return
-      }
-      const nodes = [...args[1]]
-      if (nodes.length > 0) {
-        if (nodes[0] !== this.node) {
-          this.setActiveSidebar(null)
-        }
-      } else {
-        this.setActiveSidebar(null)
-      }
-    },
+const props = defineProps<{
+  mindMap: any
+}>()
 
-    // 初始化编辑器
-    initEditor() {
-      if (!this.editor) {
-        this.editor = new Viewer({
-          el: this.$refs.noteContentWrap
-        })
-      }
-    },
+const { activeSidebar, setActiveSidebar } = useStoreMixin()
+const bus = getBus()
 
-    onNodeNoteClick(node) {
-      this.node = node
-      this.setActiveSidebar('noteSidebar')
-      this.editor.setMarkdown(node.getData('note'))
-    }
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const noteContentWrap = ref<HTMLElement | null>(null)
+const editor = ref<any>(null)
+const node = ref<any>(null)
+
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (s?.setShow) s.setShow(val === 'noteSidebar')
+})
+
+function onNodeActive(...args: any[]) {
+  if (activeSidebar.value !== 'noteSidebar') return
+  const nodes = [...args[1]]
+  if (nodes.length > 0) {
+    if (nodes[0] !== node.value) setActiveSidebar(null)
+  } else {
+    setActiveSidebar(null)
   }
 }
+
+function initEditor() {
+  if (!editor.value && noteContentWrap.value) {
+    editor.value = new Viewer({ el: noteContentWrap.value })
+  }
+}
+
+function onNodeNoteClick(n: any) {
+  node.value = n
+  setActiveSidebar('noteSidebar')
+  editor.value?.setMarkdown(n.getData('note'))
+}
+
+onMounted(() => {
+  bus.$on('node_active', onNodeActive)
+  props.mindMap.on('node_note_click', onNodeNoteClick)
+  initEditor()
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', onNodeActive)
+  props.mindMap.off('node_note_click', onNodeNoteClick)
+})
 </script>
 
 <style lang="less" scoped>

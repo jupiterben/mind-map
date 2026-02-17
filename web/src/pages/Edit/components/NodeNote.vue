@@ -2,122 +2,103 @@
   <el-dialog
     class="nodeNoteDialog"
     :title="$t('nodeNote.title')"
-    :visible.sync="dialogVisible"
+    v-model="dialogVisible"
     :width="isMobile ? '90%' : '50%'"
     :top="isMobile ? '20px' : '15vh'"
   >
-    <!-- <el-input
-      type="textarea"
-      :autosize="{ minRows: 3, maxRows: 5 }"
-      placeholder="请输入内容"
-      v-model="note"
-    >
-    </el-input> -->
-    <div class="noteEditor" ref="noteEditor" @keyup.stop @keydown.stop></div>
-    <!-- <div class="tip">换行请使用：Enter+Shift</div> -->
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
-      <el-button type="primary" @click="confirm">{{
-        $t('dialog.confirm')
-      }}</el-button>
-    </span>
+    <div class="noteEditor" ref="noteEditorRef" @keyup.stop @keydown.stop></div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
+        <el-button type="primary" @click="confirm">{{ $t('dialog.confirm') }}</el-button>
+      </span>
+    </template>
   </el-dialog>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import Editor from '@toast-ui/editor'
-import '@toast-ui/editor/dist/toastui-editor.css' // Editor's Style
-import { isMobile } from 'simple-mind-map/src/utils/index'
+import '@toast-ui/editor/dist/toastui-editor.css'
+import { getBus } from '@/bus'
+import { isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
 
-// 节点备注内容设置
-export default {
-  name: 'NodeNote',
-  data() {
-    return {
-      dialogVisible: false,
-      note: '',
-      activeNodes: [],
-      editor: null,
-      isMobile: isMobile(),
-      appointNode: null
-    }
-  },
-  watch: {
-    dialogVisible(val, oldVal) {
-      if (!val && oldVal) {
-        this.$bus.$emit('endTextEdit')
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.handleNodeActive)
-    this.$bus.$on('showNodeNote', this.handleShowNodeNote)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.handleNodeActive)
-    this.$bus.$off('showNodeNote', this.handleShowNodeNote)
-  },
-  methods: {
-    handleNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-      this.updateNoteInfo()
-    },
+const bus = getBus()
 
-    updateNoteInfo() {
-      if (this.activeNodes.length > 0) {
-        let firstNode = this.activeNodes[0]
-        this.note = firstNode.getData('note') || ''
-      } else {
-        this.note = ''
-      }
-    },
+const noteEditorRef = ref<HTMLElement | null>(null)
+const dialogVisible = ref(false)
+const note = ref('')
+const activeNodes = ref<any[]>([])
+const editor = ref<any>(null)
+const isMobile = checkIsMobile()
+const appointNode = ref<any>(null)
 
-    handleShowNodeNote(node) {
-      this.$bus.$emit('startTextEdit')
-      if (node) {
-        this.appointNode = node
-        this.note = node.getData('note') || ''
-      }
-      this.dialogVisible = true
-      this.$nextTick(() => {
-        this.initEditor()
-      })
-    },
+function handleNodeActive(...args: any[]) {
+  activeNodes.value = [...args[1]]
+  updateNoteInfo()
+}
 
-    initEditor() {
-      if (!this.editor) {
-        this.editor = new Editor({
-          el: this.$refs.noteEditor,
-          height: '500px',
-          initialEditType: 'markdown',
-          previewStyle: 'vertical'
-        })
-      }
-      this.editor.setMarkdown(this.note)
-    },
-
-    cancel() {
-      this.dialogVisible = false
-      if (this.appointNode) {
-        this.appointNode = null
-        this.updateNoteInfo()
-      }
-    },
-
-    confirm() {
-      this.note = this.editor.getMarkdown()
-      if (this.appointNode) {
-        this.appointNode.setNote(this.note)
-      } else {
-        this.activeNodes.forEach(node => {
-          node.setNote(this.note)
-        })
-      }
-
-      this.cancel()
-    }
+function updateNoteInfo() {
+  if (activeNodes.value.length > 0) {
+    note.value = activeNodes.value[0].getData('note') || ''
+  } else {
+    note.value = ''
   }
 }
+
+function handleShowNodeNote(node?: any) {
+  bus.$emit('startTextEdit')
+  if (node) {
+    appointNode.value = node
+    note.value = node.getData('note') || ''
+  }
+  dialogVisible.value = true
+  nextTick(() => initEditor())
+}
+
+function initEditor() {
+  if (!editor.value && noteEditorRef.value) {
+    editor.value = new Editor({
+      el: noteEditorRef.value,
+      height: '500px',
+      initialEditType: 'markdown',
+      previewStyle: 'vertical'
+    })
+  }
+  editor.value?.setMarkdown(note.value)
+}
+
+function cancel() {
+  dialogVisible.value = false
+  if (appointNode.value) {
+    appointNode.value = null
+    updateNoteInfo()
+  }
+}
+
+function confirm() {
+  const content = editor.value?.getMarkdown()
+  if (appointNode.value) {
+    appointNode.value.setNote(content)
+  } else {
+    activeNodes.value.forEach((node) => node.setNote(content))
+  }
+  cancel()
+}
+
+watch(dialogVisible, (val, oldVal) => {
+  if (!val && oldVal) bus.$emit('endTextEdit')
+})
+
+onMounted(() => {
+  bus.$on('node_active', handleNodeActive)
+  bus.$on('showNodeNote', handleShowNodeNote)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', handleNodeActive)
+  bus.$off('showNodeNote', handleShowNodeNote)
+})
 </script>
 
 <style lang="less" scoped>

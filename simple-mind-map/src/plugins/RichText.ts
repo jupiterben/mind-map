@@ -76,11 +76,13 @@ class RichText {
     this.onCompositionUpdate = this.onCompositionUpdate.bind(this)
     this.onCompositionEnd = this.onCompositionEnd.bind(this)
     this.handleSetData = this.handleSetData.bind(this)
+    this.onNodeDblclick = this.onNodeDblclick.bind(this)
     window.addEventListener('compositionstart', this.onCompositionStart)
     window.addEventListener('compositionupdate', this.onCompositionUpdate)
     window.addEventListener('compositionend', this.onCompositionEnd)
     this.mindMap.on('before_update_data', this.handleSetData)
     this.mindMap.on('before_set_data', this.handleSetData)
+    this.mindMap.on('node_dblclick', this.onNodeDblclick)
   }
 
   // 解绑事件
@@ -90,6 +92,13 @@ class RichText {
     window.removeEventListener('compositionend', this.onCompositionEnd)
     this.mindMap.off('before_update_data', this.handleSetData)
     this.mindMap.off('before_set_data', this.handleSetData)
+    this.mindMap.off('node_dblclick', this.onNodeDblclick)
+  }
+
+  // 双击节点进入文本编辑
+  onNodeDblclick(node) {
+    if (!node._textData) return
+    this.showEditText({ node, isFromKeyDown: false })
   }
 
   // 插入样式
@@ -646,21 +655,23 @@ class RichText {
     if (!this.range && !this.lastRange) return
     const rangeLost = !this.range
     const range = rangeLost ? this.lastRange : this.range
+    const index = range.index
+    const length = range.length
     if (clear) {
-      this.quill.removeFormat(range.index, range.length)
+      this.quill.removeFormat(index, length)
     } else {
       const { align, ...rest } = config
       // 文本对齐需要对行进行格式化
       if (align) {
-        this.quill.formatLine(range.index, range.length, 'align', align)
+        this.quill.formatLine(index, length, 'align', align)
       }
       // 其他内容对文本
       if (Object.keys(rest).length > 0) {
-        this.quill.formatText(range.index, range.length, rest)
+        this.quill.formatText(index, length, rest)
       }
     }
     if (rangeLost) {
-      this.quill.setSelection(this.lastRange.index, this.lastRange.length)
+      this.quill.setSelection(index, length)
     }
   }
 

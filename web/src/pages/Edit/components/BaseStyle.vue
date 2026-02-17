@@ -785,25 +785,28 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { storeToRefs } from 'pinia'
 import Sidebar from './Sidebar.vue'
 import Color from './Color.vue'
 import {
   lineWidthList,
-  lineStyleList,
-  backgroundRepeatList,
-  backgroundPositionList,
-  backgroundSizeList,
-  fontFamilyList,
+  lineStyleList as lineStyleListConfig,
+  backgroundRepeatList as backgroundRepeatListConfig,
+  backgroundPositionList as backgroundPositionListConfig,
+  backgroundSizeList as backgroundSizeListConfig,
+  fontFamilyList as fontFamilyListConfig,
   fontSizeList,
-  rootLineKeepSameInCurveList,
+  rootLineKeepSameInCurveList as rootLineKeepSameInCurveListConfig,
   lineStyleMap,
-  borderDasharrayList
+  borderDasharrayList as borderDasharrayListConfig
 } from '@/config'
 import ImgUpload from '@/components/ImgUpload/index.vue'
 import { storeData, storeConfig } from '@/api'
-import { storeMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { useI18n } from 'vue-i18n'
 import {
   supportLineStyleLayoutsMap,
   supportLineRadiusLayouts,
@@ -812,288 +815,256 @@ import {
   rainbowLinesOptions
 } from '@/config/constant'
 
-// 基础样式
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar,
-    Color,
-    ImgUpload
-  },
-  props: {
-    data: {
-      type: [Object, null]
-    },
-    configData: {
-      type: Object
-    },
-    mindMap: {
-      type: Object
+type LocaleKey = 'zh' | 'en' | 'zhtw' | 'vi'
+
+const props = defineProps<{
+  data: Record<string, any> | null
+  configData: Record<string, any>
+  mindMap: any
+}>()
+
+const store = useStore()
+const { activeSidebar } = storeToRefs(store)
+const bus = getBus()
+const { locale } = useI18n()
+const localeKey = computed(() => (locale.value ?? (locale as any)) as LocaleKey)
+
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const activeTab = ref('color')
+const marginActiveTab = ref('second')
+const style = reactive({
+  backgroundColor: '',
+  lineColor: '',
+  lineWidth: '',
+  lineStyle: '',
+  showLineMarker: '',
+  rootLineKeepSameInCurve: '',
+  rootLineStartPositionKeepSameInCurve: '',
+  lineRadius: 0,
+  lineFlow: false,
+  lineFlowForward: true,
+  lineFlowDuration: 1,
+  generalizationLineWidth: '',
+  generalizationLineColor: '',
+  associativeLineColor: '',
+  associativeLineWidth: 0,
+  associativeLineActiveWidth: 0,
+  associativeLineDasharray: '',
+  associativeLineActiveColor: '',
+  associativeLineTextFontSize: 0,
+  associativeLineTextColor: '',
+  associativeLineTextFontFamily: '',
+  paddingX: 0,
+  paddingY: 0,
+  imgMaxWidth: 0,
+  imgMaxHeight: 0,
+  iconSize: 0,
+  backgroundImage: '',
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: '',
+  backgroundSize: '',
+  marginX: 0,
+  marginY: 0,
+  nodeUseLineStyle: false
+})
+const rainbowLinesPopoverVisible = ref(false)
+const curRainbowLineColorList = ref<string[] | null>(null)
+const currentLayout = ref('')
+const outerFramePadding = reactive({
+  outerFramePaddingX: 0,
+  outerFramePaddingY: 0
+})
+const bgListExpand = ref(true)
+
+const isDark = computed(() => useStore().isDark ?? false)
+const bgList = computed(() => useStore().bgList ?? [])
+const lineStyleList = computed(
+  () => lineStyleListConfig[localeKey.value] || lineStyleListConfig.zh
+)
+const rootLineKeepSameInCurveList = computed(
+  () =>
+    rootLineKeepSameInCurveListConfig[localeKey.value] ||
+    rootLineKeepSameInCurveListConfig.zh
+)
+const backgroundRepeatList = computed(
+  () => backgroundRepeatListConfig[localeKey.value] || backgroundRepeatListConfig.zh
+)
+const backgroundPositionList = computed(
+  () =>
+    backgroundPositionListConfig[localeKey.value] ||
+    backgroundPositionListConfig.zh
+)
+const backgroundSizeList = computed(
+  () => backgroundSizeListConfig[localeKey.value] || backgroundSizeListConfig.zh
+)
+const fontFamilyList = computed(
+  () => fontFamilyListConfig[localeKey.value] || fontFamilyListConfig.zh
+)
+const showNodeUseLineStyle = computed(() =>
+  supportNodeUseLineStyleLayouts.includes(currentLayout.value)
+)
+const showLineRadius = computed(
+  () =>
+    (style as any).lineStyle === 'straight' &&
+    supportLineRadiusLayouts.includes(currentLayout.value)
+)
+const lineStyleListShow = computed(() => {
+  const res: { value: string; name: string }[] = []
+  lineStyleList.value.forEach((item: { value: string; name: string }) => {
+    const list = supportLineStyleLayoutsMap[item.value]
+    if (list) {
+      if (list.includes(currentLayout.value)) res.push(item)
+    } else {
+      res.push(item)
     }
-  },
-  data() {
-    return {
-      rainbowLinesOptions,
-      lineWidthList,
-      fontSizeList,
-      lineStyleMap,
-      activeTab: 'color',
-      marginActiveTab: 'second',
-      style: {
-        backgroundColor: '',
-        lineColor: '',
-        lineWidth: '',
-        lineStyle: '',
-        showLineMarker: '',
-        rootLineKeepSameInCurve: '',
-        rootLineStartPositionKeepSameInCurve: '',
-        lineRadius: 0,
-        lineFlow: false,
-        lineFlowForward: true,
-        lineFlowDuration: 1,
-        generalizationLineWidth: '',
-        generalizationLineColor: '',
-        associativeLineColor: '',
-        associativeLineWidth: 0,
-        associativeLineActiveWidth: 0,
-        associativeLineDasharray: '',
-        associativeLineActiveColor: '',
-        associativeLineTextFontSize: 0,
-        associativeLineTextColor: '',
-        associativeLineTextFontFamily: '',
-        paddingX: 0,
-        paddingY: 0,
-        imgMaxWidth: 0,
-        imgMaxHeight: 0,
-        iconSize: 0,
-        backgroundImage: '',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: '',
-        backgroundSize: '',
-        marginX: 0,
-        marginY: 0,
-        nodeUseLineStyle: false
-      },
-      rainbowLinesPopoverVisible: false,
-      curRainbowLineColorList: null,
-      currentLayout: '', // 当前结构
-      outerFramePadding: {
-        outerFramePaddingX: 0,
-        outerFramePaddingY: 0
-      },
-      bgListExpand: true
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    bgList() {
-      return useStore().bgList ?? []
-    },
-    lineStyleList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return lineStyleList[locale] || lineStyleList.zh
-    },
-    rootLineKeepSameInCurveList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return (
-        rootLineKeepSameInCurveList[locale] ||
-        rootLineKeepSameInCurveList.zh
-      )
-    },
-    backgroundRepeatList() {
-      return backgroundRepeatList[this.$i18n.locale] || backgroundRepeatList.zh
-    },
-    backgroundPositionList() {
-      return (
-        backgroundPositionList[this.$i18n.locale] || backgroundPositionList.zh
-      )
-    },
-    backgroundSizeList() {
-      return backgroundSizeList[this.$i18n.locale] || backgroundSizeList.zh
-    },
-    fontFamilyList() {
-      return fontFamilyList[this.$i18n.locale] || fontFamilyList.zh
-    },
-    showNodeUseLineStyle() {
-      return supportNodeUseLineStyleLayouts.includes(this.currentLayout)
-    },
-    showLineRadius() {
-      return (
-        this.style.lineStyle === 'straight' &&
-        supportLineRadiusLayouts.includes(this.currentLayout)
-      )
-    },
-    lineStyleListShow() {
-      const res = []
-      this.lineStyleList.forEach(item => {
-        const list = supportLineStyleLayoutsMap[item.value]
-        if (list) {
-          if (list.includes(this.currentLayout)) {
-            res.push(item)
-          }
-        } else {
-          res.push(item)
-        }
-      })
-      return res
-    },
-    showRootLineKeepSameInCurveLayouts() {
-      return supportRootLineKeepSameInCurveLayouts.includes(this.currentLayout)
-    },
-    borderDasharrayList() {
-      return borderDasharrayList[this.$i18n.locale] || borderDasharrayList.zh
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'baseStyle') {
-        this.$refs.sidebar.show = true
-        this.initStyle()
-        this.initRainbowLines()
-        this.initOuterFramePadding()
-        this.currentLayout = this.mindMap.getLayout()
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    },
-    lineStyleListShow: {
-      deep: true,
-      handler() {
-        const has = this.lineStyleListShow.find(item => {
-          return item.value === this.style.lineStyle
-        })
-        if (!has) {
-          this.style.lineStyle = this.lineStyleListShow[0].value
-        }
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('setData', this.onSetData)
-  },
-  beforeUnmount() {
-    this.$bus.$off('setData', this.onSetData)
-  },
-  methods: {
-    onSetData() {
-      if (this.activeSidebar !== 'baseStyle') return
-      setTimeout(() => {
-        this.initStyle()
-      }, 0)
-    },
+  })
+  return res
+})
+const showRootLineKeepSameInCurveLayouts = computed(() =>
+  supportRootLineKeepSameInCurveLayouts.includes(currentLayout.value)
+)
+const borderDasharrayList = computed(
+  () => borderDasharrayListConfig[localeKey.value] || borderDasharrayListConfig.zh
+)
 
-    // 初始样式
-    initStyle() {
-      Object.keys(this.style).forEach(key => {
-        this.style[key] = this.mindMap.getThemeConfig(key)
-        if (key === 'backgroundImage' && this.style[key] === 'none') {
-          this.style[key] = ''
-        }
-      })
-      this.initMarginStyle()
-    },
-
-    // 初始化彩虹线条配置
-    initRainbowLines() {
-      const config = this.mindMap.getConfig('rainbowLinesConfig') || {}
-      this.curRainbowLineColorList = config.open
-        ? this.mindMap.rainbowLines
-          ? this.mindMap.rainbowLines.getColorsList()
-          : null
-        : null
-    },
-
-    // 外框
-    initOuterFramePadding() {
-      this.outerFramePadding.outerFramePaddingX = this.mindMap.getConfig(
-        'outerFramePaddingX'
-      )
-      this.outerFramePadding.outerFramePaddingY = this.mindMap.getConfig(
-        'outerFramePaddingX'
-      )
-    },
-
-    // margin初始值
-    initMarginStyle() {
-      ;['marginX', 'marginY'].forEach(key => {
-        this.style[key] = this.mindMap.getThemeConfig()[this.marginActiveTab][
-          key
-        ]
-      })
-    },
-
-    // 更新配置
-    update(key, value) {
-      if (key === 'backgroundImage' && value === 'none') {
-        this.style[key] = ''
-      } else {
-        this.style[key] = value
-      }
-      this.data.theme.config[key] = value
-      this.$bus.$emit('showLoading')
-      this.mindMap.setThemeConfig(this.data.theme.config)
-      storeData({
-        theme: {
-          template: this.mindMap.getTheme(),
-          config: this.data.theme.config
-        }
-      })
-    },
-
-    // 更新彩虹线条配置
-    updateRainbowLinesConfig(item) {
-      this.rainbowLinesPopoverVisible = false
-      this.curRainbowLineColorList = item.list || null
-      let newConfig = null
-      if (item.list) {
-        newConfig = {
-          open: true,
-          colorsList: item.list
-        }
-      } else {
-        newConfig = {
-          open: false
-        }
-      }
-      this.configData.rainbowLinesConfig = newConfig
-      this.mindMap.rainbowLines.updateRainLinesConfig(newConfig)
-      storeConfig(this.configData)
-    },
-
-    // 更新外框
-    updateOuterFramePadding(prop, value) {
-      this.outerFramePadding[prop] = value
-      this.configData[prop] = value
-      this.mindMap.updateConfig({
-        [prop]: value
-      })
-      storeConfig(this.configData)
-      this.mindMap.render()
-    },
-
-    // 设置margin
-    updateMargin(type, value) {
-      this.style[type] = value
-      if (!this.data.theme.config[this.marginActiveTab]) {
-        this.data.theme.config[this.marginActiveTab] = {}
-      }
-      this.data.theme.config[this.marginActiveTab][type] = value
-      this.mindMap.setThemeConfig(this.data.theme.config)
-      storeData({
-        theme: {
-          template: this.mindMap.getTheme(),
-          config: this.data.theme.config
-        }
-      })
-    },
-
-    useBg(bg) {
-      this.update('backgroundImage', bg)
-    }
-  }
+function onSetData() {
+  if (activeSidebar.value !== 'baseStyle') return
+  setTimeout(() => initStyle(), 0)
 }
+
+function initStyle() {
+  if (!props.mindMap) return
+  Object.keys(style).forEach((key) => {
+    ;(style as any)[key] = props.mindMap.getThemeConfig(key)
+    if (key === 'backgroundImage' && (style as any)[key] === 'none') {
+      ;(style as any)[key] = ''
+    }
+  })
+  initMarginStyle()
+}
+
+function initRainbowLines() {
+  if (!props.mindMap) return
+  const config = props.mindMap.getConfig('rainbowLinesConfig') || {}
+  curRainbowLineColorList.value = config.open
+    ? props.mindMap.rainbowLines
+      ? props.mindMap.rainbowLines.getColorsList()
+      : null
+    : null
+}
+
+function initOuterFramePadding() {
+  if (!props.mindMap) return
+  outerFramePadding.outerFramePaddingX = props.mindMap.getConfig(
+    'outerFramePaddingX'
+  )
+  outerFramePadding.outerFramePaddingY = props.mindMap.getConfig(
+    'outerFramePaddingX'
+  )
+}
+
+function initMarginStyle() {
+  if (!props.mindMap || !props.data) return
+  ;['marginX', 'marginY'].forEach((key) => {
+    const theme = props.mindMap.getThemeConfig()
+    ;(style as any)[key] = theme[marginActiveTab.value]?.[key]
+  })
+}
+
+function update(key: string, value: any) {
+  if (key === 'backgroundImage' && value === 'none') {
+    ;(style as any)[key] = ''
+  } else {
+    ;(style as any)[key] = value
+  }
+  if (!props.data?.theme?.config) return
+  props.data.theme.config[key] = value
+  bus.$emit('showLoading')
+  props.mindMap.setThemeConfig(props.data.theme.config)
+  storeData({
+    theme: {
+      template: props.mindMap.getTheme(),
+      config: props.data.theme.config
+    }
+  })
+}
+
+function updateRainbowLinesConfig(item: { list?: string[] | null }) {
+  rainbowLinesPopoverVisible.value = false
+  curRainbowLineColorList.value = item.list ?? null
+  let newConfig: { open: boolean; colorsList?: string[] } | null = null
+  if (item.list) {
+    newConfig = { open: true, colorsList: item.list }
+  } else {
+    newConfig = { open: false }
+  }
+  props.configData.rainbowLinesConfig = newConfig
+  props.mindMap.rainbowLines?.updateRainLinesConfig(newConfig)
+  storeConfig(props.configData)
+}
+
+function updateOuterFramePadding(prop: string, value: number) {
+  ;(outerFramePadding as any)[prop] = value
+  ;(props.configData as any)[prop] = value
+  props.mindMap.updateConfig({ [prop]: value })
+  storeConfig(props.configData)
+  props.mindMap.render()
+}
+
+function updateMargin(type: string, value: number) {
+  ;(style as any)[type] = value
+  if (!props.data?.theme?.config) return
+  if (!props.data.theme.config[marginActiveTab.value]) {
+    props.data.theme.config[marginActiveTab.value] = {}
+  }
+  props.data.theme.config[marginActiveTab.value][type] = value
+  props.mindMap.setThemeConfig(props.data.theme.config)
+  storeData({
+    theme: {
+      template: props.mindMap.getTheme(),
+      config: props.data.theme.config
+    }
+  })
+}
+
+function useBg(bg: string) {
+  update('backgroundImage', bg)
+}
+
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (!s?.setShow) return
+  if (val === 'baseStyle') {
+    s.setShow(true)
+    initStyle()
+    initRainbowLines()
+    initOuterFramePadding()
+    if (props.mindMap) currentLayout.value = props.mindMap.getLayout()
+  } else {
+    s.setShow(false)
+  }
+})
+
+watch(
+  lineStyleListShow,
+  () => {
+    const has = lineStyleListShow.value.find(
+      (item) => item.value === (style as any).lineStyle
+    )
+    if (!has && lineStyleListShow.value.length > 0) {
+      ;(style as any).lineStyle = lineStyleListShow.value[0].value
+    }
+  },
+  { deep: true }
+)
+
+onMounted(() => {
+  bus.$on('setData', onSetData)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('setData', onSetData)
+})
 </script>
 
 <style lang="less" scoped>

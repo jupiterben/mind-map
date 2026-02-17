@@ -2,17 +2,10 @@
   <Sidebar ref="sidebar" :title="$t('nodeIconSidebar.title')">
     <div class="box" :class="{ isDark: isDark }">
       <el-tabs v-model="activeName">
-        <el-tab-pane
-          :label="$t('nodeIconSidebar.icon')"
-          name="icon"
-        ></el-tab-pane>
-        <el-tab-pane
-          :label="$t('nodeIconSidebar.sticker')"
-          name="image"
-        ></el-tab-pane>
+        <el-tab-pane :label="$t('nodeIconSidebar.icon')" name="icon"></el-tab-pane>
+        <el-tab-pane :label="$t('nodeIconSidebar.sticker')" name="image"></el-tab-pane>
       </el-tabs>
       <div class="boxContent">
-        <!-- 图标 -->
         <div class="iconBox" v-if="activeName === 'icon'">
           <div class="item" v-for="item in nodeIconList" :key="item.name">
             <div class="title">{{ item.name }}</div>
@@ -22,15 +15,12 @@
                 v-for="icon in item.list"
                 :key="icon.name"
                 v-html="getHtml(icon.icon)"
-                :class="{
-                  selected: iconList.includes(item.type + '_' + icon.name)
-                }"
+                :class="{ selected: iconList.includes(item.type + '_' + icon.name) }"
                 @click="setIcon(item.type, icon.name)"
               ></div>
             </div>
           </div>
         </div>
-        <!-- 贴纸 -->
         <div class="imageBox" v-if="activeName === 'image'">
           <div class="item" v-for="item in nodeImageList" :key="item.name">
             <div class="title">{{ item.name }}</div>
@@ -39,9 +29,7 @@
                 class="icon"
                 v-for="image in item.list"
                 :key="image.url"
-                :class="{
-                  selected: nodeImage === image.url
-                }"
+                :class="{ selected: nodeImage === image.url }"
                 @click="setImage(image)"
               >
                 <img :src="image.url" alt="" />
@@ -54,120 +42,94 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
-import { nodeIconList } from 'simple-mind-map/src/svg/icons'
+import { getBus } from '@/bus'
+import { nodeIconList as _nodeIconList } from 'simple-mind-map/src/svg/icons'
 import { mergerIconList } from 'simple-mind-map/src/utils/index'
 import icon from '@/config/icon'
 import image from '@/config/image'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar
-  },
-  data() {
-    return {
-      activeName: 'icon',
-      nodeIconList: mergerIconList([...nodeIconList, ...icon]),
-      nodeImageList: [...image],
-      iconList: [],
-      nodeImage: '',
-      activeNodes: []
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'nodeIconSidebar') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.handleNodeActive)
-    this.$bus.$on('showNodeIcon', this.handleShowNodeIcon)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.handleNodeActive)
-    this.$bus.$off('showNodeIcon', this.handleShowNodeIcon)
-  },
-  methods: {
-    handleNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-      if (this.activeNodes.length > 0) {
-        if (this.activeNodes.length === 1) {
-          let firstNode = this.activeNodes[0]
-          this.nodeImage = firstNode.getData('image') || ''
-          this.iconList = firstNode.getData('icon') || [] // 回显图标
-        } else {
-          this.nodeImage = []
-          this.iconList = []
-        }
-      } else {
-        this.iconList = []
-        this.nodeImage = ''
-      }
-    },
+const { activeSidebar, setActiveSidebar } = useStoreMixin()
+const bus = getBus()
 
-    handleShowNodeIcon() {
-      this.dialogVisible = true
-    },
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const activeName = ref('icon')
+const nodeIconList = ref(mergerIconList([..._nodeIconList, ...icon]))
+const nodeImageList = ref([...image])
+const iconList = ref<string[]>([])
+const nodeImage = ref<string | string[]>('')
+const activeNodes = ref<any[]>([])
 
-    // 获取图标渲染方式
-    getHtml(icon) {
-      return /^<svg/.test(icon) ? icon : `<img src="${icon}" />`
-    },
+const isDark = computed(() => useStore().isDark ?? false)
 
-    // 设置icon
-    setIcon(type, name) {
-      this.activeNodes.forEach(node => {
-        const iconList = [...(node.getData('icon') || [])]
-        let key = type + '_' + name
-        let index = iconList.findIndex(item => {
-          return item === key
-        })
-        // 删除icon
-        if (index !== -1) {
-          iconList.splice(index, 1)
-        } else {
-          let typeIndex = iconList.findIndex(item => {
-            return item.split('_')[0] === type
-          })
-          // 替换icon
-          if (typeIndex !== -1) {
-            iconList.splice(typeIndex, 1, key)
-          } else {
-            // 增加icon
-            iconList.push(key)
-          }
-        }
-        node.setIcon(iconList)
-        if (this.activeNodes.length === 1) {
-          this.iconList = iconList
-        }
-      })
-    },
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (s?.setShow) s.setShow(val === 'nodeIconSidebar')
+})
 
-    // 设置贴纸
-    setImage(image) {
-      this.activeNodes.forEach(node => {
-        this.nodeImage = image.url
-        node.setImage({
-          ...image
-        })
-      })
+function handleNodeActive(...args: any[]) {
+  activeNodes.value = [...args[1]]
+  if (activeNodes.value.length > 0) {
+    if (activeNodes.value.length === 1) {
+      const firstNode = activeNodes.value[0]
+      const img = firstNode.getData('image')
+      nodeImage.value = img?.url ?? (typeof img === 'string' ? img : '')
+      iconList.value = firstNode.getData('icon') || []
+    } else {
+      nodeImage.value = []
+      iconList.value = []
     }
+  } else {
+    iconList.value = []
+    nodeImage.value = ''
   }
 }
+
+function handleShowNodeIcon() {
+  setActiveSidebar('nodeIconSidebar')
+}
+
+function getHtml(iconStr: string) {
+  return /^<svg/.test(iconStr) ? iconStr : `<img src="${iconStr}" />`
+}
+
+function setIcon(type: string, name: string) {
+  activeNodes.value.forEach((node) => {
+    const list = [...(node.getData('icon') || [])]
+    const key = type + '_' + name
+    const index = list.findIndex((item) => item === key)
+    if (index !== -1) {
+      list.splice(index, 1)
+    } else {
+      const typeIndex = list.findIndex((item) => item.split('_')[0] === type)
+      if (typeIndex !== -1) list.splice(typeIndex, 1, key)
+      else list.push(key)
+    }
+    node.setIcon(list)
+    if (activeNodes.value.length === 1) iconList.value = list
+  })
+}
+
+function setImage(img: any) {
+  activeNodes.value.forEach((node) => {
+    nodeImage.value = img.url
+    node.setImage({ ...img })
+  })
+}
+
+onMounted(() => {
+  bus.$on('node_active', handleNodeActive)
+  bus.$on('showNodeIcon', handleShowNodeIcon)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', handleNodeActive)
+  bus.$off('showNodeIcon', handleShowNodeIcon)
+})
 </script>
 
 <style lang="less" scoped>

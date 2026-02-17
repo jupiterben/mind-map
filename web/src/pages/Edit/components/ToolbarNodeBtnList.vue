@@ -1,13 +1,11 @@
 <template>
   <div class="toolbarNodeBtnList" :class="[dir, { isDark: isDark }]">
-    <template v-for="item in list">
+    <template v-for="item in list" :key="item">
       <div
         v-if="item === 'back'"
         class="toolbarBtn"
-        :class="{
-          disabled: readonly || backEnd
-        }"
-        @click="$bus.$emit('execCommand', 'BACK')"
+        :class="{ disabled: readonly || backEnd }"
+        @click="bus.$emit('execCommand', 'BACK')"
       >
         <span class="icon iconfont iconhoutui-shi"></span>
         <span class="text">{{ $t('toolbar.undo') }}</span>
@@ -15,10 +13,8 @@
       <div
         v-if="item === 'forward'"
         class="toolbarBtn"
-        :class="{
-          disabled: readonly || forwardEnd
-        }"
-        @click="$bus.$emit('execCommand', 'FORWARD')"
+        :class="{ disabled: readonly || forwardEnd }"
+        @click="bus.$emit('execCommand', 'FORWARD')"
       >
         <span class="icon iconfont iconqianjin1"></span>
         <span class="text">{{ $t('toolbar.redo') }}</span>
@@ -26,11 +22,8 @@
       <div
         v-if="item === 'painter'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization,
-          active: isInPainter
-        }"
-        @click="$bus.$emit('startPainter')"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization, active: isInPainter }"
+        @click="bus.$emit('startPainter')"
       >
         <span class="icon iconfont iconjiedian"></span>
         <span class="text">{{ $t('toolbar.painter') }}</span>
@@ -38,10 +31,8 @@
       <div
         v-if="item === 'siblingNode'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasRoot || hasGeneralization
-        }"
-        @click="$bus.$emit('execCommand', 'INSERT_NODE')"
+        :class="{ disabled: activeNodes.length <= 0 || hasRoot || hasGeneralization }"
+        @click="bus.$emit('execCommand', 'INSERT_NODE')"
       >
         <span class="icon iconfont iconjiedian"></span>
         <span class="text">{{ $t('toolbar.insertSiblingNode') }}</span>
@@ -49,10 +40,8 @@
       <div
         v-if="item === 'childNode'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization
-        }"
-        @click="$bus.$emit('execCommand', 'INSERT_CHILD_NODE')"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization }"
+        @click="bus.$emit('execCommand', 'INSERT_CHILD_NODE')"
       >
         <span class="icon iconfont icontianjiazijiedian"></span>
         <span class="text">{{ $t('toolbar.insertChildNode') }}</span>
@@ -60,10 +49,8 @@
       <div
         v-if="item === 'deleteNode'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
-        @click="$bus.$emit('execCommand', 'REMOVE_NODE')"
+        :class="{ disabled: activeNodes.length <= 0 }"
+        @click="bus.$emit('execCommand', 'REMOVE_NODE')"
       >
         <span class="icon iconfont iconshanchu"></span>
         <span class="text">{{ $t('toolbar.deleteNode') }}</span>
@@ -71,10 +58,8 @@
       <div
         v-if="item === 'image'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
-        @click="$bus.$emit('showNodeImage')"
+        :class="{ disabled: activeNodes.length <= 0 }"
+        @click="bus.$emit('showNodeImage')"
       >
         <span class="icon iconfont iconimage"></span>
         <span class="text">{{ $t('toolbar.image') }}</span>
@@ -82,9 +67,7 @@
       <div
         v-if="item === 'icon'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
+        :class="{ disabled: activeNodes.length <= 0 }"
         @click="showNodeIcon"
       >
         <span class="icon iconfont iconxiaolian"></span>
@@ -93,10 +76,8 @@
       <div
         v-if="item === 'link'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
-        @click="$bus.$emit('showNodeLink')"
+        :class="{ disabled: activeNodes.length <= 0 }"
+        @click="bus.$emit('showNodeLink')"
       >
         <span class="icon iconfont iconchaolianjie"></span>
         <span class="text">{{ $t('toolbar.link') }}</span>
@@ -104,10 +85,8 @@
       <div
         v-if="item === 'note'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
-        @click="$bus.$emit('showNodeNote')"
+        :class="{ disabled: activeNodes.length <= 0 }"
+        @click="bus.$emit('showNodeNote')"
       >
         <span class="icon iconfont iconflow-Mark"></span>
         <span class="text">{{ $t('toolbar.note') }}</span>
@@ -115,10 +94,8 @@
       <div
         v-if="item === 'tag'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0
-        }"
-        @click="$bus.$emit('showNodeTag')"
+        :class="{ disabled: activeNodes.length <= 0 }"
+        @click="bus.$emit('showNodeTag')"
       >
         <span class="icon iconfont iconbiaoqian"></span>
         <span class="text">{{ $t('toolbar.tag') }}</span>
@@ -126,10 +103,8 @@
       <div
         v-if="item === 'summary'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasRoot || hasGeneralization
-        }"
-        @click="$bus.$emit('execCommand', 'ADD_GENERALIZATION')"
+        :class="{ disabled: activeNodes.length <= 0 || hasRoot || hasGeneralization }"
+        @click="bus.$emit('execCommand', 'ADD_GENERALIZATION')"
       >
         <span class="icon iconfont icongaikuozonglan"></span>
         <span class="text">{{ $t('toolbar.summary') }}</span>
@@ -137,10 +112,8 @@
       <div
         v-if="item === 'associativeLine'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization
-        }"
-        @click="$bus.$emit('createAssociativeLine')"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization }"
+        @click="bus.$emit('createAssociativeLine')"
       >
         <span class="icon iconfont iconlianjiexian"></span>
         <span class="text">{{ $t('toolbar.associativeLine') }}</span>
@@ -148,9 +121,7 @@
       <div
         v-if="item === 'formula'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization
-        }"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization }"
         @click="showFormula"
       >
         <span class="icon iconfont icongongshi"></span>
@@ -159,9 +130,7 @@
       <div
         v-if="item === 'attachment'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization
-        }"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization }"
         @click="selectAttachmentFile"
       >
         <span class="icon iconfont iconfujian"></span>
@@ -170,10 +139,8 @@
       <div
         v-if="item === 'outerFrame'"
         class="toolbarBtn"
-        :class="{
-          disabled: activeNodes.length <= 0 || hasGeneralization
-        }"
-        @click="$bus.$emit('execCommand', 'ADD_OUTER_FRAME')"
+        :class="{ disabled: activeNodes.length <= 0 || hasGeneralization }"
+        @click="bus.$emit('execCommand', 'ADD_OUTER_FRAME')"
       >
         <span class="icon iconfont iconwaikuang"></span>
         <span class="text">{{ $t('toolbar.outerFrame') }}</span>
@@ -181,9 +148,7 @@
       <div
         v-if="item === 'ai'"
         class="toolbarBtn"
-        :class="{
-          disabled: hasGeneralization
-        }"
+        :class="{ disabled: hasGeneralization }"
         @click="aiCrate"
       >
         <span class="icon iconfont iconAIshengcheng"></span>
@@ -193,128 +158,98 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
 
-export default {
-  mixins: [storeMixin],
-  props: {
-    dir: {
-      type: String,
-      default: 'h' // h（水平排列）、v（垂直排列）
-    },
-    list: {
-      type: Array,
-      default() {
-        return []
-      }
-    }
-  },
-  data() {
-    return {
-      activeNodes: [],
-      backEnd: true,
-      forwardEnd: true,
-      readonly: false,
-      isFullDataFile: false,
-      timer: null,
-      isInPainter: false
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    hasRoot() {
-      return (
-        this.activeNodes.findIndex(node => {
-          return node.isRoot
-        }) !== -1
-      )
-    },
-    hasGeneralization() {
-      return (
-        this.activeNodes.findIndex(node => {
-          return node.isGeneralization
-        }) !== -1
-      )
-    },
-    annotationRightHasBtn() {
-      const index = this.list.findIndex(item => {
-        return item === 'annotation'
-      })
-      return index !== -1 && index < this.list.length - 1
-    }
-  },
-  created() {
-    this.$bus.$on('mode_change', this.onModeChange)
-    this.$bus.$on('node_active', this.onNodeActive)
-    this.$bus.$on('back_forward', this.onBackForward)
-    this.$bus.$on('painter_start', this.onPainterStart)
-    this.$bus.$on('painter_end', this.onPainterEnd)
-  },
-  beforeUnmount() {
-    this.$bus.$off('mode_change', this.onModeChange)
-    this.$bus.$off('node_active', this.onNodeActive)
-    this.$bus.$off('back_forward', this.onBackForward)
-    this.$bus.$off('painter_start', this.onPainterStart)
-    this.$bus.$off('painter_end', this.onPainterEnd)
-  },
-  methods: {
-    // 监听模式切换
-    onModeChange(mode) {
-      this.readonly = mode === 'readonly'
-    },
+const props = withDefaults(
+  defineProps<{
+    dir?: string
+    list?: string[]
+  }>(),
+  { dir: 'h', list: () => [] }
+)
 
-    // 监听节点激活
-    onNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-    },
+const { setActiveSidebar } = useStoreMixin()
+const bus = getBus()
 
-    // 监听前进后退
-    onBackForward(index, len) {
-      this.backEnd = index <= 0
-      this.forwardEnd = index >= len - 1
-    },
+const activeNodes = ref<any[]>([])
+const backEnd = ref(true)
+const forwardEnd = ref(true)
+const readonly = ref(false)
+const isInPainter = ref(false)
 
-    // 开始格式刷
-    onPainterStart() {
-      this.isInPainter = true
-    },
+const isDark = computed(() => useStore().isDark ?? false)
+const hasRoot = computed(
+  () => activeNodes.value.findIndex((node: any) => node.isRoot) !== -1
+)
+const hasGeneralization = computed(
+  () => activeNodes.value.findIndex((node: any) => node.isGeneralization) !== -1
+)
+const annotationRightHasBtn = computed(() => {
+  const index = props.list.findIndex((item) => item === 'annotation')
+  return index !== -1 && index < props.list.length - 1
+})
 
-    // 格式刷结束
-    onPainterEnd() {
-      this.isInPainter = false
-    },
-
-    // 显示节点图标侧边栏
-    showNodeIcon() {
-      this.$bus.$emit('close_node_icon_toolbar')
-      this.setActiveSidebar('nodeIconSidebar')
-    },
-
-    // 打开公式侧边栏
-    showFormula() {
-      this.setActiveSidebar('formulaSidebar')
-    },
-
-    // 选择附件
-    selectAttachmentFile() {
-      this.$bus.$emit('selectAttachment', this.activeNodes)
-    },
-
-    // 设置标记
-    onSetAnnotation(...args) {
-      this.$bus.$emit('execCommand', 'SET_NOTATION', this.activeNodes, ...args)
-    },
-
-    // AI生成整体
-    aiCrate() {
-      this.$bus.$emit('ai_create_all')
-    }
-  }
+function onModeChange(mode: string) {
+  readonly.value = mode === 'readonly'
 }
+
+function onNodeActive(...args: any[]) {
+  activeNodes.value = [...args[1]]
+}
+
+function onBackForward(index: number, len: number) {
+  backEnd.value = index <= 0
+  forwardEnd.value = index >= len - 1
+}
+
+function onPainterStart() {
+  isInPainter.value = true
+}
+
+function onPainterEnd() {
+  isInPainter.value = false
+}
+
+function showNodeIcon() {
+  bus.$emit('close_node_icon_toolbar')
+  setActiveSidebar('nodeIconSidebar')
+}
+
+function showFormula() {
+  setActiveSidebar('formulaSidebar')
+}
+
+function selectAttachmentFile() {
+  bus.$emit('selectAttachment', activeNodes.value)
+}
+
+function onSetAnnotation(...args: any[]) {
+  bus.$emit('execCommand', 'SET_NOTATION', activeNodes.value, ...args)
+}
+
+function aiCrate() {
+  bus.$emit('ai_create_all')
+}
+
+onMounted(() => {
+  bus.$on('mode_change', onModeChange)
+  bus.$on('node_active', onNodeActive)
+  bus.$on('back_forward', onBackForward)
+  bus.$on('painter_start', onPainterStart)
+  bus.$on('painter_end', onPainterEnd)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('mode_change', onModeChange)
+  bus.$off('node_active', onNodeActive)
+  bus.$off('back_forward', onBackForward)
+  bus.$off('painter_start', onPainterStart)
+  bus.$off('painter_end', onPainterEnd)
+})
 </script>
 
 <style lang="less">

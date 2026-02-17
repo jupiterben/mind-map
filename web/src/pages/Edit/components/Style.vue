@@ -69,15 +69,17 @@
           <div class="btnGroup">
             <el-popover ref="popover" placement="bottom" trigger="hover">
               <template #reference>
-                <el-tooltip :content="$t('style.color')" placement="bottom">
-                  <div class="styleBtn">
-                    A
-                    <span
-                      class="colorShow"
-                      :style="{ backgroundColor: style.color || '#eee' }"
-                    ></span>
-                  </div>
-                </el-tooltip>
+                <div class="reference-wrap">
+                  <el-tooltip :content="$t('style.color')" placement="bottom">
+                    <div class="styleBtn">
+                      A
+                      <span
+                        class="colorShow"
+                        :style="{ backgroundColor: style.color || '#eee' }"
+                      ></span>
+                    </div>
+                  </el-tooltip>
+                </div>
               </template>
               <Color :color="style.color" @change="changeFontColor"></Color>
             </el-popover>
@@ -105,17 +107,19 @@
             </el-tooltip>
             <el-popover ref="popover2" placement="bottom" trigger="hover">
               <template #reference>
-                <el-tooltip
-                  :content="$t('style.textDecoration')"
-                  placement="bottom"
-                >
-                  <div
-                    class="styleBtn u"
-                    :style="{ textDecoration: style.textDecoration || 'none' }"
+                <div class="reference-wrap">
+                  <el-tooltip
+                    :content="$t('style.textDecoration')"
+                    placement="bottom"
                   >
-                    U
-                  </div>
-                </el-tooltip>
+                    <div
+                      class="styleBtn u"
+                      :style="{ textDecoration: style.textDecoration || 'none' }"
+                    >
+                      U
+                    </div>
+                  </el-tooltip>
+                </div>
               </template>
               <el-radio-group
                 size="small"
@@ -520,246 +524,191 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Color from './Color.vue'
 import {
-  fontFamilyList,
+  fontFamilyList as fontFamilyConfig,
   fontSizeList,
   borderWidthList,
-  borderDasharrayList,
+  borderDasharrayList as borderDasharrayConfig,
   borderRadiusList,
-  shapeList,
-  shapeListMap,
-  linearGradientDirList,
-  alignList
+  shapeList as shapeListConfig,
+  shapeListMap as shapeListMapConfig,
+  linearGradientDirList as linearGradientDirConfig,
+  alignList as alignListConfig
 } from '@/config'
-import { storeMixin } from '@/mixins/storeMixin'
+import { storeToRefs } from 'pinia'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { useI18n } from 'vue-i18n'
 
-// 节点样式设置
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar,
-    Color
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      fontSizeList,
-      borderWidthList,
-      borderRadiusList,
-      activeNodes: [],
-      style: {
-        shape: '',
-        paddingX: 0,
-        paddingY: 0,
-        color: '',
-        fontFamily: '',
-        fontSize: '',
-        textDecoration: '',
-        fontWeight: '',
-        fontStyle: '',
-        borderWidth: '',
-        borderColor: '',
-        fillColor: '',
-        borderDasharray: '',
-        borderRadius: '',
-        lineColor: '',
-        lineDasharray: '',
-        lineWidth: '',
-        lineMarkerDir: '',
-        gradientStyle: false,
-        startColor: '',
-        endColor: '',
-        linearGradientDir: '',
-        lineFlow: false,
-        lineFlowForward: true,
-        lineFlowDuration: 1,
-        textAlign: '',
-        imgPlacement: '',
-        tagPlacement: ''
-      }
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    fontFamilyList() {
-      return fontFamilyList[this.$i18n?.locale?.value ?? this.$i18n?.locale] || fontFamilyList.zh
-    },
-    borderDasharrayList() {
-      return borderDasharrayList[this.$i18n.locale] || borderDasharrayList.zh
-    },
-    shapeList() {
-      return [
-        ...(shapeList[this.$i18n.locale] || shapeList.zh),
-        ...this.mindMap.extendShapeList
-          .filter(item => {
-            return !['fishHead'].includes(item.name)
-          })
-          .map(item => {
-            return {
-              width: '40px',
-              name: item.nameShow,
-              value: item.name
-            }
-          })
-      ]
-    },
-    shapeListMap() {
-      const map2 = {}
-      this.mindMap.extendShapeList.forEach(item => {
-        map2[item.name] = item.path
+const props = defineProps<{ mindMap: any }>()
+const store = useStore()
+const { activeSidebar } = storeToRefs(store)
+const { setActiveSidebar } = store
+const bus = getBus()
+const { locale } = useI18n()
+type LocaleKey = 'zh' | 'en' | 'zhtw' | 'vi'
+const localeKey = computed(() => (locale.value ?? (locale as any)) as LocaleKey)
+
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const activeNodes = ref<any[]>([])
+const style = reactive({
+  shape: '',
+  paddingX: 0,
+  paddingY: 0,
+  color: '',
+  fontFamily: '',
+  fontSize: '',
+  textDecoration: '',
+  fontWeight: '',
+  fontStyle: '',
+  borderWidth: '',
+  borderColor: '',
+  fillColor: '',
+  borderDasharray: '',
+  borderRadius: '',
+  lineColor: '',
+  lineDasharray: '',
+  lineWidth: '',
+  lineMarkerDir: '',
+  gradientStyle: false,
+  startColor: '',
+  endColor: '',
+  linearGradientDir: '',
+  lineFlow: false,
+  lineFlowForward: true,
+  lineFlowDuration: 1,
+  textAlign: '',
+  imgPlacement: '',
+  tagPlacement: ''
+})
+
+const isDark = computed(() => useStore().isDark ?? false)
+const fontFamilyList = computed(
+  () => fontFamilyConfig[localeKey.value] || fontFamilyConfig.zh
+)
+const borderDasharrayList = computed(
+  () => borderDasharrayConfig[localeKey.value] || borderDasharrayConfig.zh
+)
+const shapeList = computed(() => [
+  ...(shapeListConfig[localeKey.value] || shapeListConfig.zh),
+  ...props.mindMap.extendShapeList
+    .filter((item: any) => !['fishHead'].includes(item.name))
+    .map((item: any) => ({ width: '40px', name: item.nameShow, value: item.name }))
+])
+const shapeListMap = computed(() => {
+  const map2: Record<string, string> = {}
+  props.mindMap.extendShapeList.forEach((item: any) => {
+    map2[item.name] = item.path
+  })
+  return { ...shapeListMapConfig, ...map2 } as Record<string, string>
+})
+const linearGradientDirList = computed(
+  () => linearGradientDirConfig[localeKey.value] || linearGradientDirConfig.zh
+)
+const alignList = computed(
+  () => alignListConfig[localeKey.value] || alignListConfig.zh
+)
+
+function onNodeActive(...args: any[]) {
+  nextTick(() => {
+    activeNodes.value = [...args[1]]
+    initNodeStyle()
+    if (activeNodes.value.length > 0) setActiveSidebar('nodeStyle')
+  })
+}
+
+function initNodeStyle() {
+  if (activeNodes.value.length <= 0) return
+  Object.keys(style).forEach((key) => {
+    ;(style as any)[key] = activeNodes.value[0].getStyle(key, false)
+  })
+  initLinearGradientDir()
+}
+
+function initLinearGradientDir() {
+  const startDir = activeNodes.value[0].getStyle('startDir', false)
+  const endDir = activeNodes.value[0].getStyle('endDir', false)
+  const target = linearGradientDirList.value.find(
+    (item: any) =>
+      item.start[0] === startDir[0] &&
+      item.start[1] === startDir[1] &&
+      item.end[0] === endDir[0] &&
+      item.end[1] === endDir[1]
+  )
+  if (target) (style as any).linearGradientDir = target.value
+}
+
+function update(prop: string) {
+  if (prop === 'linearGradientDir') {
+    const target = linearGradientDirList.value.find(
+      (item: any) => item.value === (style as any).linearGradientDir
+    )
+    if (target) {
+      activeNodes.value.forEach((node) => {
+        node.setStyles({ startDir: [...target.start], endDir: [...target.end] })
       })
-      return {
-        ...shapeListMap,
-        ...map2
-      }
-    },
-    linearGradientDirList() {
-      return (
-        linearGradientDirList[this.$i18n.locale] || linearGradientDirList.zh
-      )
-    },
-    alignList() {
-      return alignList[this.$i18n.locale] || alignList.zh
     }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'nodeStyle') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.onNodeActive)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.onNodeActive)
-  },
-  methods: {
-    // 监听节点激活事件
-    onNodeActive(...args) {
-      this.$nextTick(() => {
-        this.activeNodes = [...args[1]]
-        this.initNodeStyle()
-      })
-    },
-
-    // 初始节点样式
-    initNodeStyle() {
-      if (this.activeNodes.length <= 0) {
-        return
-      }
-      Object.keys(this.style).forEach(item => {
-        this.style[item] = this.activeNodes[0].getStyle(item, false)
-      })
-      this.initLinearGradientDir()
-    },
-
-    // 初始化渐变方向样式
-    initLinearGradientDir() {
-      const startDir = this.activeNodes[0].getStyle('startDir', false)
-      const endDir = this.activeNodes[0].getStyle('endDir', false)
-      const target = this.linearGradientDirList.find(item => {
-        return (
-          item.start[0] === startDir[0] &&
-          item.start[1] === startDir[1] &&
-          item.end[0] === endDir[0] &&
-          item.end[1] === endDir[1]
-        )
-      })
-      if (target) {
-        this.style.linearGradientDir = target.value
-      }
-    },
-
-    // 修改样式
-    update(prop) {
-      if (prop === 'linearGradientDir') {
-        const target = this.linearGradientDirList.find(item => {
-          return item.value === this.style.linearGradientDir
-        })
-        this.activeNodes.forEach(node => {
-          node.setStyles({
-            startDir: [...target.start],
-            endDir: [...target.end]
-          })
-        })
-      } else {
-        this.activeNodes.forEach(node => {
-          node.setStyle(prop, this.style[prop])
-        })
-      }
-    },
-
-    // 切换加粗样式
-    toggleFontWeight() {
-      if (this.style.fontWeight === 'bold') {
-        this.style.fontWeight = 'normal'
-      } else {
-        this.style.fontWeight = 'bold'
-      }
-      this.update('fontWeight')
-    },
-
-    // 切换字体样式
-    toggleFontStyle() {
-      if (this.style.fontStyle === 'italic') {
-        this.style.fontStyle = 'normal'
-      } else {
-        this.style.fontStyle = 'italic'
-      }
-      this.update('fontStyle')
-    },
-
-    // 修改字体颜色
-    changeFontColor(color) {
-      this.style.color = color
-      this.update('color')
-    },
-
-    // 修改边框颜色
-    changeBorderColor(color) {
-      this.style.borderColor = color
-      this.update('borderColor')
-    },
-
-    // 修改线条颜色
-    changeLineColor(color) {
-      this.style.lineColor = color
-      this.update('lineColor')
-    },
-
-    // 修改背景颜色
-    changeFillColor(color) {
-      this.style.fillColor = color
-      this.update('fillColor')
-    },
-
-    // 切换渐变开始颜色
-    changeStartColor(color) {
-      this.style.startColor = color
-      this.update('startColor')
-    },
-
-    // 切换渐变结束颜色
-    changeEndColor(color) {
-      this.style.endColor = color
-      this.update('endColor')
-    }
+  } else {
+    activeNodes.value.forEach((node) => node.setStyle(prop, (style as any)[prop]))
   }
 }
+
+function toggleFontWeight() {
+  ;(style as any).fontWeight = (style as any).fontWeight === 'bold' ? 'normal' : 'bold'
+  update('fontWeight')
+}
+
+function toggleFontStyle() {
+  ;(style as any).fontStyle = (style as any).fontStyle === 'italic' ? 'normal' : 'italic'
+  update('fontStyle')
+}
+
+function changeFontColor(color: string) {
+  ;(style as any).color = color
+  update('color')
+}
+
+function changeBorderColor(color: string) {
+  ;(style as any).borderColor = color
+  update('borderColor')
+}
+
+function changeLineColor(color: string) {
+  ;(style as any).lineColor = color
+  update('lineColor')
+}
+
+function changeFillColor(color: string) {
+  ;(style as any).fillColor = color
+  update('fillColor')
+}
+
+function changeStartColor(color: string) {
+  ;(style as any).startColor = color
+  update('startColor')
+}
+
+function changeEndColor(color: string) {
+  ;(style as any).endColor = color
+  update('endColor')
+}
+
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (s?.setShow) s.setShow(val === 'nodeStyle')
+})
+
+onMounted(() => {
+  bus.$on('node_active', onNodeActive)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', onNodeActive)
+})
 </script>
 
 <style lang="less" scoped>
@@ -842,6 +791,10 @@ export default {
       width: 100%;
       display: flex;
       justify-content: space-between;
+    }
+
+    .reference-wrap {
+      display: inline-block;
     }
 
     .rowItem {

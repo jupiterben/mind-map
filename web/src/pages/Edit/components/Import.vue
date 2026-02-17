@@ -3,11 +3,11 @@
     <el-dialog
       class="nodeImportDialog"
       :title="$t('import.title')"
-      :visible.sync="dialogVisible"
+      v-model="dialogVisible"
       width="350px"
     >
       <el-upload
-        ref="upload"
+        ref="uploadRef"
         action="x"
         :accept="supportFileStr"
         :file-list="fileList"
@@ -18,246 +18,211 @@
         :limit="1"
         :on-exceed="onExceed"
       >
-        <el-button slot="trigger" size="small" type="primary">{{
-          $t('import.selectFile')
-        }}</el-button>
-        <div slot="tip" class="el-upload__tip">
-          {{ $t('import.support') }}{{ supportFileStr }}{{ $t('import.file') }}
-        </div>
+        <template #trigger>
+          <el-button size="small" type="primary">{{ $t('import.selectFile') }}</el-button>
+        </template>
+        <template #tip>
+          <div class="el-upload__tip">
+            {{ $t('import.support') }}{{ supportFileStr }}{{ $t('import.file') }}
+          </div>
+        </template>
       </el-upload>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
-        <el-button type="primary" @click="confirm">{{
-          $t('dialog.confirm')
-        }}</el-button>
-      </span>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
+          <el-button type="primary" @click="confirm">{{ $t('dialog.confirm') }}</el-button>
+        </span>
+      </template>
     </el-dialog>
     <el-dialog
       class="xmindCanvasSelectDialog"
       :title="$t('import.xmindCanvasSelectDialogTitle')"
-      :visible.sync="xmindCanvasSelectDialogVisible"
+      v-model="xmindCanvasSelectDialogVisible"
       width="300px"
       :show-close="false"
     >
       <el-radio-group v-model="selectCanvas" class="canvasList">
-        <el-radio
-          v-for="(item, index) in canvasList"
-          :key="index"
-          :value="index"
-          >{{ item.title }}</el-radio
-        >
+        <el-radio v-for="(item, index) in canvasList" :key="index" :value="index">
+          {{ item.title }}
+        </el-radio>
       </el-radio-group>
-      <span slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="confirmSelect">{{
-          $t('dialog.confirm')
-        }}</el-button>
-      </span>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="confirmSelect">{{ $t('dialog.confirm') }}</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import xmind from 'simple-mind-map/src/parse/xmind.js'
 import markdown from 'simple-mind-map/src/parse/markdown.js'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
+import { getBus } from '@/bus'
+import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-// 导入
-export default {
-  mixins: [storeMixin],
-  data() {
-    return {
-      dialogVisible: false,
-      fileList: [],
-      selectPromiseResolve: null,
-      xmindCanvasSelectDialogVisible: false,
-      selectCanvas: '',
-      canvasList: [],
-      mdStr: ''
-    }
-  },
-  computed: {
-    supportFileStr() {
-      return '.smm,.json,.xmind,.md'
-    }
-  },
-  watch: {
-    dialogVisible(val, oldVal) {
-      if (!val && oldVal) {
-        this.fileList = []
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('showImport', this.handleShowImport)
-    this.$bus.$on('handle_file_url', this.handleFileURL)
-    this.$bus.$on('importFile', this.handleImportFile)
-  },
-  beforeUnmount() {
-    this.$bus.$off('showImport', this.handleShowImport)
-    this.$bus.$off('handle_file_url', this.handleFileURL)
-    this.$bus.$off('importFile', this.handleImportFile)
-  },
-  methods: {
-    handleShowImport() {
-      this.dialogVisible = true
-    },
+const { setIsHandleLocalFile, setActiveSidebar } = useStoreMixin()
+const bus = getBus()
+const route = useRoute()
+const { t } = useI18n()
 
-    getRegexp() {
-      return new RegExp(`\.(smm|json|xmind|md)$`)
-    },
+const dialogVisible = ref(false)
+const fileList = ref<any[]>([])
+const selectPromiseResolve = ref<((value: any) => void) | null>(null)
+const xmindCanvasSelectDialogVisible = ref(false)
+const selectCanvas = ref(0)
+const canvasList = ref<any[]>([])
+const mdStr = ref('')
 
-    // 检查url中是否操作需要打开的文件
-    async handleFileURL() {
-      try {
-        const fileURL = this.$route.query.fileURL
-        if (!fileURL) return
-        const macth = this.getRegexp().exec(fileURL)
-        if (!macth) {
-          return
-        }
-        const type = macth[1]
-        const res = await fetch(fileURL)
-        const file = await res.blob()
-        const data = {
-          raw: file
-        }
-        if (type === 'smm' || type === 'json') {
-          this.handleSmm(data)
-        } else if (type === 'xmind') {
-          this.handleXmind(data)
-        } else if (type === 'md') {
-          this.handleMd(data)
-        }
-      } catch (error) {
-        console.log(error)
-      }
-    },
+const supportFileStr = computed(() => '.smm,.json,.xmind,.md')
 
-    // 文件选择
-    onChange(file) {
-      if (!this.getRegexp().test(file.name)) {
-        this.$message.error(
-          this.$t('import.pleaseSelect') +
-            this.supportFileStr +
-            this.$t('import.file')
-        )
-        this.fileList = []
-      } else {
-        this.fileList.push(file)
-      }
-    },
+function getRegexp() {
+  return /\.(smm|json|xmind|md)$/
+}
 
-    // 移除文件
-    onRemove(file, fileList) {
-      this.fileList = fileList
-    },
+function handleShowImport() {
+  dialogVisible.value = true
+}
 
-    // 数量超出限制
-    onExceed() {
-      this.$message.error(this.$t('import.maxFileNum'))
-    },
+async function handleFileURL() {
+  try {
+    const fileURL = route.query.fileURL as string
+    if (!fileURL) return
+    const match = fileURL.match(getRegexp())
+    if (!match) return
+    const type = match[1]
+    const res = await fetch(fileURL)
+    const file = await res.blob()
+    const data = { raw: file }
+    if (type === 'smm' || type === 'json') handleSmm(data)
+    else if (type === 'xmind') handleXmind(data)
+    else if (type === 'md') handleMd(data)
+  } catch (error) {
+    console.log(error)
+  }
+}
 
-    // 取消
-    cancel() {
-      this.dialogVisible = false
-    },
+function onChange(file: any) {
+  if (!getRegexp().test(file.name)) {
+    ElMessage.error(t('import.pleaseSelect') + supportFileStr.value + t('import.file'))
+    fileList.value = []
+  } else {
+    fileList.value = [file]
+  }
+}
 
-    // 确定
-    confirm() {
-      if (this.fileList.length <= 0) {
-        return this.$message.error(this.$t('import.notSelectTip'))
-      }
-      this.setIsHandleLocalFile(false)
-      let file = this.fileList[0]
-      if (/\.(smm|json)$/.test(file.name)) {
-        this.handleSmm(file)
-      } else if (/\.xmind$/.test(file.name)) {
-        this.handleXmind(file)
-      } else if (/\.md$/.test(file.name)) {
-        this.handleMd(file)
-      }
-      this.cancel()
-      this.setActiveSidebar(null)
-    },
+function onRemove(_file: any, list: any[]) {
+  fileList.value = list
+}
 
-    // 处理.smm文件
-    handleSmm(file) {
-      let fileReader = new FileReader()
-      fileReader.readAsText(file.raw)
-      fileReader.onload = evt => {
-        try {
-          let data = JSON.parse(evt.target.result)
-          if (typeof data !== 'object') {
-            throw new Error(this.$t('import.fileContentError'))
-          }
-          this.$bus.$emit('setData', data)
-          this.$message.success(this.$t('import.importSuccess'))
-        } catch (error) {
-          console.log(error)
-          this.$message.error(this.$t('import.fileParsingFailed'))
-        }
-      }
-    },
+function onExceed() {
+  ElMessage.error(t('import.maxFileNum'))
+}
 
-    // 处理.xmind文件
-    async handleXmind(file) {
-      try {
-        let data = await xmind.parseXmindFile(file.raw, content => {
-          this.showSelectXmindCanvasDialog(content)
-          return new Promise(resolve => {
-            this.selectPromiseResolve = resolve
-          })
-        })
-        this.$bus.$emit('setData', data)
-        this.$message.success(this.$t('import.importSuccess'))
-      } catch (error) {
-        console.log(error)
-        this.$message.error(this.$t('import.fileParsingFailed'))
-      }
-    },
+function cancel() {
+  dialogVisible.value = false
+}
 
-    // 显示xmind文件的多个画布选择弹窗
-    showSelectXmindCanvasDialog(content) {
-      this.canvasList = content
-      this.selectCanvas = 0
-      this.xmindCanvasSelectDialogVisible = true
-    },
+function confirm() {
+  if (fileList.value.length <= 0) {
+    return ElMessage.error(t('import.notSelectTip'))
+  }
+  setIsHandleLocalFile(false)
+  const file = fileList.value[0]
+  if (/\.(smm|json)$/.test(file.name)) handleSmm(file)
+  else if (/\.xmind$/.test(file.name)) handleXmind(file)
+  else if (/\.md$/.test(file.name)) handleMd(file)
+  cancel()
+  setActiveSidebar(null)
+}
 
-    // 确认导入指定的画布
-    confirmSelect() {
-      this.selectPromiseResolve(this.canvasList[this.selectCanvas])
-      this.xmindCanvasSelectDialogVisible = false
-      this.canvasList = []
-      this.selectCanvas = 0
-    },
-
-    // 处理markdown文件
-    async handleMd(file) {
-      let fileReader = new FileReader()
-      fileReader.readAsText(file.raw)
-      fileReader.onload = async evt => {
-        try {
-          let data = markdown.transformMarkdownTo(evt.target.result)
-          this.$bus.$emit('setData', data)
-          this.$message.success(this.$t('import.importSuccess'))
-        } catch (error) {
-          console.log(error)
-          this.$message.error(this.$t('import.fileParsingFailed'))
-        }
-      }
-    },
-
-    // 导入指定文件
-    handleImportFile(file) {
-      this.onChange({
-        raw: file,
-        name: file.name
-      })
-      if (this.fileList.length <= 0) return
-      this.confirm()
+function handleSmm(file: any) {
+  const fileReader = new FileReader()
+  fileReader.readAsText(file.raw)
+  fileReader.onload = (evt) => {
+    try {
+      const data = JSON.parse((evt.target as any).result)
+      if (typeof data !== 'object') throw new Error(t('import.fileContentError'))
+      bus.$emit('setData', data)
+      ElMessage.success(t('import.importSuccess'))
+    } catch (error) {
+      console.log(error)
+      ElMessage.error(t('import.fileParsingFailed'))
     }
   }
 }
+
+async function handleXmind(file: any) {
+  try {
+    const data = await xmind.parseXmindFile(file.raw, (content: any) => {
+      showSelectXmindCanvasDialog(content)
+      return new Promise((resolve) => {
+        selectPromiseResolve.value = resolve
+      })
+    })
+    bus.$emit('setData', data)
+    ElMessage.success(t('import.importSuccess'))
+  } catch (error) {
+    console.log(error)
+    ElMessage.error(t('import.fileParsingFailed'))
+  }
+}
+
+function showSelectXmindCanvasDialog(content: any[]) {
+  canvasList.value = content
+  selectCanvas.value = 0
+  xmindCanvasSelectDialogVisible.value = true
+}
+
+function confirmSelect() {
+  selectPromiseResolve.value?.(canvasList.value[selectCanvas.value])
+  xmindCanvasSelectDialogVisible.value = false
+  canvasList.value = []
+  selectCanvas.value = 0
+}
+
+async function handleMd(file: any) {
+  const fileReader = new FileReader()
+  fileReader.readAsText(file.raw)
+  fileReader.onload = (evt) => {
+    try {
+      const data = markdown.transformMarkdownTo((evt.target as any).result)
+      bus.$emit('setData', data)
+      ElMessage.success(t('import.importSuccess'))
+    } catch (error) {
+      console.log(error)
+      ElMessage.error(t('import.fileParsingFailed'))
+    }
+  }
+}
+
+function handleImportFile(file: any) {
+  onChange({ raw: file, name: file.name })
+  if (fileList.value.length <= 0) return
+  confirm()
+}
+
+watch(dialogVisible, (val, oldVal) => {
+  if (!val && oldVal) fileList.value = []
+})
+
+onMounted(() => {
+  bus.$on('showImport', handleShowImport)
+  bus.$on('handle_file_url', handleFileURL)
+  bus.$on('importFile', handleImportFile)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('showImport', handleShowImport)
+  bus.$off('handle_file_url', handleFileURL)
+  bus.$off('importFile', handleImportFile)
+})
+
+defineExpose({ onChange, confirm })
 </script>
 
 <style lang="less" scoped>

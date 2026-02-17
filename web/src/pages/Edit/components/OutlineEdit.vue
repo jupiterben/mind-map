@@ -20,11 +20,7 @@
         <span class="icon iconfont iconguanbi"></span>
       </div>
     </div>
-    <div
-      class="outlineEditBox"
-      id="fullScreenOutlineEditBox"
-      ref="outlineEditBox"
-    >
+    <div class="outlineEditBox" id="fullScreenOutlineEditBox" ref="outlineEditBox">
       <div class="outlineEdit">
         <el-tree
           ref="tree"
@@ -41,31 +37,31 @@
           @node-drop="onNodeDrop"
           @current-change="onCurrentChange"
         >
-          <span
-            class="customNode"
-            slot-scope="{ node, data }"
-            :data-id="data.uid"
-          >
-            <span
-              class="nodeEdit"
-              :contenteditable="!isReadonly"
-              :key="getKey()"
-              @blur="onBlur($event, node)"
-              @keydown.stop="onNodeInputKeydown($event, node)"
-              @keyup.stop
-              @paste="onPaste($event, node)"
-              v-html="node.label"
-            ></span>
-          </span>
+          <template #default="{ node, data: nodeData }">
+            <span class="customNode" :data-id="nodeData.uid">
+              <span
+                class="nodeEdit"
+                :contenteditable="!isReadonly"
+                :key="editKey"
+                @blur="onBlur($event, node)"
+                @keydown.stop="onNodeInputKeydown($event, node)"
+                @keyup.stop
+                @paste="onPaste($event, node)"
+                v-html="node.label"
+              ></span>
+            </span>
+          </template>
         </el-tree>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { getBus } from '@/bus'
 import {
   nodeRichTextToTextWithWrap,
   textToNodeRichTextWithWrap,
@@ -76,219 +72,188 @@ import {
 } from 'simple-mind-map/src/utils'
 import { storeData } from '@/api'
 import { printOutline } from '@/utils'
+import { useI18n } from 'vue-i18n'
 
-// 大纲侧边栏
-export default {
-  mixins: [storeMixin],
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      data: [],
-      defaultProps: {
-        label: 'label'
-      },
-      currentData: null
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    isOutlineEdit() {
-      return useStore().isOutlineEdit ?? false
-    }
-  },
-  watch: {
-    isOutlineEdit(val) {
-      if (val) {
-        this.refresh()
-        this.$nextTick(() => {
-          document.body.appendChild(this.$refs.outlineEditContainer)
-        })
-      }
-    }
-  },
-  created() {
-    window.addEventListener('keydown', this.onKeyDown)
-  },
-  beforeUnmount() {
-    window.removeEventListener('keydown', this.onKeyDown)
-  },
-  methods: {
-    // 刷新树数据
-    refresh() {
-      let data = this.mindMap.getData()
-      data.root = true // 标记根节点
-      let walk = root => {
-        let text = root.data.richText
-          ? nodeRichTextToTextWithWrap(root.data.text)
-          : root.data.text
-        text = htmlEscape(text)
-        text = text.replace(/\n/g, '<br>')
-        root.textCache = text // 保存一份修改前的数据，用于对比是否修改了
-        root.label = text
-        root.uid = root.data.uid
-        if (root.children && root.children.length > 0) {
-          root.children.forEach(item => {
-            walk(item)
-          })
-        }
-      }
-      walk(data)
-      this.data = [data]
-    },
+const props = defineProps<{
+  mindMap: any
+}>()
 
-    // 根节点不允许拖拽
-    checkAllowDrag(node) {
-      return !node.data.root
-    },
+const { setIsOutlineEdit } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
 
-    // 拖拽结束事件
-    onNodeDrop() {
-      this.save()
-    },
+const isDark = computed(() => useStore().isDark ?? false)
+const isOutlineEdit = computed(() => useStore().isOutlineEdit ?? false)
+const isReadonly = computed(() => useStore().isReadonly ?? false)
 
-    // 当前选中的树节点变化事件
-    onCurrentChange(data) {
-      this.currentData = data
-    },
+const outlineEditContainer = ref<HTMLElement | null>(null)
+const outlineEditBox = ref<HTMLElement | null>(null)
+const tree = ref<any>(null)
+const data = ref<any[]>([])
+const defaultProps = { label: 'label' }
+const currentData = ref<any>(null)
+const editKey = ref(0)
 
-    // 失去焦点更新节点文本
-    onBlur(e, node) {
-      // 节点数据没有修改
-      if (node.data.textCache === e.target.innerHTML) {
-        return
-      }
-      const richText = node.data.data.richText
-      const text = richText ? e.target.innerHTML : e.target.innerText
-      node.data.data.text = richText ? textToNodeRichTextWithWrap(text) : text
-      node.data.textCache = e.target.innerHTML
-      this.save()
-    },
+function getKey() {
+  editKey.value = Math.random()
+}
 
-    // 节点输入区域按键事件
-    onNodeInputKeydown(e, node) {
-      const richText = !!node.data.data.richText
-      const uid = createUid()
-      const text = this.$t('outline.nodeDefaultText')
-      const data = {
-        textCache: text,
-        uid,
-        label: text,
-        data: {
-          text: richText ? textToNodeRichTextWithWrap(text) : text,
-          uid,
-          richText
-        },
-        children: []
-      }
-      if (e.keyCode === 13 && !e.shiftKey) {
-        e.preventDefault()
-        if (node.data.root) {
-          return
-        }
-        this.$refs.tree.insertAfter(data, node)
-      }
-      if (e.keyCode === 9) {
-        e.preventDefault()
-        if (e.shiftKey) {
-          // 上移一个层级
-          this.$refs.tree.insertAfter(node.data, node.parent)
-          this.$refs.tree.remove(node)
-        } else {
-          this.$refs.tree.append(data, node)
-        }
-      }
-      this.save()
-      this.$nextTick(() => {
-        this.$refs.tree.setCurrentKey(uid)
-        const el = document.querySelector(
-          `.customNode[data-id="${uid}"] .nodeEdit`
-        )
-        if (el) {
-          let selection = window.getSelection()
-          let range = document.createRange()
-          range.selectNodeContents(el)
-          selection.removeAllRanges()
-          selection.addRange(range)
-          let offsetTop = el.offsetTop
-          this.scrollTo(offsetTop)
-        }
-      })
-    },
-
-    // 删除节点
-    onKeyDown(e) {
-      if (!this.isOutlineEdit) return
-      if ([46, 8].includes(e.keyCode) && this.currentData) {
-        e.stopPropagation()
-        this.$refs.tree.remove(this.currentData)
-        this.currentData = null
-        this.save()
-      }
-    },
-
-    // 拦截粘贴事件
-    onPaste(e) {
-      handleInputPasteText(e)
-    },
-
-    // 生成唯一的key
-    getKey() {
-      return Math.random()
-    },
-
-    // 打印
-    onPrint() {
-      printOutline(this.$refs.outlineEditBox)
-    },
-
-    // 关闭
-    onClose() {
-      this.setIsOutlineEdit(false)
-      this.$bus.$emit('setData', this.getData())
-    },
-
-    // 滚动
-    scrollTo(y) {
-      let container = this.$refs.outlineEditBox
-      let height = container.offsetHeight
-      let top = container.scrollTop
-      y += 50
-      if (y > top + height) {
-        container.scrollTo(0, y - height / 2)
-      }
-    },
-
-    // 获取思维导图数据
-    getData() {
-      let newNode = {}
-      let node = this.data[0]
-      let walk = (root, newRoot) => {
-        newRoot.data = root.data
-        newRoot.children = []
-        ;(root.children || []).forEach(child => {
-          const newChild = {}
-          newRoot.children.push(newChild)
-          walk(child, newChild)
-        })
-      }
-      walk(node, newNode)
-      return simpleDeepClone(newNode)
-    },
-
-    // 保存
-    save() {
-      storeData({
-        root: this.getData()
-      })
+function refresh() {
+  let treeData = props.mindMap.getData()
+  treeData.root = true
+  const walk = (root: any) => {
+    let text = root.data.richText
+      ? nodeRichTextToTextWithWrap(root.data.text)
+      : root.data.text
+    text = htmlEscape(text)
+    text = text.replace(/\n/g, '<br>')
+    root.textCache = text
+    root.label = text
+    root.uid = root.data.uid
+    if (root.children?.length) {
+      root.children.forEach((item: any) => walk(item))
     }
   }
+  walk(treeData)
+  data.value = [treeData]
 }
+
+function checkAllowDrag(node: any) {
+  return !node.data.root
+}
+
+function onNodeDrop() {
+  save()
+}
+
+function onCurrentChange(nodeData: any) {
+  currentData.value = nodeData
+}
+
+function onBlur(e: Event, node: any) {
+  const target = e.target as HTMLElement
+  if (node.data.textCache === target.innerHTML) return
+  const richText = node.data.data.richText
+  const text = richText ? target.innerHTML : target.innerText
+  node.data.data.text = richText ? textToNodeRichTextWithWrap(text) : text
+  node.data.textCache = target.innerHTML
+  save()
+}
+
+function onNodeInputKeydown(e: KeyboardEvent, node: any) {
+  const richText = !!node.data.data.richText
+  const uid = createUid()
+  const text = t('outline.nodeDefaultText')
+  const newData = {
+    textCache: text,
+    uid,
+    label: text,
+    data: {
+      text: richText ? textToNodeRichTextWithWrap(text) : text,
+      uid,
+      richText
+    },
+    children: []
+  }
+  if (e.keyCode === 13 && !e.shiftKey) {
+    e.preventDefault()
+    if (node.data.root) return
+    tree.value?.insertAfter(newData, node)
+  }
+  if (e.keyCode === 9) {
+    e.preventDefault()
+    if (e.shiftKey) {
+      tree.value?.insertAfter(node.data, node.parent)
+      tree.value?.remove(node)
+    } else {
+      tree.value?.append(newData, node)
+    }
+  }
+  save()
+  nextTick(() => {
+    tree.value?.setCurrentKey(uid)
+    const el = document.querySelector(`.customNode[data-id="${uid}"] .nodeEdit`)
+    if (el) {
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      scrollTo((el as HTMLElement).offsetTop)
+    }
+  })
+}
+
+function onKeyDown(e: KeyboardEvent) {
+  if (!isOutlineEdit.value) return
+  if ([46, 8].includes(e.keyCode) && currentData.value) {
+    e.stopPropagation()
+    tree.value?.remove(currentData.value)
+    currentData.value = null
+    save()
+  }
+}
+
+function onPaste(e: Event) {
+  handleInputPasteText(e)
+}
+
+function onPrint() {
+  if (outlineEditBox.value) printOutline(outlineEditBox.value)
+}
+
+function onClose() {
+  setIsOutlineEdit(false)
+  bus.$emit('setData', getData())
+}
+
+function scrollTo(y: number) {
+  const container = outlineEditBox.value
+  if (!container) return
+  const height = container.offsetHeight
+  const top = container.scrollTop
+  y += 50
+  if (y > top + height) {
+    container.scrollTo(0, y - height / 2)
+  }
+}
+
+function getData() {
+  const newNode: any = {}
+  const node = data.value[0]
+  const walk = (root: any, newRoot: any) => {
+    newRoot.data = root.data
+    newRoot.children = []
+    ;(root.children || []).forEach((child: any) => {
+      const newChild: any = {}
+      newRoot.children.push(newChild)
+      walk(child, newChild)
+    })
+  }
+  walk(node, newNode)
+  return simpleDeepClone(newNode)
+}
+
+function save() {
+  storeData({ root: getData() })
+}
+
+watch(isOutlineEdit, (val) => {
+  if (val) {
+    refresh()
+    nextTick(() => {
+      if (outlineEditContainer.value) document.body.appendChild(outlineEditContainer.value)
+    })
+  }
+})
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeyDown)
+})
 </script>
 
 <style lang="less" scoped>

@@ -61,6 +61,19 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      // 构建时 simple-mind-map/node_modules 下的依赖会注入 shims 引用，需强制解析到 web 的 node_modules
+      {
+        find: 'vite-plugin-node-polyfills/shims/global',
+        replacement: resolve(__dirname, 'node_modules/vite-plugin-node-polyfills/shims/global/dist/index.js')
+      },
+      {
+        find: 'vite-plugin-node-polyfills/shims/buffer',
+        replacement: resolve(__dirname, 'node_modules/vite-plugin-node-polyfills/shims/buffer/dist/index.js')
+      },
+      {
+        find: 'vite-plugin-node-polyfills/shims/process',
+        replacement: resolve(__dirname, 'node_modules/vite-plugin-node-polyfills/shims/process/dist/index.js')
+      },
       { find: /^simple-mind-map\/(.*)$/, replacement: `${simpleMindMapRoot}/$1` },
       { find: 'simple-mind-map', replacement: resolve(simpleMindMapRoot, 'index.ts') },
       // simple-mind-map 内多处用相对路径引用，打包时统一解析到源码

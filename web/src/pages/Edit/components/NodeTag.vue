@@ -2,27 +2,24 @@
   <el-dialog
     class="nodeTagDialog"
     :title="$t('nodeTag.title')"
-    :visible.sync="dialogVisible"
+    v-model="dialogVisible"
     :width="isMobile ? '90%' : '50%'"
     :top="isMobile ? '20px' : '15vh'"
   >
     <el-input
       v-model="tag"
-      @keyup.native.enter="add"
-      @keyup.native.stop
-      @keydown.native.stop
+      @keyup.enter="add"
+      @keyup.stop
+      @keydown.stop
       :disabled="tagArr.length >= max"
       :placeholder="$t('nodeTag.addTip')"
-    >
-    </el-input>
+    ></el-input>
     <div class="tagList">
       <div
         class="tagItem"
         v-for="(item, index) in tagArr"
         :key="index"
-        :style="{
-          backgroundColor: generateColorByContent(item)
-        }"
+        :style="{ backgroundColor: generateColorByContent(item) }"
       >
         {{ typeof item === 'string' ? item : item.text }}
         <div class="delBtn" @click="del(index)">
@@ -30,90 +27,77 @@
         </div>
       </div>
     </div>
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
-      <el-button type="primary" @click="confirm">{{
-        $t('dialog.confirm')
-      }}</el-button>
-    </span>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
+        <el-button type="primary" @click="confirm">{{ $t('dialog.confirm') }}</el-button>
+      </span>
+    </template>
   </el-dialog>
 </template>
 
-<script>
-import {
-  generateColorByContent,
-  isMobile
-} from 'simple-mind-map/src/utils/index'
+<script setup lang="ts">
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { getBus } from '@/bus'
+import { generateColorByContent, isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
 
-// 节点标签内容设置
-export default {
-  data() {
-    return {
-      dialogVisible: false,
-      tagArr: [],
-      tag: '',
-      activeNodes: [],
-      max: 5,
-      isMobile: isMobile()
-    }
-  },
-  watch: {
-    dialogVisible(val, oldVal) {
-      if (!val && oldVal) {
-        this.$bus.$emit('endTextEdit')
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('node_active', this.handleNodeActive)
-    this.$bus.$on('showNodeTag', this.handleShowNodeTag)
-  },
-  beforeUnmount() {
-    this.$bus.$off('node_active', this.handleNodeActive)
-    this.$bus.$off('showNodeTag', this.handleShowNodeTag)
-  },
-  methods: {
-    generateColorByContent,
+const bus = getBus()
 
-    handleNodeActive(...args) {
-      this.activeNodes = [...args[1]]
-      if (this.activeNodes.length > 0) {
-        let firstNode = this.activeNodes[0]
-        this.tagArr = firstNode.getData('tag') || []
-      } else {
-        this.tagArr = []
-        this.tag = ''
-      }
-    },
+const dialogVisible = ref(false)
+const tagArr = ref<any[]>([])
+const tag = ref('')
+const activeNodes = ref<any[]>([])
+const max = 5
+const isMobile = checkIsMobile()
 
-    handleShowNodeTag() {
-      this.$bus.$emit('startTextEdit')
-      this.dialogVisible = true
-    },
-
-    add() {
-      const text = this.tag.trim()
-      if (!text) return
-      this.tagArr.push(text)
-      this.tag = ''
-    },
-
-    del(index) {
-      this.tagArr.splice(index, 1)
-    },
-
-    cancel() {
-      this.dialogVisible = false
-    },
-
-    confirm() {
-      this.activeNodes.forEach(node => {
-        node.setTag(this.tagArr)
-      })
-      this.cancel()
-    }
+function handleNodeActive(...args: any[]) {
+  activeNodes.value = [...args[1]]
+  if (activeNodes.value.length > 0) {
+    tagArr.value = activeNodes.value[0].getData('tag') || []
+  } else {
+    tagArr.value = []
+    tag.value = ''
   }
 }
+
+function handleShowNodeTag() {
+  bus.$emit('startTextEdit')
+  dialogVisible.value = true
+}
+
+function add() {
+  const text = tag.value.trim()
+  if (!text) return
+  tagArr.value.push(text)
+  tag.value = ''
+}
+
+function del(index: number) {
+  tagArr.value.splice(index, 1)
+}
+
+function cancel() {
+  dialogVisible.value = false
+}
+
+function confirm() {
+  activeNodes.value.forEach((node) => node.setTag(tagArr.value))
+  cancel()
+}
+
+watch(dialogVisible, (val, oldVal) => {
+  if (!val && oldVal) bus.$emit('endTextEdit')
+})
+
+onMounted(() => {
+  bus.$on('node_active', handleNodeActive)
+  bus.$on('showNodeTag', handleShowNodeTag)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('node_active', handleNodeActive)
+  bus.$off('showNodeTag', handleShowNodeTag)
+})
 </script>
 
 <style lang="less" scoped>

@@ -45,7 +45,7 @@
               v-model="watermarkConfig.text"
               size="small"
               @change="updateWatermarkConfig"
-              @keydown.native.stop
+              @keydown.stop
             ></el-input>
           </div>
         </div>
@@ -97,7 +97,7 @@
               :max="50"
               :step="1"
               @change="updateWatermarkConfig"
-              @keydown.native.stop
+              @keydown.stop
             ></el-input-number>
           </div>
         </div>
@@ -112,7 +112,7 @@
               :max="90"
               :step="10"
               @change="updateWatermarkConfig"
-              @keydown.native.stop
+              @keydown.stop
             ></el-input-number>
           </div>
         </div>
@@ -125,7 +125,7 @@
               size="small"
               :step="10"
               @change="updateWatermarkConfig"
-              @keydown.native.stop
+              @keydown.stop
             ></el-input-number>
           </div>
         </div>
@@ -138,7 +138,7 @@
               size="small"
               :step="10"
               @change="updateWatermarkConfig"
-              @keydown.native.stop
+              @keydown.stop
             ></el-input-number>
           </div>
         </div>
@@ -372,212 +372,168 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
-import { storeConfig } from '@/api'
-import { storeMixin } from '@/mixins/storeMixin'
-import { useStore } from '@/store'
 import Color from './Color.vue'
+import { storeConfig } from '@/api'
+import { useStoreMixin } from '@/mixins/storeMixin'
+import { useStore } from '@/store'
+import { getBus } from '@/bus'
+import { ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar,
-    Color
-  },
-  props: {
-    configData: {
-      type: Object,
-      default: null
-    },
-    mindMap: {
-      type: Object
+const props = defineProps<{
+  configData: any
+  mindMap: any
+}>()
+
+const { localConfig, setLocalConfig, activeSidebar } = useStoreMixin()
+const bus = getBus()
+const { t } = useI18n()
+
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const config = reactive({
+  openPerformance: false,
+  enableFreeDrag: false,
+  mousewheelAction: 'zoom',
+  mousewheelZoomActionReverse: false,
+  createNewNodeBehavior: 'default',
+  openRealtimeRenderOnNodeTextEdit: true,
+  alwaysShowExpandBtn: false,
+  enableAutoEnterTextEditWhenKeydown: true,
+  imgTextMargin: 0,
+  textContentMargin: 0,
+  enableInheritAncestorLineStyle: false
+})
+const watermarkConfig = reactive({
+  show: false,
+  onlyExport: false,
+  belowNode: false,
+  text: '',
+  lineSpacing: 100,
+  textSpacing: 100,
+  angle: 30,
+  textStyle: { color: '', opacity: 0, fontSize: 1 }
+})
+const updateWatermarkTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+const enableNodeRichText = ref(true)
+const localConfigs = reactive({
+  isShowScrollbar: false,
+  enableDragImport: false,
+  enableAi: false
+})
+
+const isDark = computed(() => useStore().isDark ?? false)
+
+function initConfig() {
+  Object.keys(config).forEach((key) => {
+    const val = props.mindMap.getConfig(key)
+    if (typeof (config as any)[key] === 'object') {
+      ;(config as any)[key] = { ...(val || {}) }
+    } else {
+      ;(config as any)[key] = val
     }
-  },
-  data() {
-    return {
-      config: {
-        openPerformance: false,
-        enableFreeDrag: false,
-        mousewheelAction: 'zoom',
-        mousewheelZoomActionReverse: false,
-        createNewNodeBehavior: 'default',
-        openRealtimeRenderOnNodeTextEdit: true,
-        alwaysShowExpandBtn: false,
-        enableAutoEnterTextEditWhenKeydown: true,
-        imgTextMargin: 0,
-        textContentMargin: 0,
-        enableInheritAncestorLineStyle: false
-      },
-      watermarkConfig: {
-        show: false,
-        onlyExport: false,
-        text: '',
-        lineSpacing: 100,
-        textSpacing: 100,
-        angle: 30,
-        textStyle: {
-          color: '',
-          opacity: 0,
-          fontSize: 1
-        }
-      },
-      updateWatermarkTimer: null,
-      enableNodeRichText: true,
-      localConfigs: {
-        isShowScrollbar: false,
-        enableDragImport: false,
-        enableAi: false
-      }
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'setting') {
-        this.$refs.sidebar.show = true
-        this.initLoacalConfig()
-        this.initConfig()
-        this.initWatermark()
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.initLoacalConfig()
-    this.$bus.$on('toggleOpenNodeRichText', this.onToggleOpenNodeRichText)
-  },
-  beforeUnmount() {
-    this.$bus.$off('toggleOpenNodeRichText', this.onToggleOpenNodeRichText)
-  },
-  methods: {
-    // 初始化其他配置
-    initConfig() {
-      Object.keys(this.config).forEach(key => {
-        if (typeof this.config[key] === 'object') {
-          this.config[key] = {
-            ...(this.mindMap.getConfig(key) || {})
-          }
-        } else {
-          this.config[key] = this.mindMap.getConfig(key)
-        }
-      })
-    },
+  })
+}
 
-    // 初始化本地配置
-    initLoacalConfig() {
-      const cfg = this.localConfig
-      if (!cfg) return
-      this.enableNodeRichText = cfg.openNodeRichText
-      this.mousewheelAction = cfg.mousewheelAction
-      this.mousewheelZoomActionReverse = cfg.mousewheelZoomActionReverse
-      Object.keys(this.localConfigs).forEach(key => {
-        this.localConfigs[key] = cfg[key]
-      })
-    },
+function initLoacalConfig() {
+  const cfg = localConfig.value
+  if (!cfg) return
+  enableNodeRichText.value = cfg.openNodeRichText
+  ;(config as any).mousewheelAction = cfg.mousewheelAction
+  ;(config as any).mousewheelZoomActionReverse = cfg.mousewheelZoomActionReverse
+  Object.keys(localConfigs).forEach((key) => {
+    ;(localConfigs as any)[key] = (cfg as any)[key]
+  })
+}
 
-    // 初始化水印配置
-    initWatermark() {
-      const config = this.mindMap.getConfig('watermarkConfig')
-      ;['text', 'lineSpacing', 'textSpacing', 'angle', 'onlyExport'].forEach(
-        key => {
-          this.watermarkConfig[key] = config[key]
-        }
-      )
-      this.watermarkConfig.show = !!config.text
-      this.watermarkConfig.textStyle = { ...config.textStyle }
-    },
+function initWatermark() {
+  const cfg = props.mindMap.getConfig('watermarkConfig')
+  ;['text', 'lineSpacing', 'textSpacing', 'angle', 'onlyExport', 'belowNode'].forEach((key) => {
+    ;(watermarkConfig as any)[key] = cfg?.[key]
+  })
+  watermarkConfig.show = !!cfg?.text
+  watermarkConfig.textStyle = { ...cfg?.textStyle }
+}
 
-    // 更新其他配置
-    updateOtherConfig(key, value) {
-      this.mindMap.updateConfig({
-        [key]: value
-      })
-      this.configData[key] = value
-      storeConfig(this.configData)
-      if (
-        [
-          'alwaysShowExpandBtn',
-          'imgTextMargin',
-          'textContentMargin',
-          'enableInheritAncestorLineStyle'
-        ].includes(key)
-      ) {
-        this.mindMap.reRender()
-      }
-    },
-
-    // 更新水印配置
-    updateWatermarkConfig() {
-      clearTimeout(this.updateWatermarkTimer)
-      this.updateWatermarkTimer = setTimeout(() => {
-        let { show, ...config } = this.watermarkConfig
-        this.mindMap.watermark.updateWatermark({
-          ...config
-        })
-        this.configData.watermarkConfig = this.mindMap.getConfig(
-          'watermarkConfig'
-        )
-        storeConfig(this.configData)
-      }, 300)
-    },
-
-    // 切换显示水印与否
-    watermarkShowChange(value) {
-      if (value) {
-        let text =
-          this.watermarkConfig.text || this.$t('setting.watermarkDefaultText')
-        this.watermarkConfig.text = text
-      } else {
-        this.watermarkConfig.text = ''
-      }
-      this.updateWatermarkConfig()
-    },
-
-    // 切换是否开启节点富文本编辑
-    enableNodeRichTextChange(e) {
-      this.$confirm(
-        this.$t('setting.changeRichTextTip'),
-        e
-          ? this.$t('setting.changeRichTextTip2')
-          : this.$t('setting.changeRichTextTip3'),
-        {
-          confirmButtonText: this.$t('setting.confirm'),
-          cancelButtonText: this.$t('setting.cancel'),
-          type: 'warning'
-        }
-      )
-        .then(() => {
-          this.mindMap.renderer.textEdit.hideEditTextBox()
-          this.setLocalConfig({
-            openNodeRichText: e
-          })
-        })
-        .catch(() => {
-          this.enableNodeRichText = !this.enableNodeRichText
-        })
-    },
-
-    onToggleOpenNodeRichText(val) {
-      this.setLocalConfig({
-        openNodeRichText: val
-      })
-      this.enableNodeRichText = val
-    },
-
-    // 本地配置
-    updateLocalConfig(key, value) {
-      this.setLocalConfig({
-        [key]: value
-      })
-    }
+function updateOtherConfig(key: string, value: any) {
+  props.mindMap.updateConfig({ [key]: value })
+  if (props.configData) (props.configData as any)[key] = value
+  storeConfig(props.configData)
+  if (['alwaysShowExpandBtn', 'imgTextMargin', 'textContentMargin', 'enableInheritAncestorLineStyle'].includes(key)) {
+    props.mindMap.reRender()
   }
 }
+
+function updateWatermarkConfig() {
+  if (updateWatermarkTimer.value) clearTimeout(updateWatermarkTimer.value)
+  updateWatermarkTimer.value = setTimeout(() => {
+    const { show, ...cfg } = watermarkConfig
+    props.mindMap.watermark.updateWatermark({ ...cfg })
+    if (props.configData) (props.configData as any).watermarkConfig = props.mindMap.getConfig('watermarkConfig')
+    storeConfig(props.configData)
+  }, 300)
+}
+
+function watermarkShowChange(value: boolean) {
+  if (value) {
+    watermarkConfig.text = watermarkConfig.text || t('setting.watermarkDefaultText')
+  } else {
+    watermarkConfig.text = ''
+  }
+  updateWatermarkConfig()
+}
+
+function enableNodeRichTextChange(e: boolean) {
+  ElMessageBox.confirm(
+    t('setting.changeRichTextTip'),
+    e ? t('setting.changeRichTextTip2') : t('setting.changeRichTextTip3'),
+    {
+      confirmButtonText: t('setting.confirm'),
+      cancelButtonText: t('setting.cancel'),
+      type: 'warning'
+    }
+  )
+    .then(() => {
+      props.mindMap.renderer.textEdit.hideEditTextBox()
+      setLocalConfig({ openNodeRichText: e })
+    })
+    .catch(() => {
+      enableNodeRichText.value = !enableNodeRichText.value
+    })
+}
+
+function onToggleOpenNodeRichText(val: boolean) {
+  setLocalConfig({ openNodeRichText: val })
+  enableNodeRichText.value = val
+}
+
+function updateLocalConfig(key: string, value: any) {
+  setLocalConfig({ [key]: value })
+}
+
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (!s?.setShow) return
+  if (val === 'setting') {
+    s.setShow(true)
+    initLoacalConfig()
+    initConfig()
+    initWatermark()
+  } else {
+    s.setShow(false)
+  }
+})
+
+onMounted(() => {
+  initLoacalConfig()
+  bus.$on('toggleOpenNodeRichText', onToggleOpenNodeRichText)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('toggleOpenNodeRichText', onToggleOpenNodeRichText)
+})
 </script>
 
 <style lang="less" scoped>

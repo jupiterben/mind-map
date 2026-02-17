@@ -12,8 +12,8 @@
         :placeholder="$t('nodeTagStyle.placeholder')"
         size="small"
         @blur="updateTagText"
-        @keydown.native.stop
-        @keyup.native.enter.stop="updateTagText"
+        @keydown.stop
+        @keyup.enter.stop="updateTagText"
       ></el-input>
       <div class="deleteBtn" @click.stop="deleteTag">
         <span class="iconfont iconshanchu"></span>
@@ -26,151 +26,110 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import Color from './Color.vue'
-import { storeMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Color
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      show: false,
-      position: {
-        left: 0,
-        top: 0
-      },
-      node: null,
-      index: 0,
-      text: '',
-      fill: ''
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    }
-  },
-  created() {
-    this.mindMap.on('node_tag_click', this.onNodeTagClick)
-    this.mindMap.on('scale', this.hide)
-    this.mindMap.on('translate', this.hide)
-    this.mindMap.on('svg_mousedown', this.hide)
-    this.mindMap.on('expand_btn_click', this.hide)
-  },
-  beforeUnmount() {
-    this.mindMap.off('node_tag_click', this.onNodeTagClick)
-    this.mindMap.off('scale', this.hide)
-    this.mindMap.off('translate', this.hide)
-    this.mindMap.off('svg_mousedown', this.hide)
-    this.mindMap.off('expand_btn_click', this.hide)
-  },
-  mounted() {
-    document.body.appendChild(this.$refs.elRef)
-  },
-  methods: {
-    onNodeTagClick(node, tag, index, el) {
-      this.node = node
-      this.index = index
-      if (typeof tag === 'string') {
-        this.text = tag
-      } else {
-        // v0.10.3+版本支持对象类型
-        this.text = tag.text
-        this.fill = tag.style && tag.style.fill ? tag.style.fill : ''
-      }
-      // 获取外框的位置大小信息
-      const { x, y, width, height } = el.rbox()
-      const boxWidth = 260
-      const boxHeight = 152
-      let left = x + width / 2 - boxWidth / 2
-      if (left < 0) {
-        left = 0
-      }
-      if (left + boxWidth > window.innerWidth) {
-        left = window.innerWidth - boxWidth
-      }
-      this.position.left = left + 'px'
-      let top = y + height + 5
-      if (top + boxHeight > window.innerHeight) {
-        top = window.innerHeight - boxHeight
-      }
-      this.position.top = top + 'px'
-      this.show = true
-    },
+const props = defineProps<{
+  mindMap: any
+}>()
 
-    updateTagText() {
-      const text = this.text.trim()
-      if (!text) {
-        return
-      }
-      this.updateTagInfo({
-        text
-      })
-    },
+const isDark = computed(() => useStore().isDark ?? false)
 
-    updateTagFill(color) {
-      this.updateTagInfo({
-        style: {
-          fill: color
-        }
-      })
-      this.fill = color
-    },
+const elRef = ref<HTMLElement | null>(null)
+const show = ref(false)
+const position = reactive({ left: '0px', top: '0px' })
+const node = ref<any>(null)
+const index = ref(0)
+const text = ref('')
+const fill = ref('')
 
-    updateTagInfo({ text, style }) {
-      if (!this.node) return
-      const tagData = [...this.node.getData('tag')]
-      let item = null
-      if (typeof tagData[this.index] === 'string') {
-        item = {
-          text: tagData[this.index],
-          style: {}
-        }
-      } else {
-        item = tagData[this.index]
-        if (!item.style) {
-          item.style = {}
-        }
-      }
-      if (text) {
-        item.text = text
-      }
-      if (style) {
-        Object.keys(style).forEach(key => {
-          item.style[key] = style[key]
-        })
-      }
-
-      tagData[this.index] = item
-      this.mindMap.execCommand('SET_NODE_TAG', this.node, tagData)
-    },
-
-    deleteTag() {
-      if (!this.node) return
-      const tagData = [...this.node.getData('tag')]
-      tagData.splice(this.index, 1)
-      this.mindMap.execCommand('SET_NODE_TAG', this.node, tagData)
-      this.hide()
-    },
-
-    hide() {
-      this.show = false
-      this.node = null
-      this.index = 0
-      this.text = ''
-      this.fill = ''
-    }
+function onNodeTagClick(n: any, tag: any, i: number, el: any) {
+  node.value = n
+  index.value = i
+  if (typeof tag === 'string') {
+    text.value = tag
+  } else {
+    text.value = tag.text
+    fill.value = tag.style?.fill ?? ''
   }
+  const { x, y, width, height } = el.rbox()
+  const boxWidth = 260
+  const boxHeight = 152
+  let left = x + width / 2 - boxWidth / 2
+  if (left < 0) left = 0
+  if (left + boxWidth > window.innerWidth) left = window.innerWidth - boxWidth
+  position.left = left + 'px'
+  let top = y + height + 5
+  if (top + boxHeight > window.innerHeight) top = window.innerHeight - boxHeight
+  position.top = top + 'px'
+  show.value = true
 }
+
+function updateTagText() {
+  const t = text.value.trim()
+  if (!t) return
+  updateTagInfo({ text: t })
+}
+
+function updateTagFill(color: string) {
+  updateTagInfo({ style: { fill: color } })
+  fill.value = color
+}
+
+function updateTagInfo(payload: { text?: string; style?: Record<string, string> }) {
+  if (!node.value) return
+  const tagData = [...node.value.getData('tag')]
+  let item: { text: string; style: Record<string, string> }
+  if (typeof tagData[index.value] === 'string') {
+    item = { text: tagData[index.value], style: {} }
+  } else {
+    item = tagData[index.value]
+    if (!item.style) item.style = {}
+  }
+  if (payload.text) item.text = payload.text
+  if (payload.style) {
+    Object.keys(payload.style).forEach((k) => {
+      item.style[k] = payload.style![k]
+    })
+  }
+  tagData[index.value] = item
+  props.mindMap.execCommand('SET_NODE_TAG', node.value, tagData)
+}
+
+function deleteTag() {
+  if (!node.value) return
+  const tagData = [...node.value.getData('tag')]
+  tagData.splice(index.value, 1)
+  props.mindMap.execCommand('SET_NODE_TAG', node.value, tagData)
+  hide()
+}
+
+function hide() {
+  show.value = false
+  node.value = null
+  index.value = 0
+  text.value = ''
+  fill.value = ''
+}
+
+onMounted(() => {
+  props.mindMap.on('node_tag_click', onNodeTagClick)
+  props.mindMap.on('scale', hide)
+  props.mindMap.on('translate', hide)
+  props.mindMap.on('svg_mousedown', hide)
+  props.mindMap.on('expand_btn_click', hide)
+  if (elRef.value) document.body.appendChild(elRef.value)
+})
+
+onBeforeUnmount(() => {
+  props.mindMap.off('node_tag_click', onNodeTagClick)
+  props.mindMap.off('scale', hide)
+  props.mindMap.off('translate', hide)
+  props.mindMap.off('svg_mousedown', hide)
+  props.mindMap.off('expand_btn_click', hide)
+})
 </script>
 
 <style lang="less" scoped>

@@ -4,8 +4,8 @@ import { useStore } from '@/store'
 export function useStoreMixin() {
   const store = useStore()
   return {
-    ...storeToRefs(store),
-    ...store
+    ...store,
+    ...storeToRefs(store)
   }
 }
 

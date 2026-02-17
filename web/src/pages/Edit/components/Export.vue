@@ -9,7 +9,7 @@
       class="nodeExportDialog"
       :class="{ isMobile: isMobile, isDark: isDark }"
       :title="$t('export.title')"
-      :visible.sync="dialogVisible"
+      v-model="dialogVisible"
       :width="isMobile ? '90%' : '800px'"
       :top="isMobile ? '20px' : '15vh'"
     >
@@ -42,7 +42,7 @@
                 style="max-width: 250px"
                 v-model="fileName"
                 size="small"
-                @keydown.native.stop
+                @keydown.stop
               ></el-input>
             </div>
             <span class="closeBtn el-icon-close" @click="cancel"></span>
@@ -90,7 +90,7 @@
                       v-model="paddingX"
                       size="small"
                       @change="onPaddingChange"
-                      @keydown.native.stop
+                      @keydown.stop
                     ></el-input>
                   </div>
                   <div class="valueSubItem">
@@ -100,19 +100,19 @@
                       v-model="paddingY"
                       size="small"
                       @change="onPaddingChange"
-                      @keydown.native.stop
+                      @keydown.stop
                     ></el-input>
                   </div>
                   <div class="valueSubItem">
                     <span class="name">{{
-                      this.$t('export.addFooterText')
+                      $t('export.addFooterText')
                     }}</span>
                     <el-input
                       style="width: 200px"
                       v-model="extraText"
                       size="small"
                       :placeholder="$t('export.addFooterTextPlaceholder')"
-                      @keydown.native.stop
+                      @keydown.stop
                     ></el-input>
                   </div>
                   <div class="valueSubItem">
@@ -147,142 +147,113 @@
   </div>
 </template>
 
-<script>
-import { storeMixin } from '@/mixins/storeMixin'
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
-import { downTypeList } from '@/config'
-import { isMobile } from 'simple-mind-map/src/utils/index'
-import MarkdownIt from 'markdown-it'
+import { downTypeList as downTypeListConfig } from '@/config'
+import { getBus } from '@/bus'
+import { isMobile as checkIsMobile } from 'simple-mind-map/src/utils/index'
+import { useI18n } from 'vue-i18n'
+import { ElNotification } from 'element-plus'
 
-// 导出
-let md = null
-export default {
-  mixins: [storeMixin],
-  data() {
-    return {
-      dialogVisible: false,
-      exportType: 'smm',
-      fileName: this.$t('export.defaultFileName'),
-      widthConfig: true,
-      isTransparent: false,
-      loading: false,
-      loadingText: '',
-      paddingX: 10,
-      paddingY: 10,
-      extraText: '',
-      isMobile: isMobile(),
-      isFitBg: true,
-      imageFormat: 'png'
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    downTypeList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      const list = downTypeList[locale] || downTypeList.zh
-      return list.filter(item => {
-        if (item.type === 'mm') {
-          return false
-        }
-        if (item.type === 'xlsx') {
-          return false
-        } else {
-          return true
-        }
-      })
-    },
+const { setExtraTextOnExport } = useStoreMixin()
+const bus = getBus()
+const { t, locale } = useI18n()
 
-    currentTypeData() {
-      const cur = this.downTypeList.find(item => {
-        return item.type === this.exportType
-      })
-      return cur
-    },
+const dialogVisible = ref(false)
+const exportType = ref('smm')
+const fileName = ref(t('export.defaultFileName'))
+const widthConfig = ref(true)
+const isTransparent = ref(false)
+const loading = ref(false)
+const loadingText = ref('')
+const paddingX = ref(10)
+const paddingY = ref(10)
+const extraText = ref('')
+const isMobile = checkIsMobile()
+const isFitBg = ref(true)
+const imageFormat = ref('png')
 
-    showFitBgOption() {
-      return ['png', 'pdf'].includes(this.exportType) && !this.isTransparent
-    },
+const isDark = computed(() => useStore().isDark ?? false)
+const downTypeList = computed(() => {
+  const loc = locale.value ?? (locale as any) ?? 'zh'
+  const list = downTypeListConfig[loc] || downTypeListConfig.zh
+  return list.filter((item: any) => item.type !== 'mm' && item.type !== 'xlsx')
+})
+const currentTypeData = computed(() =>
+  downTypeList.value.find((item: any) => item.type === exportType.value)
+)
+const showFitBgOption = computed(
+  () => ['png', 'pdf'].includes(exportType.value) && !isTransparent.value
+)
+const noOptions = computed(() =>
+  ['md', 'xmind', 'txt', 'xlsx', 'mm'].includes(exportType.value)
+)
 
-    noOptions() {
-      return ['md', 'xmind', 'txt', 'xlsx', 'mm'].includes(this.exportType)
-    }
-  },
-  created() {
-    this.$bus.$on('showExport', this.handleShowExport)
-  },
-  beforeUnmount() {
-    this.$bus.$off('showExport', this.handleShowExport)
-  },
-  methods: {
-    handleShowExport() {
-      this.dialogVisible = true
-    },
-
-    onPaddingChange() {
-      this.$bus.$emit('paddingChange', {
-        exportPaddingX: Number(this.paddingX),
-        exportPaddingY: Number(this.paddingY)
-      })
-    },
-
-    cancel() {
-      this.dialogVisible = false
-    },
-
-    confirm() {
-      this.setExtraTextOnExport(this.extraText)
-      if (this.exportType === 'svg') {
-        this.$bus.$emit(
-          'export',
-          this.exportType,
-          true,
-          this.fileName,
-          `* {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }`
-        )
-      } else if (['smm', 'json'].includes(this.exportType)) {
-        this.$bus.$emit(
-          'export',
-          this.exportType,
-          true,
-          this.fileName,
-          this.widthConfig
-        )
-      } else if (this.exportType === 'png') {
-        this.$bus.$emit(
-          'export',
-          this.imageFormat,
-          true,
-          this.fileName,
-          this.isTransparent,
-          null,
-          this.isFitBg
-        )
-      } else if (this.exportType === 'pdf') {
-        this.$bus.$emit(
-          'export',
-          this.exportType,
-          true,
-          this.fileName,
-          this.isTransparent,
-          this.isFitBg
-        )
-      } else {
-        this.$bus.$emit('export', this.exportType, true, this.fileName)
-      }
-      this.$notify.info({
-        title: this.$t('export.notifyTitle'),
-        message: this.$t('export.notifyMessage')
-      })
-      this.cancel()
-    }
-  }
+function handleShowExport() {
+  dialogVisible.value = true
 }
+
+function onPaddingChange() {
+  bus.$emit('paddingChange', {
+    exportPaddingX: Number(paddingX.value),
+    exportPaddingY: Number(paddingY.value)
+  })
+}
+
+function cancel() {
+  dialogVisible.value = false
+}
+
+function confirm() {
+  setExtraTextOnExport(extraText.value)
+  if (exportType.value === 'svg') {
+    bus.$emit(
+      'export',
+      exportType.value,
+      true,
+      fileName.value,
+      `* { margin: 0; padding: 0; box-sizing: border-box; }`
+    )
+  } else if (['smm', 'json'].includes(exportType.value)) {
+    bus.$emit('export', exportType.value, true, fileName.value, widthConfig.value)
+  } else if (exportType.value === 'png') {
+    bus.$emit(
+      'export',
+      imageFormat.value,
+      true,
+      fileName.value,
+      isTransparent.value,
+      null,
+      isFitBg.value
+    )
+  } else if (exportType.value === 'pdf') {
+    bus.$emit(
+      'export',
+      exportType.value,
+      true,
+      fileName.value,
+      isTransparent.value,
+      isFitBg.value
+    )
+  } else {
+    bus.$emit('export', exportType.value, true, fileName.value)
+  }
+  ElNotification.info({
+    title: t('export.notifyTitle'),
+    message: t('export.notifyMessage')
+  })
+  cancel()
+}
+
+onMounted(() => {
+  bus.$on('showExport', handleShowExport)
+})
+
+onBeforeUnmount(() => {
+  bus.$off('showExport', handleShowExport)
+})
 </script>
 
 <style lang="less" scoped>

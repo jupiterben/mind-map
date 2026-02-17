@@ -211,17 +211,19 @@
   </Sidebar>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Color from './Color.vue'
 import {
   lineWidthList,
-  fontFamilyList,
+  fontFamilyList as fontFamilyConfig,
   fontSizeList,
-  borderDasharrayList
+  borderDasharrayList as borderDasharrayConfig
 } from '@/config'
-import { storeMixin } from '@/mixins/storeMixin'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
+import { useI18n } from 'vue-i18n'
 
 const defaultStyle = {
   associativeLineColor: '',
@@ -234,101 +236,68 @@ const defaultStyle = {
   associativeLineTextFontFamily: ''
 }
 
-export default {
-  mixins: [storeMixin],
-  components: {
-    Sidebar,
-    Color
-  },
-  props: {
-    mindMap: {
-      type: Object
-    }
-  },
-  data() {
-    return {
-      lineWidthList,
-      fontSizeList,
-      activeLineNode: null,
-      activeLineToNode: null,
-      style: {
-        ...defaultStyle
-      }
-    }
-  },
-  computed: {
-    isDark() {
-      return useStore().isDark ?? false
-    },
-    fontFamilyList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return fontFamilyList[locale] || fontFamilyList.zh
-    },
-    borderDasharrayList() {
-      const locale = this.$i18n?.locale?.value ?? this.$i18n?.locale
-      return borderDasharrayList[locale] || borderDasharrayList.zh
-    }
-  },
-  watch: {
-    activeSidebar(val) {
-      if (val === 'associativeLineStyle') {
-        this.$refs.sidebar.show = true
-      } else {
-        this.$refs.sidebar.show = false
-      }
-    }
-  },
-  created() {
-    this.mindMap.on('associative_line_click', this.onAssociativeLineClick)
-    this.mindMap.on(
-      'associative_line_deactivate',
-      this.associativeLineDeactivate
-    )
-  },
-  methods: {
-    onAssociativeLineClick(a, b, node, toNode) {
-      this.activeLineNode = node
-      this.activeLineToNode = toNode
-      const styleConfig = this.mindMap.associativeLine.getStyleConfig(
-        node,
-        toNode
-      )
-      Object.keys(this.style).forEach(item => {
-        this.style[item] = styleConfig[item]
-      })
-      this.setActiveSidebar('associativeLineStyle')
-    },
+const props = defineProps<{ mindMap: any }>()
+const { activeSidebar, setActiveSidebar } = useStoreMixin()
+const { locale } = useI18n()
 
-    associativeLineDeactivate() {
-      if (this.activeSidebar === 'associativeLineStyle') {
-        this.setActiveSidebar(null)
-      }
-      this.activeLineNode = null
-      this.activeLineToNode = null
-      this.style = {
-        ...defaultStyle
-      }
-    },
+const sidebar = ref<InstanceType<typeof Sidebar> | null>(null)
+const activeLineNode = ref<any>(null)
+const activeLineToNode = ref<any>(null)
+const style = reactive({ ...defaultStyle })
 
-    update(prop, value) {
-      this.style[prop] = value
-      const associativeLineStyle =
-        this.activeLineNode.getData('associativeLineStyle') || {}
-      const toNodeUid = this.activeLineToNode.getData('uid')
-      const lineStyle = associativeLineStyle[toNodeUid] || {}
-      this.activeLineNode.setData({
-        associativeLineStyle: {
-          ...associativeLineStyle,
-          [toNodeUid]: {
-            ...lineStyle,
-            ...this.style
-          }
-        }
-      })
-      this.mindMap.associativeLine.updateActiveLineStyle()
-    }
-  }
+const isDark = computed(() => useStore().isDark ?? false)
+const fontFamilyList = computed(
+  () => fontFamilyConfig[locale.value ?? (locale as any)] || fontFamilyConfig.zh
+)
+const borderDasharrayList = computed(
+  () => borderDasharrayConfig[locale.value ?? (locale as any)] || borderDasharrayConfig.zh
+)
+
+function onAssociativeLineClick(_a: any, _b: any, node: any, toNode: any) {
+  activeLineNode.value = node
+  activeLineToNode.value = toNode
+  const styleConfig = props.mindMap.associativeLine.getStyleConfig(node, toNode)
+  Object.keys(style).forEach((item) => {
+    ;(style as any)[item] = styleConfig[item]
+  })
+  setActiveSidebar('associativeLineStyle')
 }
+
+function associativeLineDeactivate() {
+  if (activeSidebar.value === 'associativeLineStyle') setActiveSidebar(null)
+  activeLineNode.value = null
+  activeLineToNode.value = null
+  Object.assign(style, defaultStyle)
+}
+
+function update(prop: string, value: any) {
+  ;(style as any)[prop] = value
+  const associativeLineStyle = activeLineNode.value.getData('associativeLineStyle') || {}
+  const toNodeUid = activeLineToNode.value.getData('uid')
+  const lineStyle = associativeLineStyle[toNodeUid] || {}
+  activeLineNode.value.setData({
+    associativeLineStyle: {
+      ...associativeLineStyle,
+      [toNodeUid]: { ...lineStyle, ...style }
+    }
+  })
+  props.mindMap.associativeLine.updateActiveLineStyle()
+}
+
+watch(activeSidebar, (val) => {
+  const s = sidebar.value as { setShow?: (v: boolean) => void } | null
+  if (s?.setShow) s.setShow(val === 'associativeLineStyle')
+})
+
+onMounted(() => {
+  props.mindMap.on('associative_line_click', onAssociativeLineClick)
+  props.mindMap.on('associative_line_deactivate', associativeLineDeactivate)
+})
+
+onBeforeUnmount(() => {
+  props.mindMap.off('associative_line_click', onAssociativeLineClick)
+  props.mindMap.off('associative_line_deactivate', associativeLineDeactivate)
+})
 </script>
 
 <style lang="less" scoped>
