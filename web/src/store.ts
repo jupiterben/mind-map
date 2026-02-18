@@ -11,7 +11,10 @@ export interface LocalConfig {
   enableDragImport?: boolean
 }
 
+export type AiProvider = 'volcano_ark' | 'deepseek'
+
 export interface AiConfig {
+  provider: AiProvider
   api: string
   key: string
   model: string
@@ -39,6 +42,7 @@ export const useStore = defineStore('main', {
     extraTextOnExport: '',
     isDragOutlineTreeNode: false,
     aiConfig: {
+      provider: 'volcano_ark' as AiProvider,
       api: 'http://ark.cn-beijing.volces.com/api/v3/chat/completions',
       key: '',
       model: '',

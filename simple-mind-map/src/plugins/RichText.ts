@@ -265,6 +265,12 @@ class RichText {
         e.stopPropagation()
       })
       this.textEditNode.addEventListener('keydown', e => {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+          e.preventDefault()
+          e.stopPropagation()
+          this.hideEditText()
+          return
+        }
         if (this.mindMap.renderer.textEdit.checkIsAutoEnterTextEditKey(e)) {
           e.stopPropagation()
         }
@@ -534,6 +540,10 @@ class RichText {
         )
       } else {
         this.mindMap.emit('rich_text_selection_change', false, null, null)
+        // 失去焦点时保存到 model 并隐藏编辑框
+        if (this.showTextEdit && this.node) {
+          this.hideEditText()
+        }
       }
     })
     this.quill.on('text-change', () => {

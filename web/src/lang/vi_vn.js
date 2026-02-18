@@ -350,7 +350,8 @@ export default {
       'Vui lòng xuất tệp đang chỉnh sửa trước khi tạo mới, Cẩn thận mất nội dung',
     openFileTip:
       'Vui lòng xuất tệp đang chỉnh sửa trước khi mở tệp, Cẩn thận mất nội dung',
-    ai: 'AI'
+    ai: 'AI',
+    aiCreatePart: 'AI Tiếp tục'
   },
   edit: {
     newFeatureNoticeTitle: 'Nhắc nhở tính năng mới',
@@ -498,9 +499,16 @@ export default {
     aiGenerationSuccess: 'Tạo AI hoàn thành',
     stoppedGenerating: 'Đã dừng tạo',
     AIConfiguration: 'Cấu hình AI',
+    provider: 'Mô hình AI',
+    providerVolcanoArk: 'Volcano Ark',
+    providerDeepseek: 'DeepSeek',
     VolcanoArkLargeModelConfiguration: 'Cấu hình mô hình lớn Volcano Ark:',
     configTip:
       'Hiện tại, chỉ hỗ trợ mô hình Volcano Ark, và bạn cần tự mình lấy khóa. Để biết các bước thực hiện chi tiết, vui lòng tham khảo:',
+    deepseekConfigTip: 'Sử dụng API DeepSeek. Lấy API Key tại platform.deepseek.com',
+    deepseekKeyPlaceholder: 'DeepSeek API Key',
+    model: 'Mô hình',
+    providerValidateTip: 'Vui lòng chọn mô hình AI',
     course: 'Khóa học',
     inferenceAccessPoint: 'Điểm truy cập suy luận',
     mindMappingClientConfiguration: 'Cấu hình ứng dụng khách sơ đồ tư duy:',
@@ -527,8 +535,22 @@ export default {
       '】Bạn có thể giúp tôi tiếp tục viết một trong những nội dung của sơ đồ tư duy【',
     aiCreatePartMsgPostfix: '】Nội dung phụ thuộc của nút',
     aiCreatePartMsgHelp:
-      '. Cần được trả về ở định dạng Markdown và chỉ có thể sử dụng hai cú pháp: tiêu đề Markdown và danh sách không có thứ tự. Nó có thể hỗ trợ lồng ghép nhiều cấp độ. Chỉ cần trả về nội dung.',
-    aiCreatePart: 'AI Tiếp tục'
+      '. Chỉ trả về văn bản nút cách nhau bằng dấu phẩy, không nội dung khác. Ví dụ: nút1, nút2, nút3',
+    aiCreatePartPromptFromPrecedent:
+      'Đường dẫn từ gốc đến nút hiện tại trong sơ đồ tư duy: {path}. Dựa trên đường dẫn này, gợi ý các nút con cho nút hiện tại (nút cuối). Giữ chủ đề mạch lạc và cấp bậc rõ ràng. Mỗi nút con là một option khác nhau của cùng chủ đề, càng ít trùng lặp càng tốt.',
+    aiCreatePartPromptTip: 'Lời nhắc được tạo tự động từ đường dẫn gốc đến hiện tại. Xác nhận hoặc chỉnh sửa trước khi gửi.',
+    aiCreatePartPromptPlaceholder: 'Nội dung đầy đủ gửi tới AI',
+    aiCreatePart: 'AI Tiếp tục',
+    aiContinueToolbarTitle: 'AI Tiếp tục',
+    breadth: 'Độ rộng',
+    breadthAuto: 'Tự động',
+    aiCreatePartBreadth: 'Khoảng {breadth} nút con trực tiếp ở tầng đầu.',
+    debugTitle: 'Gỡ lỗi AI',
+    debugPrompt: 'Prompt',
+    debugResponse: 'Phản hồi AI',
+    debugClear: 'Xóa',
+    debugSend: 'Gửi',
+    debugPromptPlaceholder: 'Chỉnh prompt rồi bấm Gửi để thử'
   },
   note: {
     title: 'Ghi chú'

@@ -94,6 +94,11 @@ export default defineConfig({
       '^/api/v3/': {
         target: 'http://ark.cn-beijing.volces.com',
         changeOrigin: true
+      },
+      '^/api/deepseek/': {
+        target: 'https://api.deepseek.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/deepseek/, '')
       }
     }
   }

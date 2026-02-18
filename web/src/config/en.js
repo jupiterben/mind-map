@@ -254,6 +254,11 @@ export const shortcutKeyList = [
         value: 'Shift + Backspace'
       },
       {
+        icon: 'iconshanchu',
+        name: 'Delete all child nodes',
+        value: 'Ctrl + Delete'
+      },
+      {
         icon: 'iconfuzhi',
         name: 'Copy node',
         value: `${ctrl} + C`
@@ -307,6 +312,11 @@ export const shortcutKeyList = [
         icon: 'iconsousuo',
         name: 'Search and Replace',
         value: `${ctrl} + F`
+      },
+      {
+        icon: 'iconAIshengcheng',
+        name: 'AI Continuation',
+        value: `${ctrl} + ${enter}`
       }
     ]
   },

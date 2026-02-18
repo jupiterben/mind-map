@@ -258,6 +258,11 @@ export const shortcutKeyList = [
         value: 'Shift + Backspace'
       },
       {
+        icon: 'iconshanchu',
+        name: 'Xóa tất cả nút con',
+        value: 'Ctrl + Delete'
+      },
+      {
         icon: 'iconfuzhi',
         name: 'Sao chép nút',
         value: `${ctrl} + C`
@@ -311,6 +316,11 @@ export const shortcutKeyList = [
         icon: 'iconsousuo',
         name: 'Tìm kiếm và thay thế',
         value: `${ctrl} + F`
+      },
+      {
+        icon: 'iconAIshengcheng',
+        name: 'AI Tiếp tục',
+        value: `${ctrl} + ${enter}`
       }
     ]
   },

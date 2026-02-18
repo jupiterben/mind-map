@@ -320,6 +320,11 @@ export const shortcutKeyList = [
         value: 'Shift + Backspace'
       },
       {
+        icon: 'iconshanchu',
+        name: '删除所有子节点',
+        value: 'Ctrl + Delete'
+      },
+      {
         icon: 'iconfuzhi',
         name: '复制节点',
         value: `${ctrl} + C`
@@ -373,6 +378,11 @@ export const shortcutKeyList = [
         icon: 'iconsousuo',
         name: '搜索和替换',
         value: `${ctrl} + F`
+      },
+      {
+        icon: 'iconAIshengcheng',
+        name: 'AI续写',
+        value: `${ctrl} + ${enter}`
       }
     ]
   },

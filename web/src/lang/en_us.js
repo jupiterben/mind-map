@@ -352,7 +352,8 @@ export default {
       'Please export the currently edited file before creating a new one, Beware of content loss',
     openFileTip:
       'Please export the currently edited file before opening it, Beware of content loss',
-    ai: 'AI'
+    ai: 'AI',
+    aiCreatePart: 'AI Continue'
   },
   edit: {
     newFeatureNoticeTitle: 'New feature reminder',
@@ -500,9 +501,16 @@ export default {
     aiGenerationSuccess: 'AI generation completed',
     stoppedGenerating: 'Stopped generating',
     AIConfiguration: 'AI configuration',
+    provider: 'AI model',
+    providerVolcanoArk: 'Volcano Ark',
+    providerDeepseek: 'DeepSeek',
     VolcanoArkLargeModelConfiguration: 'Volcano Ark Large Model Configuration:',
     configTip:
       'At present, only the Volcano Ark model is supported, and you need to obtain the key yourself. For detailed operation steps, please refer to:',
+    deepseekConfigTip: 'Use DeepSeek API. Get your API Key at platform.deepseek.com',
+    deepseekKeyPlaceholder: 'DeepSeek API Key',
+    model: 'Model',
+    providerValidateTip: 'Please select AI model',
     course: 'Course',
     inferenceAccessPoint: 'Inference access point',
     mindMappingClientConfiguration: 'Mind mapping client configuration:',
@@ -529,8 +537,22 @@ export default {
       '】Can you help me continue writing one of the contents of the mind map【',
     aiCreatePartMsgPostfix: '】The subordinate content of the node',
     aiCreatePartMsgHelp:
-      '. Needs to be returned in Markdown format and can only use two syntax: Markdown title and unordered list. It can support multi-level nesting. Just return the content.',
-    aiCreatePart: 'AI Continuation'
+      '. Return only comma-separated node texts, nothing else. Example: node1, node2, node3',
+    aiCreatePartPromptFromPrecedent:
+      'The following is the path from root to current node in the mind map: {path}. Based on this path, suggest child nodes for the current node (the last one). Keep topics coherent and hierarchy clear. Each child should be a different option of the same theme, with minimal overlap between them.',
+    aiCreatePartPromptTip: 'Prompt is auto-generated from root-to-current path. Confirm as-is or edit before confirming.',
+    aiCreatePartPromptPlaceholder: 'Full prompt sent to AI',
+    aiCreatePart: 'AI Continuation',
+    aiContinueToolbarTitle: 'AI Continue',
+    breadth: 'Breadth',
+    breadthAuto: 'Auto',
+    aiCreatePartBreadth: 'About {breadth} direct children at the first level.',
+    debugTitle: 'AI debug',
+    debugPrompt: 'Prompt',
+    debugResponse: 'AI response',
+    debugClear: 'Clear',
+    debugSend: 'Send',
+    debugPromptPlaceholder: 'Edit prompt and click Send to test'
   },
   note: {
     title: 'Note'

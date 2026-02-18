@@ -343,7 +343,8 @@ export default {
     directory: '目錄',
     newFileTip: '新增檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     openFileTip: '開啟檔案前，請先匯出目前編輯的檔案，以免內容遺失',
-    ai: 'AI'
+    ai: 'AI',
+    aiCreatePart: 'AI續寫'
   },
   edit: {
     newFeatureNoticeTitle: '新功能提醒',
@@ -482,8 +483,15 @@ export default {
     aiGenerationSuccess: 'AI生成完成',
     stoppedGenerating: '已停止生成',
     AIConfiguration: 'AI配置',
+    provider: 'AI 模型',
+    providerVolcanoArk: '火山方舟',
+    providerDeepseek: 'DeepSeek',
     VolcanoArkLargeModelConfiguration: '火山方舟大模型配置：',
     configTip: '目前僅支持火山方舟大模型，需要自行去獲取key，詳細操作步驟見：',
+    deepseekConfigTip: '使用 DeepSeek 官方 API，請到 platform.deepseek.com 獲取 API Key。',
+    deepseekKeyPlaceholder: 'DeepSeek API Key',
+    model: '模型',
+    providerValidateTip: '請選擇 AI 模型',
     course: '教程',
     inferenceAccessPoint: '推理接入點',
     mindMappingClientConfiguration: '思緒思維導圖客戶端配置：',
@@ -509,8 +517,22 @@ export default {
     aiCreatePartMsgCenter: '】的思維導圖，幫我續寫其中一個內容爲【',
     aiCreatePartMsgPostfix: '】的節點的下級內容',
     aiCreatePartMsgHelp:
-      '。需要以Markdown格式返回，並且只能使用Markdown的標題和無序列表兩種語法，可以支持多層嵌套。只需返回內容即可。',
-    aiCreatePart: 'AI續寫'
+      '。請只返回逗號分隔的節點文字，不要其他內容。例如：節點1, 節點2, 節點3',
+    aiCreatePartPromptFromPrecedent:
+      '以下為思維導圖中從根節點到當前節點的路徑：{path}。請根據該路徑為當前節點（最後一節）聯想並生成若干子節點，要求與主題連貫、層次清晰；子節點應是同一主題的不同選項（Option），彼此盡量不重疊。',
+    aiCreatePartPromptTip: '已根據從根到當前節點的路徑自動生成提問，可直接確認或修改後確認。',
+    aiCreatePartPromptPlaceholder: '用於向 AI 提問的完整內容',
+    aiCreatePart: 'AI續寫',
+    aiContinueToolbarTitle: 'AI續寫',
+    breadth: '廣度',
+    breadthAuto: '自動',
+    aiCreatePartBreadth: '第一層約 {breadth} 個直接子節點。',
+    debugTitle: 'AI 調試',
+    debugPrompt: '提示詞',
+    debugResponse: 'AI 返回',
+    debugClear: '清除',
+    debugSend: '手動發送',
+    debugPromptPlaceholder: '編輯提示詞後點擊「手動發送」測試'
   },
   note: {
     title: '備註'

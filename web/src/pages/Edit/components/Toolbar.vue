@@ -34,17 +34,10 @@
           <span class="icon iconfont icondakai"></span>
           <span class="text">{{ $t('toolbar.directory') }}</span>
         </div>
-        <el-tooltip
-          effect="dark"
-          :content="$t('toolbar.newFileTip')"
-          placement="bottom"
-          v-if="!isMobile"
-        >
-          <div class="toolbarBtn" @click="createNewLocalFile">
-            <span class="icon iconfont iconxinjian"></span>
-            <span class="text">{{ $t('toolbar.newFile') }}</span>
-          </div>
-        </el-tooltip>
+        <div class="toolbarBtn" @click="createNewLocalFile" v-if="!isMobile">
+          <span class="icon iconfont iconxinjian"></span>
+          <span class="text">{{ $t('toolbar.newFile') }}</span>
+        </div>
         <el-tooltip
           effect="dark"
           :content="$t('toolbar.openFileTip')"
@@ -171,7 +164,7 @@ import { useStoreMixin } from '@/mixins/storeMixin'
 const defaultBtnList = [
   'back', 'forward', 'painter', 'siblingNode', 'childNode', 'deleteNode',
   'image', 'icon', 'link', 'note', 'tag', 'summary', 'associativeLine',
-  'formula', 'outerFrame', 'annotation', 'ai'
+  'formula', 'outerFrame', 'annotation', 'ai', 'aiCreatePart'
 ]
 
 let fileHandle: any = null
@@ -198,7 +191,7 @@ const isDark = computed(() => useStore().isDark ?? false)
 const btnLit = computed(() => {
   let res = [...defaultBtnList]
   if (!openNodeRichText.value) res = res.filter((item) => item !== 'formula')
-  if (!enableAi.value) res = res.filter((item) => item !== 'ai')
+  if (!enableAi.value) res = res.filter((item) => item !== 'ai' && item !== 'aiCreatePart')
   return res
 })
 
@@ -365,8 +358,13 @@ async function writeLocalFile(content: any) {
   waitingWriteToLocalFile.value = false
 }
 
-async function createNewLocalFile() {
-  await createLocalFile(exampleData)
+function createNewLocalFile() {
+  fileHandle = null
+  setIsHandleLocalFile(false)
+  ElNotification.closeAll()
+  waitingWriteToLocalFile.value = false
+  const data = exampleData?.root ? exampleData : { ...exampleData, root: exampleData }
+  bus.$emit('setData', data)
 }
 
 async function saveLocalFile() {

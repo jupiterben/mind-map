@@ -290,6 +290,9 @@ class Render {
     // 仅删除当前节点
     this.removeCurrentNode = this.removeCurrentNode.bind(this)
     this.mindMap.command.add('REMOVE_CURRENT_NODE', this.removeCurrentNode)
+    // 删除所有子节点
+    this.removeChildNodes = this.removeChildNodes.bind(this)
+    this.mindMap.command.add('REMOVE_CHILD_NODES', this.removeChildNodes)
     // 粘贴节点
     this.pasteNode = this.pasteNode.bind(this)
     this.mindMap.command.add('PASTE_NODE', this.pasteNode)
@@ -411,6 +414,10 @@ class Render {
     // 仅删除当前节点
     this.mindMap.keyCommand.addShortcut('Shift+Backspace', () => {
       this.mindMap.execCommand('REMOVE_CURRENT_NODE')
+    })
+    // 删除所有子节点
+    this.mindMap.keyCommand.addShortcut('Control+Del', () => {
+      this.mindMap.execCommand('REMOVE_CHILD_NODES')
     })
     // 节点编辑时某些快捷键会存在冲突，需要暂时去除
     this.mindMap.on('before_show_text_edit', () => {
@@ -639,6 +646,10 @@ class Render {
   clearActiveNode() {
     if (this.activeNodeList.length <= 0) {
       return
+    }
+    // 若正在编辑节点文本，先保存并隐藏编辑框
+    if (this.textEdit.isShowTextEdit()) {
+      this.textEdit.hideEditTextBox()
     }
     this.clearActiveNodeList()
     this.emitNodeActiveEvent(null, [])
@@ -1512,6 +1523,34 @@ class Render {
       this.addNodeToActiveList(needActiveNode)
     }
     this.emitNodeActiveEvent()
+    this.mindMap.render()
+  }
+
+  // 删除所有子节点（保留当前节点，仅清空其子节点）
+  removeChildNodes(appointNodes = []) {
+    appointNodes = formatDataToArray(appointNodes)
+    if (this.activeNodeList.length <= 0 && appointNodes.length <= 0) {
+      return
+    }
+    const list =
+      appointNodes.length > 0 ? appointNodes : [...this.activeNodeList]
+    const toClear = list.filter(node => !node.isRoot)
+    if (toClear.length <= 0) return
+    const currentEditNode = this.textEdit.getCurrentEditNode()
+    const editUid = currentEditNode?.getData?.('uid')
+    const isEditInSubtree = parent => {
+      if (parent.getData?.('uid') === editUid) return true
+      return (parent.children || []).some(c => isEditInSubtree(c))
+    }
+    if (editUid && toClear.some(isEditInSubtree)) {
+      this.textEdit.hideEditTextBox()
+    }
+    for (const node of toClear) {
+      if (!node.nodeData.children || node.nodeData.children.length <= 0)
+        continue
+      node.nodeData.children = []
+      this.mindMap.execCommand('SET_NODE_DATA', node, { generalization: null })
+    }
     this.mindMap.render()
   }
 

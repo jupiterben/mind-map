@@ -9,11 +9,12 @@ class Ai {
   }
 
   init(type = 'huoshan', options = {}) {
-    // 火山引擎接口
-    if (type === 'huoshan') {
+    // 火山方舟 / DeepSeek 等 OpenAI 兼容接口
+    this.apiType = type
+    if (type === 'huoshan' || type === 'deepseek') {
       this.baseData = {
         api: options.api,
-        method: options.method,
+        method: options.method || 'POST',
         headers: {
           Authorization: 'Bearer ' + options.key
         },
@@ -73,19 +74,35 @@ class Ai {
 
   async postMsg(data) {
     this.controller = new AbortController()
-    const res = await fetch(`http://localhost:${this.options.port}/ai/chat`, {
+    // DeepSeek 走本站 Vite 代理，避免 CORS
+    const isDeepSeekProxy = this.apiType === 'deepseek'
+    const url = isDeepSeekProxy
+      ? '/api/deepseek/v1/chat/completions'
+      : `http://localhost:${this.options.port}/ai/chat`
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (isDeepSeekProxy) {
+      headers.Authorization = this.baseData.headers?.Authorization || ''
+    }
+    const body = isDeepSeekProxy
+      ? JSON.stringify({
+          model: this.baseData.data?.model,
+          stream: true,
+          messages: data.messages || []
+        })
+      : JSON.stringify({
+          ...this.baseData,
+          data: {
+            ...this.baseData.data,
+            ...data
+          }
+        })
+    const res = await fetch(url, {
       signal: this.controller.signal,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ...this.baseData,
-        data: {
-          ...this.baseData.data,
-          ...data
-        }
-      })
+      headers,
+      body
     })
     if (res.status && res.status !== 200) {
       throw new Error('请求失败')

@@ -154,6 +154,15 @@
         <span class="icon iconfont iconAIshengcheng"></span>
         <span class="text">{{ $t('toolbar.ai') }}</span>
       </div>
+      <div
+        v-if="item === 'aiCreatePart'"
+        class="toolbarBtn"
+        :class="{ disabled: activeNodes.length !== 1 || hasGeneralization }"
+        @click="aiCreatePart"
+      >
+        <span class="icon iconfont iconAIshengcheng"></span>
+        <span class="text">{{ $t('toolbar.aiCreatePart') }}</span>
+      </div>
     </template>
   </div>
 </template>
@@ -233,6 +242,10 @@ function onSetAnnotation(...args: any[]) {
 
 function aiCrate() {
   bus.$emit('ai_create_all')
+}
+
+function aiCreatePart() {
+  if (activeNodes.value.length === 1) bus.$emit('ai_create_part', activeNodes.value[0])
 }
 
 onMounted(() => {

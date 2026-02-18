@@ -186,6 +186,9 @@ class MindMap {
         this.initPlugin(plugin)
       })
 
+    // 鼠标拖拽画布平移
+    this.on('drag', this.onDragCanvas.bind(this))
+
     // 添加必要的css样式
     this.addCss()
 
@@ -213,9 +216,11 @@ class MindMap {
   handleData(data: unknown) {
     if (isUndef(data) || Object.keys(data as object).length <= 0) return null
     data = simpleDeepClone((data as object) || {})
+    const d = data as { data?: { expand?: boolean }; children?: unknown[] }
+    if (!d.data || typeof d.data !== 'object') d.data = {}
     // 根节点不能收起
-    if ((data as { data?: { expand?: boolean } }).data && !(data as { data: { expand: boolean } }).data.expand) {
-      ;(data as { data: { expand: boolean } }).data.expand = true
+    if (d.data && d.data.expand === false) {
+      d.data.expand = true
     }
     // 给没有uid的节点添加uid
     createUidForAppointNodes([data], false, null, true)
@@ -371,6 +376,16 @@ class MindMap {
       }
     }
     this.emit('resize')
+  }
+
+  // 鼠标拖拽画布时平移视图（非节点拖拽时）
+  onDragCanvas(_e: MouseEvent, eventInstance: any) {
+    if (this.opt.readonly) return
+    if (this.drag?.mousedownNode) return
+    const { mousemoveOffset, mousemovePos } = eventInstance
+    this.view.translateXY(mousemoveOffset.x, mousemoveOffset.y)
+    eventInstance.mousedownPos.x = mousemovePos.x
+    eventInstance.mousedownPos.y = mousemovePos.y
   }
 
   //  监听事件

@@ -617,7 +617,11 @@ function onNodeActive(...args: any[]) {
   nextTick(() => {
     activeNodes.value = [...args[1]]
     initNodeStyle()
-    if (activeNodes.value.length > 0) setActiveSidebar('nodeStyle')
+    if (activeNodes.value.length > 0) {
+      setActiveSidebar('nodeStyle')
+    } else {
+      if (activeSidebar.value === 'nodeStyle') setActiveSidebar(null)
+    }
   })
 }
 
@@ -702,12 +706,18 @@ watch(activeSidebar, (val) => {
   if (s?.setShow) s.setShow(val === 'nodeStyle')
 })
 
+function onNodeClick() {
+  setActiveSidebar('nodeStyle')
+}
+
 onMounted(() => {
   bus.$on('node_active', onNodeActive)
+  bus.$on('node_click', onNodeClick)
 })
 
 onBeforeUnmount(() => {
   bus.$off('node_active', onNodeActive)
+  bus.$off('node_click', onNodeClick)
 })
 </script>
 

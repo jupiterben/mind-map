@@ -342,7 +342,8 @@ export default {
     directory: '目录',
     newFileTip: '新建文件前请先导出当前编辑的文件，谨防内容丢失',
     openFileTip: '打开文件前请先导出当前编辑的文件，谨防内容丢失',
-    ai: 'AI'
+    ai: 'AI',
+    aiCreatePart: 'AI续写'
   },
   edit: {
     newFeatureNoticeTitle: '新特性提醒',
@@ -482,8 +483,15 @@ export default {
     aiGenerationSuccess: 'AI生成完成',
     stoppedGenerating: '已停止生成',
     AIConfiguration: 'AI配置',
+    provider: 'AI 模型',
+    providerVolcanoArk: '火山方舟',
+    providerDeepseek: 'DeepSeek',
     VolcanoArkLargeModelConfiguration: '火山方舟大模型配置：',
     configTip: '目前仅支持火山方舟大模型，需要自行去获取key，详细操作步骤见：',
+    deepseekConfigTip: '使用 DeepSeek 官方 API，请到 platform.deepseek.com 获取 API Key。',
+    deepseekKeyPlaceholder: 'DeepSeek API Key',
+    model: '模型',
+    providerValidateTip: '请选择 AI 模型',
     course: '教程',
     inferenceAccessPoint: '推理接入点',
     mindMappingClientConfiguration: '思绪思维导图客户端配置：',
@@ -509,8 +517,22 @@ export default {
     aiCreatePartMsgCenter: '】的思维导图，帮我续写其中一个内容为【',
     aiCreatePartMsgPostfix: '】的节点的下级内容',
     aiCreatePartMsgHelp:
-      '。需要以Markdown格式返回，并且只能使用Markdown的标题和无序列表两种语法，可以支持多层嵌套。只需返回内容即可。',
-    aiCreatePart: 'AI续写'
+      '。请只返回逗号分隔的节点文字，不要其他内容。例如：节点1, 节点2, 节点3',
+    aiCreatePartPromptFromPrecedent:
+      '以下为思维导图中从根节点到当前节点的路径：{path}。请根据该路径为当前节点（最后一节）联想并生成若干子节点，要求与主题连贯、层次清晰；子节点应是同一主题的不同选项（Option），彼此尽量不重叠。',
+    aiCreatePartPromptTip: '已根据从根到当前节点的路径自动生成提问，可直接确认或修改后确认。',
+    aiCreatePartPromptPlaceholder: '用于向 AI 提问的完整内容',
+    aiCreatePart: 'AI续写',
+    aiContinueToolbarTitle: 'AI续写',
+    breadth: '广度',
+    breadthAuto: '自动',
+    aiCreatePartBreadth: '子节点约 {breadth} 个。',
+    debugTitle: 'AI 调试',
+    debugPrompt: '提示词',
+    debugResponse: 'AI 返回',
+    debugClear: '清除',
+    debugSend: '手动发送',
+    debugPromptPlaceholder: '编辑提示词后点击「手动发送」测试'
   },
   note: {
     title: '备注'
