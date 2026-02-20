@@ -15,6 +15,7 @@ declare module 'simple-mind-map/src/utils/index' {
   export const handleInputPasteText: (e: unknown) => void
   export function checkNodeOuter(node: unknown, target: unknown): boolean
   export function getStrWithBrFromHtml(html: string): string
+  export function imgToDataUrl(src: string, returnBlob?: boolean): Promise<string | Blob>
 }
 
 declare module 'simple-mind-map/src/parse/xmind*' {
@@ -35,6 +36,9 @@ declare module 'simple-mind-map/src/parse/toTxt' {
   export function transformToTxt(data: unknown): string
 }
 
+declare module 'simple-mind-map/src/parse/markdownTo' {
+  export function transformMarkdownTo(md: string): unknown
+}
 declare module 'simple-mind-map/src/parse/markdownTo*' {
   const transform: (md: string) => unknown
   export default transform

@@ -1,5 +1,5 @@
 <template>
-  <Sidebar ref="sidebar" :title="$t('ai.chatTitle')">
+  <Sidebar ref="sidebar" :title="$t('ai.chatTitle')" position="left" :draggable="true">
     <div class="aiChatBox" :class="{ isDark: isDark }">
       <div class="chatHeader">
         <el-button size="small" @click="clear">

@@ -665,23 +665,27 @@ class RichText {
     if (!this.range && !this.lastRange) return
     const rangeLost = !this.range
     const range = rangeLost ? this.lastRange : this.range
-    const index = range.index
-    const length = range.length
-    if (clear) {
-      this.quill.removeFormat(index, length)
-    } else {
-      const { align, ...rest } = config
-      // 文本对齐需要对行进行格式化
-      if (align) {
-        this.quill.formatLine(index, length, 'align', align)
+    const docLen = this.quill.getLength()
+    // 将 index/length 限制在有效范围内，避免文档变化后 lastRange 失效导致 Quill 内部 null.offset
+    const index = Math.max(0, Math.min(range.index, docLen - 1))
+    const length = Math.max(0, Math.min(range.length, docLen - index))
+    try {
+      if (clear) {
+        this.quill.removeFormat(index, length)
+      } else {
+        const { align, ...rest } = config
+        if (align) {
+          this.quill.formatLine(index, length, 'align', align)
+        }
+        if (Object.keys(rest).length > 0) {
+          this.quill.formatText(index, length, rest)
+        }
       }
-      // 其他内容对文本
-      if (Object.keys(rest).length > 0) {
-        this.quill.formatText(index, length, rest)
+      if (rangeLost) {
+        this.quill.setSelection(index, length)
       }
-    }
-    if (rangeLost) {
-      this.quill.setSelection(index, length)
+    } catch (e) {
+      // Quill 内部 normalizedToRange 等可能因文档与选区不同步抛错，忽略避免白屏
     }
   }
 

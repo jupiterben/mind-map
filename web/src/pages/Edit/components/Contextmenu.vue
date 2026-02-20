@@ -105,9 +105,16 @@
       <div class="item" @click="exec('EXPORT_CUR_NODE_TO_PNG')">
         <span class="name">{{ $t('contextmenu.exportNodeToPng') }}</span>
       </div>
+      <div class="splitLine"></div>
+      <div class="item" @click="smartIcon">
+        <span class="name">{{ $t('contextmenu.smartIcon') }}</span>
+      </div>
       <div class="splitLine" v-if="enableAi"></div>
       <div class="item" @click="aiCreate" v-if="enableAi">
         <span class="name">{{ $t('contextmenu.aiCreate') }}</span>
+      </div>
+      <div class="item" @click="aiNoteDetail" v-if="enableAi">
+        <span class="name">{{ $t('contextmenu.aiNoteDetail') }}</span>
       </div>
     </template>
     <template v-if="type === 'svg'">
@@ -182,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, inject } from 'vue'
 import { useStoreMixin } from '@/mixins/storeMixin'
 import { useStore } from '@/store'
 import { getBus } from '@/bus'
@@ -410,6 +417,17 @@ async function copyToClipboard(typeVal: string) {
 
 function aiCreate() {
   bus.$emit('ai_create_part', node.value)
+  hide()
+}
+
+function aiNoteDetail() {
+  bus.$emit('ai_note_detail', node.value)
+  hide()
+}
+
+const doSmartIcon = inject<((node: any) => void) | undefined>('doSmartIcon')
+function smartIcon() {
+  if (node.value && doSmartIcon) doSmartIcon(node.value)
   hide()
 }
 

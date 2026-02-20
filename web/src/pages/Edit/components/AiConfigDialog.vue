@@ -13,17 +13,33 @@
           <el-select v-model="ruleForm.provider" :placeholder="$t('ai.provider')" @change="onProviderChange" style="width: 100%">
             <el-option :label="$t('ai.providerVolcanoArk')" value="volcano_ark" />
             <el-option :label="$t('ai.providerDeepseek')" value="deepseek" />
+            <el-option :label="$t('ai.providerMiniMax')" value="minimax" />
           </el-select>
         </el-form-item>
         <p class="desc" v-if="ruleForm.provider === 'volcano_ark'">
           {{ $t('ai.configTip') }}<a href="https://mp.weixin.qq.com/s/JNb7PH4sCjWzIZ9G8wStGQ" target="_blank">{{ $t('ai.course') }}</a>。
         </p>
-        <p class="desc" v-else>{{ $t('ai.deepseekConfigTip') }}</p>
+        <p class="desc" v-else-if="ruleForm.provider === 'deepseek'">{{ $t('ai.deepseekConfigTip') }}</p>
+        <p class="desc" v-else-if="ruleForm.provider === 'minimax'">{{ $t('ai.minimaxConfigTip') }}</p>
         <el-form-item label="API Key" prop="key">
-          <el-input v-model="ruleForm.key" :placeholder="ruleForm.provider === 'deepseek' ? $t('ai.deepseekKeyPlaceholder') : undefined"></el-input>
+          <el-input v-model="ruleForm.key" :placeholder="apiKeyPlaceholder"></el-input>
         </el-form-item>
-        <el-form-item :label="ruleForm.provider === 'deepseek' ? $t('ai.model') : $t('ai.inferenceAccessPoint')" prop="model">
-          <el-input v-model="ruleForm.model"></el-input>
+        <el-form-item :label="$t('ai.model')" prop="model">
+          <el-select
+            v-model="ruleForm.model"
+            :placeholder="$t('ai.model')"
+            filterable
+            allow-create
+            style="width: 100%"
+            :teleported="false"
+          >
+            <el-option
+              v-for="opt in modelOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
     </div>
@@ -37,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useStoreMixin } from '@/mixins/storeMixin'
@@ -58,20 +74,45 @@ const { t } = useI18n()
 
 const aiConfigDialogVisible = ref(false)
 const ruleFormRef = ref<any>(null)
-const PROVIDER_DEFAULTS: Record<string, { api: string; model: string }> = {
-  volcano_ark: {
-    api: 'http://ark.cn-beijing.volces.com/api/v3/chat/completions',
-    model: ''
-  },
-  deepseek: {
-    api: 'https://api.deepseek.com/v1/chat/completions',
-    model: 'deepseek-chat'
-  }
+const PROVIDER_DEFAULTS: Record<string, { model: string }> = {
+  volcano_ark: { model: '' },
+  deepseek: { model: 'deepseek-chat' },
+  minimax: { model: 'MiniMax-M2.5' }
 }
 
+/** 各 provider 的模型选项（value 为接口 model 参数） */
+const PROVIDER_MODELS: Record<string, { label: string; value: string }[]> = {
+  volcano_ark: [
+    { label: 'Doubao Pro 128K', value: 'doubao-pro-128k' },
+    { label: 'Doubao Pro 32K', value: 'doubao-pro-32k' },
+    { label: 'Doubao 1.5 Pro 32K', value: 'doubao-1.5-pro-32k' },
+    { label: 'Doubao 1.5 Pro 128K', value: 'doubao-1.5-pro-128k' },
+    { label: '豆包 Lite 32K', value: 'doubao-lite-32k' }
+  ],
+  deepseek: [
+    { label: 'DeepSeek Chat (V3)', value: 'deepseek-chat' },
+    { label: 'DeepSeek Reasoner', value: 'deepseek-reasoner' },
+    { label: 'DeepSeek Coder', value: 'deepseek-coder' }
+  ],
+  minimax: [
+    { label: 'MiniMax-M2.5（204.8K，峰值性能）', value: 'MiniMax-M2.5' },
+    { label: 'MiniMax-M2.5-highspeed（204.8K，约 100 tps）', value: 'MiniMax-M2.5-highspeed' },
+    { label: 'MiniMax-M2.1（204.8K，编程增强）', value: 'MiniMax-M2.1' },
+    { label: 'MiniMax-M2.1-highspeed（204.8K，约 100 tps）', value: 'MiniMax-M2.1-highspeed' },
+    { label: 'MiniMax-M2（204.8K，Agent / 推理）', value: 'MiniMax-M2' }
+  ]
+}
+
+const modelOptions = computed(() => PROVIDER_MODELS[ruleForm.provider] ?? [])
+
+const apiKeyPlaceholder = computed(() => {
+  if (ruleForm.provider === 'deepseek') return t('ai.deepseekKeyPlaceholder')
+  if (ruleForm.provider === 'minimax') return t('ai.minimaxKeyPlaceholder')
+  return undefined
+})
+
 const ruleForm = reactive({
-  provider: 'volcano_ark' as 'volcano_ark' | 'deepseek',
-  api: '',
+  provider: 'volcano_ark' as 'volcano_ark' | 'deepseek' | 'minimax',
   key: '',
   model: '',
   port: '',
@@ -80,7 +121,6 @@ const ruleForm = reactive({
 
 const rulesRef = ref({
   provider: [{ required: true, message: '', trigger: 'change' }],
-  api: [{ required: true, message: '', trigger: 'blur' }],
   key: [{ required: true, message: '', trigger: 'blur' }],
   model: [{ required: true, message: '', trigger: 'blur' }],
   port: [{ required: true, message: '', trigger: 'blur' }],
@@ -96,19 +136,16 @@ function initFormData() {
   if (!config || typeof config !== 'object') return
   const provider = (config as any).provider || 'volcano_ark'
   ruleForm.provider = provider
-  ruleForm.api = config.api ?? PROVIDER_DEFAULTS[provider]?.api ?? ''
-  ruleForm.key = config.key ?? ''
-  ruleForm.model = config.model ?? PROVIDER_DEFAULTS[provider]?.model ?? ''
-  ruleForm.port = config.port ?? ''
+  ruleForm.key = (config.keys?.[provider as import('@/store').AiProvider] ?? (config as any).key) ?? ''
+  ruleForm.model = (config.models?.[provider as import('@/store').AiProvider] ?? config.model ?? PROVIDER_DEFAULTS[provider]?.model) ?? ''
+  ruleForm.port = config.port !== undefined && config.port !== null ? String(config.port) : ''
   ruleForm.method = config.method ?? 'POST'
 }
 
-function onProviderChange(provider: 'volcano_ark' | 'deepseek') {
-  const def = PROVIDER_DEFAULTS[provider]
-  if (def) {
-    ruleForm.api = def.api
-    ruleForm.model = def.model
-  }
+function onProviderChange(provider: 'volcano_ark' | 'deepseek' | 'minimax') {
+  const config = aiConfig.value
+  ruleForm.key = (config?.keys?.[provider as import('@/store').AiProvider] ?? (config as any)?.key) ?? ''
+  ruleForm.model = (config?.models?.[provider as import('@/store').AiProvider] ?? config?.model ?? PROVIDER_DEFAULTS[provider]?.model) ?? ''
 }
 
 function cancel() {
@@ -116,11 +153,28 @@ function cancel() {
   initFormData()
 }
 
+const DEFAULT_KEYS: Partial<Record<'volcano_ark' | 'deepseek' | 'minimax', string>> = {
+  volcano_ark: '',
+  deepseek: '',
+  minimax: ''
+}
+
 function confirm() {
   ruleFormRef.value?.validate((valid: boolean) => {
     if (valid) {
       close()
-      setLocalConfig({ ...ruleForm })
+      const config = aiConfig.value
+      const port = ruleForm.port === '' ? 3456 : Number(ruleForm.port)
+      const keys = { ...DEFAULT_KEYS, ...config?.keys, [ruleForm.provider]: ruleForm.key }
+      const models = { ...config?.models, [ruleForm.provider]: ruleForm.model }
+      const { key: _k, ...rest } = ruleForm
+      setLocalConfig({
+        ...rest,
+        port: Number.isNaN(port) ? 3456 : port,
+        keys,
+        models,
+        model: ruleForm.model
+      })
       ElMessage.success(t('ai.configSaveSuccessTip'))
     }
   })
@@ -140,7 +194,6 @@ watch(aiConfigDialogVisible, (val, oldVal) => {
 
 onMounted(() => {
   rulesRef.value.provider[0].message = t('ai.providerValidateTip')
-  rulesRef.value.api[0].message = t('ai.apiValidateTip')
   rulesRef.value.key[0].message = t('ai.keyValidateTip')
   rulesRef.value.model[0].message = t('ai.modelValidateTip')
   rulesRef.value.port[0].message = t('ai.portValidateTip')

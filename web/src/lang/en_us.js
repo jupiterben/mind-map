@@ -140,7 +140,9 @@ export default {
     unExpandNodeChild: 'Un expand all sub nodes',
     addToDo: 'Add toDo',
     removeToDo: 'Remove toDo',
+    smartIcon: 'Smart Icon',
     aiCreate: 'AI Continuation',
+    aiNoteDetail: 'AI Detail',
     modifyNodeLink: 'Modify node link',
     linkToNode: 'Link to node',
     removeNodeLink: 'Remove node link'
@@ -353,7 +355,7 @@ export default {
     openFileTip:
       'Please export the currently edited file before opening it, Beware of content loss',
     ai: 'AI',
-    aiCreatePart: 'AI Continue'
+    aiCreatePart: 'AI Child Nodes'
   },
   edit: {
     newFeatureNoticeTitle: 'New feature reminder',
@@ -504,11 +506,14 @@ export default {
     provider: 'AI model',
     providerVolcanoArk: 'Volcano Ark',
     providerDeepseek: 'DeepSeek',
+    providerMiniMax: 'MiniMax',
     VolcanoArkLargeModelConfiguration: 'Volcano Ark Large Model Configuration:',
     configTip:
       'At present, only the Volcano Ark model is supported, and you need to obtain the key yourself. For detailed operation steps, please refer to:',
     deepseekConfigTip: 'Use DeepSeek API. Get your API Key at platform.deepseek.com',
     deepseekKeyPlaceholder: 'DeepSeek API Key',
+    minimaxConfigTip: 'Use MiniMax API. Get your API Key at platform.minimax.io',
+    minimaxKeyPlaceholder: 'MiniMax API Key',
     model: 'Model',
     providerValidateTip: 'Please select AI model',
     course: 'Course',
@@ -540,19 +545,29 @@ export default {
       '. Return only comma-separated node texts, nothing else. Example: node1, node2, node3',
     aiCreatePartPromptFromPrecedent:
       'The following is the path from root to current node in the mind map: {path}. Based on this path, suggest child nodes for the current node (the last one). Keep topics coherent and hierarchy clear. Each child should be a different option of the same theme, with minimal overlap between them.',
+    aiNoteDetailPrompt:
+      'The following is the path from root to current node in the mind map: {path}. Please generate a detailed note or description for this node (the last one), in Markdown format, to help understand and expand the topic. Return only the note content, no other explanation.',
     aiCreatePartPromptTip: 'Prompt is auto-generated from root-to-current path. Confirm as-is or edit before confirming.',
     aiCreatePartPromptPlaceholder: 'Full prompt sent to AI',
-    aiCreatePart: 'AI Continuation',
-    aiContinueToolbarTitle: 'AI Continue',
-    breadth: 'Breadth',
+    aiCreatePart: 'AI Child Nodes',
+    aiContinueToolbarTitle: 'AI Child Nodes',
+    breadth: 'Quantity',
     breadthAuto: 'Auto',
     aiCreatePartBreadth: 'About {breadth} direct children at the first level.',
+    toolbarHintCreateAll: 'One-click generate mind map',
+    toolbarHintNoteDetail: 'AI Detail: generate note for node',
+    toolbarHintCreatePart: 'AI Child Nodes (select one node)\nCtrl+Enter replace children, Ctrl++ add children',
+    toolbarHintBreadth: 'Quantity (number of child nodes to generate)',
     debugTitle: 'AI debug',
     debugPrompt: 'Prompt',
     debugResponse: 'AI response',
     debugClear: 'Clear',
     debugSend: 'Send',
-    debugPromptPlaceholder: 'Edit prompt and click Send to test'
+    debugPromptPlaceholder: 'Edit prompt and click Send to test',
+    debugSmartIconTitle: 'Smart Icon',
+    debugSmartIconPlaceholder: 'Node text',
+    debugSmartIconSend: 'Test Smart Icon',
+    debugSmartIconParsed: 'Parsed emoji'
   },
   note: {
     title: 'Note'

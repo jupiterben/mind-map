@@ -11,13 +11,18 @@ export interface LocalConfig {
   enableDragImport?: boolean
 }
 
-export type AiProvider = 'volcano_ark' | 'deepseek'
+export type AiProvider = 'volcano_ark' | 'deepseek' | 'minimax'
 
 export interface AiConfig {
   provider: AiProvider
-  api: string
-  key: string
+  /** 各 provider 各自的 API Key */
+  keys?: Partial<Record<AiProvider, string>>
+  /** @deprecated 兼容旧配置，新数据请使用 keys */
+  key?: string
+  /** 当前 provider 的模型（createAi 使用）；与 models 同步 */
   model: string
+  /** 各 provider 各自选择的模型 */
+  models?: Partial<Record<AiProvider, string>>
   port: number
   method: string
 }
@@ -43,9 +48,9 @@ export const useStore = defineStore('main', {
     isDragOutlineTreeNode: false,
     aiConfig: {
       provider: 'volcano_ark' as AiProvider,
-      api: 'http://ark.cn-beijing.volces.com/api/v3/chat/completions',
-      key: '',
+      keys: {} as Partial<Record<AiProvider, string>>,
       model: '',
+      models: {} as Partial<Record<AiProvider, string>>,
       port: 3456,
       method: 'POST'
     } as AiConfig,

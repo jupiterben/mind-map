@@ -315,7 +315,7 @@ export const shortcutKeyList = [
       },
       {
         icon: 'iconAIshengcheng',
-        name: 'AI Continuation',
+        name: 'AI Child Nodes',
         value: `${ctrl} + ${enter}`
       }
     ]

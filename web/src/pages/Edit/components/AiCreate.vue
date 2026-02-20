@@ -44,7 +44,7 @@
       }}</el-button>
     </div>
     <AiConfigDialog :visible="aiConfigDialogVisible" @change="(v: boolean) => (aiConfigDialogVisible = v)"></AiConfigDialog>
-    <!-- AI续写：根据 precedent 节点自动生成 prompt，可编辑 -->
+    <!-- AI子节点：根据 precedent 节点自动生成 prompt，可编辑 -->
     <el-dialog
       class="createDialog"
       :title="$t('ai.aiCreatePart')"
@@ -63,32 +63,20 @@
         </div>
       </template>
     </el-dialog>
-    <!-- 调试：可编辑提示词，手动发送 AI 请求并查看返回 -->
-    <div class="aiDebugPanel" v-show="showAiDebug">
-      <div class="aiDebugHeader">
-        <span>{{ $t('ai.debugTitle') }}</span>
-        <span>
-          <el-button size="small" type="primary" :loading="isDebugRequesting" :disabled="!debugPromptEdit.trim()" @click="debugSendRequest">
-            {{ $t('ai.debugSend') }}
-          </el-button>
-          <el-button size="small" text @click="debugPromptEdit = ''; lastAiResponse = ''">{{ $t('ai.debugClear') }}</el-button>
-        </span>
-      </div>
-      <div class="aiDebugSection">
-        <div class="aiDebugLabel">{{ $t('ai.debugPrompt') }}</div>
-        <el-input v-model="debugPromptEdit" type="textarea" :rows="4" class="aiDebugTextarea" :placeholder="$t('ai.debugPromptPlaceholder')" />
-      </div>
-      <div class="aiDebugSection" v-if="lastAiResponse">
-        <div class="aiDebugLabel">{{ $t('ai.debugResponse') }}</div>
-        <pre class="aiDebugContent">{{ lastAiResponse }}</pre>
-      </div>
-    </div>
+    <AiDebugPanel
+      :visible="showAiDebug"
+      v-model:prompt="lastAiPrompt"
+      v-model:response="lastAiResponse"
+      :ai-config="aiConfig"
+      :validate-config="aiTest"
+      @open-config="showAiConfigDialog"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
-import Ai from '@/utils/ai'
+import { createAi } from '@/utils/ai'
 import { transformMarkdownTo } from 'simple-mind-map/src/parse/markdownTo'
 import {
   createUid,
@@ -99,6 +87,7 @@ import {
 import { useStoreMixin } from '@/mixins/storeMixin'
 import { getBus } from '@/bus'
 import AiConfigDialog from './AiConfigDialog.vue'
+import AiDebugPanel from './AiDebugPanel.vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
@@ -125,15 +114,11 @@ const aiPartInput = ref('')
 const beingCreatePartNode = ref<any>(null)
 /** true=替换子节点，false=追加子节点 */
 const beingCreatePartReplace = ref(false)
-/** 调试：最近一次发送的提示词（续写时会写入，调试面板可编辑） */
+/** 调试：最近一次发送的提示词（AI子节点时会写入，调试面板可编辑） */
 const lastAiPrompt = ref('')
-/** 调试面板内编辑的提示词（与 lastAiPrompt 同步，便于手动修改后发送） */
-const debugPromptEdit = ref('')
-/** 调试：最近一次 AI 续写返回的原始内容 */
+/** 调试：最近一次 AI 子节点返回的原始内容 */
 const lastAiResponse = ref('')
-/** 调试：是否正在手动发送请求 */
-const isDebugRequesting = ref(false)
-/** 是否显示调试面板（可通过 bus 或默认 true 在开发时显示） */
+/** 是否显示调试面板 */
 const showAiDebug = ref(true)
 
 function showAiConfigDialog() {
@@ -142,21 +127,10 @@ function showAiConfigDialog() {
 
 async function aiTest() {
   const config = aiConfig.value
-  if (!(config?.api && config?.key && config?.model)) {
+  const key = config?.keys?.[config.provider] ?? (config as any)?.key
+  if (!(key && config?.model)) {
     showAiConfigDialog()
     throw new Error(t('ai.configurationMissing'))
-  }
-  if (config.provider === 'volcano_ark' && !config?.port) {
-    showAiConfigDialog()
-    throw new Error(t('ai.configurationMissing'))
-  }
-  // DeepSeek 走 Vite 代理，无需检测本地服务；火山方舟仍依赖本地代理服务
-  if (config.provider !== 'deepseek') {
-    try {
-      await fetch(`http://localhost:${config.port}/ai/test`, { method: 'GET' })
-    } catch (error) {
-      throw new Error(t('ai.connectFailed'))
-    }
   }
 }
 
@@ -183,8 +157,7 @@ function doAiCreate() {
   closeAiCreateDialog()
   aiCreatingMaskVisible.value = true
   isAiCreating.value = true
-  aiInstance.value = new Ai({ port: aiConfig.value.port })
-  aiInstance.value.init(aiConfig.value.provider === 'deepseek' ? 'deepseek' : 'huoshan', aiConfig.value)
+  aiInstance.value = createAi(aiConfig.value)
   props.mindMap.renderer.setRootNodeCenter()
   props.mindMap.setData(null)
   aiInstance.value.request(
@@ -220,6 +193,37 @@ function resetOnAiCreatingStop() {
   isAiCreating.value = false
   aiInstance.value = null
   bus.$emit('ai_creating_end')
+}
+
+/** AI 详细：为节点生成备注并写入 node.note */
+async function runAiNoteDetail(node: any) {
+  if (!node) return
+  try {
+    await aiTest()
+    bus.$emit('ai_creating_start')
+    aiCreatingMaskVisible.value = true
+    isAiCreating.value = true
+    aiInstance.value = createAi(aiConfig.value)
+    const pathText = getPrecedentPathText(node)
+    const prompt = t('ai.aiNoteDetailPrompt', { path: pathText || getStrWithBrFromHtml(node.getData('text') || '') })
+    lastAiPrompt.value = prompt
+    aiInstance.value.request(
+      { messages: [{ role: 'user', content: prompt }] },
+      () => {},
+      (content: string) => {
+        const note = (content || '').trim()
+        if (typeof node.setNote === 'function') node.setNote(note)
+        resetOnAiCreatingStop()
+        ElMessage.success(t('ai.aiGenerationSuccess'))
+      },
+      () => {
+        resetOnAiCreatingStop()
+        ElMessage.error(t('ai.generationFailed'))
+      }
+    )
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 function resetOnRenderEnd() {
@@ -365,12 +369,10 @@ async function aiCreatePart() {
     mindMapDataCache.value = JSON.stringify(props.mindMap.getData())
     aiCreatingMaskVisible.value = true
     isAiCreating.value = true
-    aiInstance.value = new Ai({ port: aiConfig.value.port })
-    aiInstance.value.init(aiConfig.value.provider === 'deepseek' ? 'deepseek' : 'huoshan', aiConfig.value)
+    aiInstance.value = createAi(aiConfig.value)
     const partPrompt = aiPartInput.value.trim()
     const fullPrompt = partPrompt + t('ai.aiCreatePartMsgHelp')
     lastAiPrompt.value = fullPrompt
-    debugPromptEdit.value = fullPrompt
     aiInstance.value.request(
       { messages: [{ role: 'user', content: fullPrompt }] },
       (content: string) => {
@@ -428,7 +430,7 @@ function addToTargetNode(newChildren: any[] = []) {
   return initData
 }
 
-/** 从 AI 续写返回的逗号分隔字符串解析出子节点数组（每项为平级节点） */
+/** 从 AI 子节点返回的逗号分隔字符串解析出子节点数组（每项为平级节点） */
 function parsePartResponseFromCsv(raw: string): any[] {
   const str = raw.trim().replace(/\n+/g, ',')
   if (!str) return []
@@ -495,8 +497,7 @@ async function aiChat(
   try {
     await aiTest()
     isAiCreating.value = true
-    aiInstance.value = new Ai({ port: aiConfig.value.port })
-    aiInstance.value.init(aiConfig.value.provider === 'deepseek' ? 'deepseek' : 'huoshan', aiConfig.value)
+    aiInstance.value = createAi(aiConfig.value)
     aiInstance.value.request(
       { messages: messageList.map((msg) => ({ role: 'user', content: msg })) },
       (content: string) => progress(content),
@@ -505,35 +506,6 @@ async function aiChat(
     )
   } catch (error) {
     console.log(error)
-  }
-}
-
-/** 调试面板：用当前编辑的提示词手动发 AI 请求，结果展示在调试面板 */
-async function debugSendRequest() {
-  const prompt = debugPromptEdit.value.trim()
-  if (!prompt || isAiCreating.value || isDebugRequesting.value) return
-  try {
-    await aiTest()
-    isDebugRequesting.value = true
-    lastAiPrompt.value = prompt
-    lastAiResponse.value = ''
-    const debugAi = new Ai({ port: aiConfig.value.port })
-    debugAi.init(aiConfig.value.provider === 'deepseek' ? 'deepseek' : 'huoshan', aiConfig.value)
-    debugAi.request(
-      { messages: [{ role: 'user', content: prompt }] },
-      () => {},
-      (content: string) => {
-        lastAiResponse.value = content
-        isDebugRequesting.value = false
-      },
-      () => {
-        isDebugRequesting.value = false
-        ElMessage.error(t('ai.generationFailed'))
-      }
-    )
-  } catch (e) {
-    isDebugRequesting.value = false
-    console.log(e)
   }
 }
 
@@ -549,6 +521,7 @@ onMounted(() => {
   bus.$on('ai_create_all', aiCrateAll)
   bus.$on('ai_create_part', showAiCreatePartDialog)
   bus.$on('ai_create_part_with_options', runAiCreatePartWithOptions)
+  bus.$on('ai_note_detail', runAiNoteDetail)
   bus.$on('ai_chat', aiChat)
   bus.$on('ai_chat_stop', aiChatStop)
   bus.$on('showAiConfigDialog', showAiConfigDialog)
@@ -559,6 +532,7 @@ onBeforeUnmount(() => {
   bus.$off('ai_create_all', aiCrateAll)
   bus.$off('ai_create_part', showAiCreatePartDialog)
   bus.$off('ai_create_part_with_options', runAiCreatePartWithOptions)
+  bus.$off('ai_note_detail', runAiNoteDetail)
   bus.$off('ai_chat', aiChat)
   bus.$off('ai_chat_stop', aiChatStop)
   bus.$off('showAiConfigDialog', showAiConfigDialog)
@@ -599,69 +573,4 @@ onBeforeUnmount(() => {
   }
 }
 
-.aiDebugPanel {
-  position: fixed;
-  right: 24px;
-  bottom: 180px;
-  z-index: 1999;
-  width: 360px;
-  max-height: 400px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  .aiDebugHeader {
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #333;
-    background: #f5f5f5;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .aiDebugSection {
-    border-top: 1px solid #eee;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    max-height: 180px;
-  }
-
-  .aiDebugLabel {
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #666;
-    background: #fafafa;
-  }
-
-  .aiDebugContent {
-    flex: 1;
-    margin: 0;
-    padding: 8px 10px;
-    font-size: 11px;
-    line-height: 1.4;
-    color: #333;
-    overflow: auto;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  .aiDebugTextarea {
-    flex: 1;
-    font-size: 11px;
-    :deep(.el-textarea__inner) {
-      border-radius: 0;
-      border-left: none;
-      border-right: none;
-      resize: none;
-    }
-  }
-}
 </style>

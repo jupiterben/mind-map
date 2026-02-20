@@ -42,12 +42,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, h, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, h, onMounted, onBeforeUnmount, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useStore } from '@/store'
+import { useStoreMixin } from '@/mixins/storeMixin'
 import { getBus } from '@/bus'
 import MindMap from 'simple-mind-map'
 import MiniMap from 'simple-mind-map/src/plugins/MiniMap.js'
@@ -110,6 +111,8 @@ import AiCreate from './AiCreate.vue'
 import AiContinueToolbar from './AiContinueToolbar.vue'
 import AiChat from './AiChat.vue'
 import defaultNodeImageUrl from '../../../assets/img/图片加载失败.svg'
+import { getTextFromHtml } from 'simple-mind-map/src/utils'
+import { getEmojiForText, getEmojiForTextByAi, createEmojiDataUrl } from '@/utils/smartIcon'
 
 // 注册插件
 MindMap.usePlugin(MiniMap)
@@ -144,6 +147,7 @@ const route = useRoute()
 const { t } = useI18n()
 const store = useStore()
 const { openNodeRichText, isShowScrollbar, useLeftKeySelectionRightKeyDrag, extraTextOnExport, enableAi, enableDragImport, isDragOutlineTreeNode, isZenMode } = storeToRefs(store)
+const { aiConfig } = useStoreMixin()
 const bus = getBus()
 
 const mindMapContainer = ref<HTMLElement | null>(null)
@@ -152,6 +156,11 @@ const mindMap = ref<InstanceType<typeof MindMap> | null>(null)
 const mindMapData = ref<unknown>(null)
 const mindMapConfig = ref<Record<string, unknown>>({})
 const prevImg = ref('')
+// 智能图标：动态 emoji 图标组，用于根据节点文字设置 emoji icon
+const dynamicEmojiIconGroup = ref<{ type: string; list: { name: string; icon: string }[] }>({
+  type: 'emoji',
+  list: []
+})
 let storeConfigTimer: ReturnType<typeof setTimeout> | null = null
 const showDragMask = ref(false)
 
@@ -288,7 +297,7 @@ function init() {
       openBlankMode: false
     },
     ...(config || {}),
-    iconList: [...icon],
+    iconList: [...icon, dynamicEmojiIconGroup.value],
     useLeftKeySelectionRightKeyDrag: useLeftKeySelectionRightKeyDrag.value,
     customInnerElsAppendTo: null,
     customHandleClipboardText: handleClipboardText,
@@ -466,6 +475,33 @@ function reRender() {
 function execCommand(...args: unknown[]) {
   mindMap.value.execCommand(...args)
 }
+
+// 智能图标：优先通过 AI 提示词获取文本对应 Emoji，再设为节点 icon
+async function doSmartIcon(node: { getData: (k: string) => unknown; setIcon: (icons: string[]) => void }) {
+  if (!mindMap.value || !node) return
+  const html = node.getData('text')
+  const text = getTextFromHtml(html != null ? String(html) : '')
+  let emoji: string
+  try {
+    emoji = await getEmojiForTextByAi(text, aiConfig.value)
+  } catch {
+    emoji = getEmojiForText(text)
+  }
+  let list = dynamicEmojiIconGroup.value.list
+  let item = list.find((i) => i.name === emoji)
+  if (!item) {
+    const dataUrl = createEmojiDataUrl(emoji)
+    item = { name: emoji, icon: dataUrl }
+    list = [...list, item]
+    dynamicEmojiIconGroup.value.list = list
+    mindMap.value.opt.iconList = [...icon, dynamicEmojiIconGroup.value]
+  }
+  const prevIcons = (node.getData('icon') as string[] | undefined) || []
+  const nextIcons = prevIcons.filter((key) => !key.startsWith('emoji_'))
+  nextIcons.push('emoji_' + emoji)
+  node.setIcon(nextIcons)
+}
+provide('doSmartIcon', doSmartIcon)
 
 // 导出
 async function exportMap(...args: unknown[]) {

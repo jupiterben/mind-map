@@ -137,7 +137,9 @@ export default {
     unExpandNodeChild: '收起所有下級節點',
     addToDo: '添加待辦',
     removeToDo: '刪除待辦',
+    smartIcon: '智能圖標',
     aiCreate: 'AI續寫',
+    aiNoteDetail: 'AI 詳細',
     modifyNodeLink: '修改節點鏈接',
     linkToNode: '鏈接到指定節點',
     removeNodeLink: '刪除節點鏈接'
@@ -344,7 +346,7 @@ export default {
     newFileTip: '新增檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     openFileTip: '開啟檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     ai: 'AI',
-    aiCreatePart: 'AI續寫'
+    aiCreatePart: 'AI子節點'
   },
   edit: {
     newFeatureNoticeTitle: '新功能提醒',
@@ -486,10 +488,13 @@ export default {
     provider: 'AI 模型',
     providerVolcanoArk: '火山方舟',
     providerDeepseek: 'DeepSeek',
+    providerMiniMax: 'MiniMax',
     VolcanoArkLargeModelConfiguration: '火山方舟大模型配置：',
     configTip: '目前僅支持火山方舟大模型，需要自行去獲取key，詳細操作步驟見：',
     deepseekConfigTip: '使用 DeepSeek 官方 API，請到 platform.deepseek.com 獲取 API Key。',
     deepseekKeyPlaceholder: 'DeepSeek API Key',
+    minimaxConfigTip: '使用 MiniMax 官方 API，請到 platform.minimax.io 獲取 API Key。',
+    minimaxKeyPlaceholder: 'MiniMax API Key',
     model: '模型',
     providerValidateTip: '請選擇 AI 模型',
     course: '教程',
@@ -520,19 +525,29 @@ export default {
       '。請只返回逗號分隔的節點文字，不要其他內容。例如：節點1, 節點2, 節點3',
     aiCreatePartPromptFromPrecedent:
       '以下為思維導圖中從根節點到當前節點的路徑：{path}。請根據該路徑為當前節點（最後一節）聯想並生成若干子節點，要求與主題連貫、層次清晰；子節點應是同一主題的不同選項（Option），彼此盡量不重疊。',
+    aiNoteDetailPrompt:
+      '以下為思維導圖中從根到當前節點的路徑：{path}。請為該節點（最後一節）生成一段詳細說明或備註，使用 Markdown 格式，便於理解與擴展。只返回備註內容，不要其他解釋。',
     aiCreatePartPromptTip: '已根據從根到當前節點的路徑自動生成提問，可直接確認或修改後確認。',
     aiCreatePartPromptPlaceholder: '用於向 AI 提問的完整內容',
-    aiCreatePart: 'AI續寫',
-    aiContinueToolbarTitle: 'AI續寫',
-    breadth: '廣度',
+    aiCreatePart: 'AI子節點',
+    aiContinueToolbarTitle: 'AI子節點',
+    breadth: '數量',
     breadthAuto: '自動',
     aiCreatePartBreadth: '第一層約 {breadth} 個直接子節點。',
+    toolbarHintCreateAll: '一鍵生成思維導圖',
+    toolbarHintNoteDetail: 'AI 詳細：為節點生成備註',
+    toolbarHintCreatePart: 'AI子節點（需選中一個節點）\nCtrl+Enter 替換子節點，Ctrl++ 添加子節點',
+    toolbarHintBreadth: '數量（AI子節點時約生成多少個子節點）',
     debugTitle: 'AI 調試',
     debugPrompt: '提示詞',
     debugResponse: 'AI 返回',
     debugClear: '清除',
     debugSend: '手動發送',
-    debugPromptPlaceholder: '編輯提示詞後點擊「手動發送」測試'
+    debugPromptPlaceholder: '編輯提示詞後點擊「手動發送」測試',
+    debugSmartIconTitle: '智能圖標',
+    debugSmartIconPlaceholder: '輸入節點文本',
+    debugSmartIconSend: '測試智能圖標',
+    debugSmartIconParsed: '解析的 emoji'
   },
   note: {
     title: '備註'

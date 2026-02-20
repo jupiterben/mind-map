@@ -319,7 +319,7 @@ export const shortcutKeyList = [
       },
       {
         icon: 'iconAIshengcheng',
-        name: 'AI Tiếp tục',
+        name: 'AI Nút con',
         value: `${ctrl} + ${enter}`
       }
     ]

@@ -315,7 +315,7 @@ export const shortcutKeyList = [
       },
       {
         icon: 'iconAIshengcheng',
-        name: 'AI續寫',
+        name: 'AI子節點',
         value: `${ctrl} + ${enter}`
       }
     ]

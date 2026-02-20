@@ -5,32 +5,67 @@
     :class="{ isDark: isDark }"
     @click.stop.passive
   >
-    <div class="row">
-      <span class="label">{{ $t('ai.breadth') }}</span>
-      <el-select v-model="breadthOption" size="small" class="breadthSelect">
-        <el-option :label="$t('ai.breadthAuto')" value="auto" />
-        <el-option v-for="n in 10" :key="n" :label="String(n)" :value="n" />
-      </el-select>
+    <el-tooltip :content="$t('ai.toolbarHintCreateAll')" placement="top">
+      <el-button size="small" class="btn iconBtn oneChar" @click="runCreateAll">
+        <span>1️⃣</span>
+      </el-button>
+    </el-tooltip>
+    <div class="group">
+      <el-tooltip :content="$t('ai.toolbarHintBreadth')" placement="top">
+        <div class="row">
+          <span class="label">{{ $t('ai.breadth') }}</span>
+          <el-select v-model="breadthOption" size="small" class="breadthSelect">
+            <el-option :label="$t('ai.breadthAuto')" value="auto" />
+            <el-option v-for="n in 10" :key="n" :label="String(n)" :value="n" />
+          </el-select>
+        </div>
+      </el-tooltip>
+      <el-tooltip :content="$t('ai.toolbarHintCreatePart')" placement="top" popper-class="aiToolbarTooltip">
+        <el-button
+          type="primary"
+          size="small"
+          class="btn iconBtn"
+          :loading="creating"
+          :disabled="!canRun"
+          @click="runContinue"
+        >
+          <span class="icon iconfont iconAIshengcheng"></span>
+        </el-button>
+      </el-tooltip>
     </div>
-    <el-button
-      type="primary"
-      size="small"
-      :loading="creating"
-      :disabled="!canRun"
-      class="btn"
-      @click="runContinue"
-    >
-      {{ $t('ai.aiCreatePart') }}
-    </el-button>
+    <div class="group">
+      <el-tooltip :content="$t('ai.toolbarHintNoteDetail')" placement="top">
+        <el-button
+          size="small"
+          class="btn iconBtn oneChar"
+          :loading="creating"
+          :disabled="!canRun"
+          @click="runNoteDetail"
+        >
+          <span>📝</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="$t('contextmenu.smartIcon')" placement="top">
+        <el-button
+          size="small"
+          class="btn iconBtn oneChar"
+          :disabled="!canRun"
+          @click="runSmartIcon"
+        >
+          <span>🏷️</span>
+        </el-button>
+      </el-tooltip>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, inject } from 'vue'
 import { useStore } from '@/store'
 import { getBus } from '@/bus'
 
 const props = defineProps<{ mindMap: any }>()
+const doSmartIcon = inject<((node: any) => void) | undefined>('doSmartIcon')
 
 const bus = getBus()
 const toolbarRef = ref<HTMLElement | null>(null)
@@ -48,6 +83,20 @@ const canRun = computed(
 
 function onNodeActive(_node: any, list: any[]) {
   activeNodes.value = [...(list || [])]
+}
+
+function runCreateAll() {
+  bus.$emit('ai_create_all')
+}
+
+function runNoteDetail() {
+  if (activeNodes.value.length !== 1) return
+  bus.$emit('ai_note_detail', activeNodes.value[0])
+}
+
+function runSmartIcon() {
+  if (activeNodes.value.length !== 1 || !doSmartIcon) return
+  doSmartIcon(activeNodes.value[0])
 }
 
 function runContinue() {
@@ -104,8 +153,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
-  padding: 4px 10px;
+  gap: 6px;
+  padding: 4px 8px;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
@@ -148,8 +197,39 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
   }
 
+  .group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding-left: 6px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  &.isDark .group {
+    border-left-color: rgba(255, 255, 255, 0.15);
+  }
+
   .btn {
     flex-shrink: 0;
   }
+
+  .iconBtn {
+    padding: 4px 8px;
+    border-radius: 0;
+    .icon {
+      font-size: 16px;
+    }
+    &.oneChar span {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1;
+    }
+  }
+}
+</style>
+<style lang="less">
+.aiToolbarTooltip {
+  white-space: pre-line;
 }
 </style>

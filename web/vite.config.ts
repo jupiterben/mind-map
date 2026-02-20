@@ -90,16 +90,40 @@ export default defineConfig({
     exclude: ['simple-mind-map']
   },
   server: {
-    proxy: {
-      '^/api/v3/': {
-        target: 'http://ark.cn-beijing.volces.com',
-        changeOrigin: true
-      },
-      '^/api/deepseek/': {
-        target: 'https://api.deepseek.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/deepseek/, '')
+    proxy: (() => {
+      const logProxy = (tag: string) => ({
+        configure(proxy: { on: (e: string, fn: (...a: never[]) => void) => void }) {
+          proxy.on('proxyReq', (_proxyReq: never, req: { method?: string; url?: string }) => {
+            console.log(`[proxy ${tag}] → ${req.method} ${req.url}`)
+          })
+          proxy.on('proxyRes', (proxyRes: { statusCode?: number }, req: { url?: string }) => {
+            console.log(`[proxy ${tag}] ← ${proxyRes.statusCode} ${req.url}`)
+          })
+          proxy.on('error', (err: Error, req: { url?: string }) => {
+            console.error(`[proxy ${tag}] error:`, err.message, req.url)
+          })
+        }
+      })
+      return {
+        '^/api/huoshan/': {
+          target: 'https://ark.cn-beijing.volces.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/huoshan/, '/api/'),
+          ...logProxy('huoshan')
+        },
+        '^/api/deepseek/': {
+          target: 'https://api.deepseek.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/deepseek/, ''),
+          ...logProxy('deepseek')
+        },
+        '^/api/minimax/': {
+          target: 'https://api.minimax.io',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/minimax/, ''),
+          ...logProxy('minimax')
+        }
       }
-    }
+    })()
   }
 })

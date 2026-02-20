@@ -141,7 +141,9 @@ export default {
     unExpandNodeChild: 'Thu gọn tất cả nút con',
     addToDo: 'Thêm việc cần làm',
     removeToDo: 'Xóa việc cần làm',
+    smartIcon: 'Biểu tượng thông minh',
     aiCreate: 'AI Tiếp tục',
+    aiNoteDetail: 'AI Chi tiết',
     modifyNodeLink: 'Sửa liên kết nút',
     linkToNode: 'Liên kết đến nút',
     removeNodeLink: 'Xóa liên kết nút'
@@ -351,7 +353,7 @@ export default {
     openFileTip:
       'Vui lòng xuất tệp đang chỉnh sửa trước khi mở tệp, Cẩn thận mất nội dung',
     ai: 'AI',
-    aiCreatePart: 'AI Tiếp tục'
+    aiCreatePart: 'AI Nút con'
   },
   edit: {
     newFeatureNoticeTitle: 'Nhắc nhở tính năng mới',
@@ -502,11 +504,14 @@ export default {
     provider: 'Mô hình AI',
     providerVolcanoArk: 'Volcano Ark',
     providerDeepseek: 'DeepSeek',
+    providerMiniMax: 'MiniMax',
     VolcanoArkLargeModelConfiguration: 'Cấu hình mô hình lớn Volcano Ark:',
     configTip:
       'Hiện tại, chỉ hỗ trợ mô hình Volcano Ark, và bạn cần tự mình lấy khóa. Để biết các bước thực hiện chi tiết, vui lòng tham khảo:',
     deepseekConfigTip: 'Sử dụng API DeepSeek. Lấy API Key tại platform.deepseek.com',
     deepseekKeyPlaceholder: 'DeepSeek API Key',
+    minimaxConfigTip: 'Sử dụng API MiniMax. Lấy API Key tại platform.minimax.io',
+    minimaxKeyPlaceholder: 'MiniMax API Key',
     model: 'Mô hình',
     providerValidateTip: 'Vui lòng chọn mô hình AI',
     course: 'Khóa học',
@@ -538,19 +543,29 @@ export default {
       '. Chỉ trả về văn bản nút cách nhau bằng dấu phẩy, không nội dung khác. Ví dụ: nút1, nút2, nút3',
     aiCreatePartPromptFromPrecedent:
       'Đường dẫn từ gốc đến nút hiện tại trong sơ đồ tư duy: {path}. Dựa trên đường dẫn này, gợi ý các nút con cho nút hiện tại (nút cuối). Giữ chủ đề mạch lạc và cấp bậc rõ ràng. Mỗi nút con là một option khác nhau của cùng chủ đề, càng ít trùng lặp càng tốt.',
+    aiNoteDetailPrompt:
+      'Đường dẫn từ gốc đến nút hiện tại trong sơ đồ tư duy: {path}. Hãy tạo ghi chú hoặc mô tả chi tiết cho nút này (nút cuối), định dạng Markdown, để hiểu và mở rộng chủ đề. Chỉ trả về nội dung ghi chú, không giải thích thêm.',
     aiCreatePartPromptTip: 'Lời nhắc được tạo tự động từ đường dẫn gốc đến hiện tại. Xác nhận hoặc chỉnh sửa trước khi gửi.',
     aiCreatePartPromptPlaceholder: 'Nội dung đầy đủ gửi tới AI',
-    aiCreatePart: 'AI Tiếp tục',
-    aiContinueToolbarTitle: 'AI Tiếp tục',
-    breadth: 'Độ rộng',
+    aiCreatePart: 'AI Nút con',
+    aiContinueToolbarTitle: 'AI Nút con',
+    breadth: 'Số lượng',
     breadthAuto: 'Tự động',
     aiCreatePartBreadth: 'Khoảng {breadth} nút con trực tiếp ở tầng đầu.',
+    toolbarHintCreateAll: 'Tạo sơ đồ tư duy một nhấp',
+    toolbarHintNoteDetail: 'AI Chi tiết: tạo ghi chú cho nút',
+    toolbarHintCreatePart: 'AI Nút con (chọn một nút)\nCtrl+Enter thay thế nút con, Ctrl++ thêm nút con',
+    toolbarHintBreadth: 'Số lượng (số nút con cần tạo)',
     debugTitle: 'Gỡ lỗi AI',
     debugPrompt: 'Prompt',
     debugResponse: 'Phản hồi AI',
     debugClear: 'Xóa',
     debugSend: 'Gửi',
-    debugPromptPlaceholder: 'Chỉnh prompt rồi bấm Gửi để thử'
+    debugPromptPlaceholder: 'Chỉnh prompt rồi bấm Gửi để thử',
+    debugSmartIconTitle: 'Biểu tượng thông minh',
+    debugSmartIconPlaceholder: 'Nhập văn bản nút',
+    debugSmartIconSend: 'Thử Biểu tượng',
+    debugSmartIconParsed: 'Emoji đã phân tích'
   },
   note: {
     title: 'Ghi chú'
