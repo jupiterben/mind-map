@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd web && npm install && npx vite build",
+  "buildCommand": "cd web && npx vite build",
   "outputDirectory": "dist",
-  "installCommand": "cd web && npm install",
+  "installCommand": "cd simple-mind-map && npm install && cd ../web && npm install",
   "rewrites": [
     {
       "source": "/api/huoshan/:path*",
