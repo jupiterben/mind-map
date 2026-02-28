@@ -253,6 +253,11 @@ function ensureRootDefaultText(root: unknown) {
 
 // 初始化
 function init() {
+  const el = mindMapContainer.value
+  if (!el || typeof el.getBoundingClientRect !== 'function') {
+    console.warn('[Edit] mindMapContainer 未就绪，跳过初始化')
+    return
+  }
   let hasFile = hasFileURL()
   const raw = mindMapData.value as { root?: unknown; layout?: string; theme?: { template?: string; config?: unknown }; view?: unknown } | null
   let root = raw?.root
