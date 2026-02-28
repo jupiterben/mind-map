@@ -352,6 +352,8 @@ export default {
       'Vui lòng xuất tệp đang chỉnh sửa trước khi tạo mới, Cẩn thận mất nội dung',
     openFileTip:
       'Vui lòng xuất tệp đang chỉnh sửa trước khi mở tệp, Cẩn thận mất nội dung',
+    saveFileTip: 'Chọn iCloud Drive trong hộp thoại để lưu vào Apple Cloud',
+    iCloudTip: 'Chọn iCloud Drive trong hộp thoại để mở hoặc lưu vào Apple Cloud',
     ai: 'AI',
     aiCreatePart: 'AI Nút con'
   },

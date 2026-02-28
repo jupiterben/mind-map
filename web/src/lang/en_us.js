@@ -354,6 +354,8 @@ export default {
       'Please export the currently edited file before creating a new one, Beware of content loss',
     openFileTip:
       'Please export the currently edited file before opening it, Beware of content loss',
+    saveFileTip: 'Select iCloud Drive in the dialog to save to Apple Cloud',
+    iCloudTip: 'Select iCloud Drive in the dialog to open or save to Apple Cloud',
     ai: 'AI',
     aiCreatePart: 'AI Child Nodes'
   },

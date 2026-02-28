@@ -345,6 +345,8 @@ export default {
     directory: '目錄',
     newFileTip: '新增檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     openFileTip: '開啟檔案前，請先匯出目前編輯的檔案，以免內容遺失',
+    saveFileTip: '在彈窗中選擇 iCloud Drive 可儲存到 Apple 雲端',
+    iCloudTip: '在彈窗中選擇 iCloud Drive 可開啟或儲存到 Apple 雲端',
     ai: 'AI',
     aiCreatePart: 'AI子節點'
   },

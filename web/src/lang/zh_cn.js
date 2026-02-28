@@ -344,6 +344,8 @@ export default {
     directory: '目录',
     newFileTip: '新建文件前请先导出当前编辑的文件，谨防内容丢失',
     openFileTip: '打开文件前请先导出当前编辑的文件，谨防内容丢失',
+    saveFileTip: '在弹窗中选择 iCloud Drive 可保存到 Apple 云盘',
+    iCloudTip: '在弹窗中选择 iCloud Drive 可打开或保存到 Apple 云盘',
     ai: 'AI',
     aiCreatePart: 'AI子节点'
   },
