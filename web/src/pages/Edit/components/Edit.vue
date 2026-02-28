@@ -582,50 +582,6 @@ function onDrop(e: DragEvent) {
   bus.$emit('importFile', file)
 }
 
-// 网页版试用提示
-function webTip() {
-  const storageKey = 'webUseTip'
-  const data = localStorage.getItem(storageKey)
-  if (data) {
-    return
-  }
-  showDownloadTip(
-    '重要提示',
-    '网页版已暂停更新，部分功能缺失，请下载客户端获得完整体验~'
-  )
-  localStorage.setItem(storageKey, 1)
-}
-
-function showDownloadTip(title: string, desc: string) {
-  ElMessageBox.alert(
-    h('div', null, [
-      h('p', { style: { marginBottom: '12px' } }, desc),
-      h('div', null, [
-        h(
-          'a',
-          {
-            href: 'https://pan.baidu.com/s/1huasEbKsGNH2Af68dvWiOg?pwd=3bp3',
-            target: '_blank',
-            style: { color: '#409eff', marginRight: '12px' }
-          },
-          t('edit.downBaidu')
-        ),
-        h(
-          'a',
-          {
-            href: 'https://github.com/wanglin2/mind-map/releases',
-            target: '_blank',
-            style: { color: '#409eff' }
-          },
-          t('edit.downGithub')
-        )
-      ])
-    ]),
-    title,
-    { showCancelButton: false, showConfirmButton: false }
-  )
-}
-
 onMounted(() => {
   showLoading()
   getData()
@@ -642,8 +598,6 @@ onMounted(() => {
   bus.$on('showLoading', handleShowLoading)
   bus.$on('localStorageExceeded', onLocalStorageExceeded)
   window.addEventListener('resize', handleResize)
-  bus.$on('showDownloadTip', showDownloadTip)
-  webTip()
 })
 onBeforeUnmount(() => {
   bus.$off('execCommand', execCommand)
@@ -658,7 +612,6 @@ onBeforeUnmount(() => {
   bus.$off('showLoading', handleShowLoading)
   bus.$off('localStorageExceeded', onLocalStorageExceeded)
   window.removeEventListener('resize', handleResize)
-  bus.$off('showDownloadTip', showDownloadTip)
   if (mindMap.value) mindMap.value.destroy()
 })
 </script>

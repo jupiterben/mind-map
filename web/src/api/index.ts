@@ -28,12 +28,15 @@ export const getData = (): unknown => {
   }
   const storeData = localStorage.getItem(SIMPLE_MIND_MAP_DATA)
   if (storeData === null) {
-    return simpleDeepClone(exampleData)
+    // 新建/无数据时仅保留一个根节点，沿用 exampleData 的 theme、layout 等（根节点文案由 setData 里 ensureRootDefaultText 填）
+    const onlyRoot = { data: {}, children: [] }
+    return simpleDeepClone({ ...exampleData, root: onlyRoot })
   }
   try {
     return JSON.parse(storeData)
   } catch {
-    return simpleDeepClone(exampleData)
+    const onlyRoot = { data: {}, children: [] }
+    return simpleDeepClone({ ...exampleData, root: onlyRoot })
   }
 }
 

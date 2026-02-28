@@ -214,10 +214,8 @@ export default {
     changeSourceCodeEdit: 'Chuyển sang chế độ chỉnh sửa mã nguồn',
     shortcutKeys: 'Phím tắt',
     ai: 'Đối thoại AI',
-    downloadClient: 'Tải về khách hàng',
     site: 'Trang web chính thức',
     current: 'Hiện tại:',
-    downloadDesc: 'Có thể download từ địa chỉ sau:'
   },
   nodeHyperlink: {
     title: 'Liên kết',
@@ -376,9 +374,7 @@ export default {
     withBg: 'Với Background',
     tryTipTitle: 'Mẹo dùng thử chức năng',
     tryTipDesc:
-      'Chức năng này là chức năng dùng thử trong phiên bản web, xin vui lòng tải xuống để khách hàng sử dụng:',
-    downBaidu: 'Tải xuống Baidu',
-    downGithub: 'Tải xuống Github'
+      'Chức năng này là chức năng dùng thử trong phiên bản web, xin vui lòng tải xuống để khách hàng sử dụng:'
   },
   mouseAction: {
     tip1:

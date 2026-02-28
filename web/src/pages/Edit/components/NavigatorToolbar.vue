@@ -87,10 +87,6 @@
               <span class="iconfont iconAIshengcheng"></span>
               {{ t('navigatorToolbar.ai') }}
             </el-dropdown-item>
-            <el-dropdown-item command="client">
-              <span class="iconfont iconxiazai"></span>
-              {{ t('navigatorToolbar.downloadClient') }}
-            </el-dropdown-item>
             <el-dropdown-item command="github">
               <span class="iconfont icongithub"></span>
               Github
@@ -176,14 +172,6 @@ function handleCommand(command: string) {
   }
   if (command === 'aiChat') {
     setActiveSidebar('ai')
-    return
-  }
-  if (command === 'client') {
-    bus.$emit(
-      'showDownloadTip',
-      t('navigatorToolbar.downloadClient'),
-      t('navigatorToolbar.downloadDesc')
-    )
     return
   }
   let url = ''

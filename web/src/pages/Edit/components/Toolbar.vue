@@ -370,7 +370,9 @@ function createNewLocalFile() {
   setIsHandleLocalFile(false)
   ElNotification.closeAll()
   waitingWriteToLocalFile.value = false
-  const data = exampleData?.root ? exampleData : { ...exampleData, root: exampleData }
+  // 新建仅保留一个根节点，沿用 exampleData 的 theme、layout 等（根节点文案由 setData 里 ensureRootDefaultText 填）
+  const onlyRoot = { data: {}, children: [] }
+  const data = { ...exampleData, root: onlyRoot }
   bus.$emit('setData', data)
 }
 

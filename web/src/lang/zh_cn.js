@@ -209,10 +209,8 @@ export default {
     changeSourceCodeEdit: '切换为源码编辑模式',
     shortcutKeys: '快捷键',
     ai: 'AI对话',
-    downloadClient: '下载客户端',
     site: '官方网站',
-    current: '当前：',
-    downloadDesc: '可从如下地址下载：'
+    current: '当前：'
   },
   nodeHyperlink: {
     title: '超链接',
@@ -366,9 +364,7 @@ export default {
       '你创建的思维导图体积已经超过浏览器允许存储的上限，请立即导出，否则数据将丢失！建议下载客户端进行使用，客户端无大小限制。',
     withBg: '带背景',
     tryTipTitle: '功能试用提示',
-    tryTipDesc: '该功能在网页版中为试用功能，请下载客户端使用：',
-    downBaidu: '去百度网盘下载',
-    downGithub: '去Github下载'
+    tryTipDesc: '该功能在网页版中为试用功能，请下载客户端使用：'
   },
   mouseAction: {
     tip1: '当前：左键拖动画布，右键框选节点',

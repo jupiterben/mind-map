@@ -215,10 +215,8 @@ export default {
     changeSourceCodeEdit: 'Switch to source code editing mode',
     shortcutKeys: 'Shortcut keys',
     ai: 'AI dialogue',
-    downloadClient: 'Download client',
     site: 'Official website',
-    current: 'Current:',
-    downloadDesc: 'You can download it from the following address:'
+    current: 'Current:'
   },
   nodeHyperlink: {
     title: 'Link',
@@ -378,9 +376,7 @@ export default {
     withBg: 'With background image',
     tryTipTitle: 'Function trial prompt',
     tryTipDesc:
-      'This feature is a trial feature in the web version. Please download the client to use it:',
-    downBaidu: 'Go to Baidu Netdisk to download',
-    downGithub: 'Download from Github'
+      'This feature is a trial feature in the web version. Please download the client to use it:'
   },
   mouseAction: {
     tip1:
