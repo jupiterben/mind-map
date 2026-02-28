@@ -1,0 +1,59 @@
+{
+  "name": "smm-mind-map",
+  "displayName": "SMM 思维导图",
+  "description": "编辑与预览 Simple Mind Map (.smm) 文件",
+  "version": "0.1.0",
+  "publisher": "mind-map",
+  "engines": { "vscode": "^1.74.0" },
+  "categories": ["Other", "Visualization"],
+  "activationEvents": ["onLanguage:smm", "onCustomEditor:smmPreview"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "smm",
+        "extensions": [".smm"],
+        "aliases": ["SMM", "Simple Mind Map"],
+        "configuration": "./smm.language-configuration.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "smmPreview",
+        "displayName": "SMM 思维导图预览",
+        "selector": [{ "filenamePattern": "*.smm" }],
+        "priority": "option"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "smm",
+        "scopeName": "source.smm",
+        "path": "./smm.tmLanguage.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "*.smm",
+        "url": "./smm-schema.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "smm.openPreview",
+        "title": "SMM: 打开思维导图预览"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run copy-umd && npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "copy-umd": "node scripts/copy-umd.js"
+  },
+  "devDependencies": {
+    "simple-mind-map": "0.14.0",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0"
+  }
+}
