@@ -68,7 +68,7 @@ class MindMap {
    *
    * @param {defaultOpt} opt
    */
-  constructor(opt: Record<string, unknown> = {}) {
+  constructor(el: HTMLElement, opt: Record<string, unknown> = {}) {
     MindMap.instanceCount++
     // 合并选项
     this.opt = this.handleOpt(merge(defaultOpt, opt))
@@ -76,7 +76,7 @@ class MindMap {
     this.opt.data = this.handleData(this.opt.data)
 
     // 容器元素
-    this.el = this.opt.el as HTMLElement
+    this.el = el;
     if (!this.el) throw new Error('缺少容器元素el')
 
     // 获取容器尺寸位置信息

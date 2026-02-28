@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, h, onMounted, onBeforeUnmount, provide } from 'vue'
+import { ref, watch, h, onMounted, onBeforeUnmount, provide, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
@@ -273,8 +273,7 @@ function init() {
     view = null
   }
   root = ensureRootDefaultText(root)
-  mindMap.value = new MindMap({
-    el: mindMapContainer.value,
+  mindMap.value = new MindMap(el, {
     data: root,
     fit: false,
     layout: layout,
@@ -585,7 +584,9 @@ function onDrop(e: DragEvent) {
 onMounted(() => {
   showLoading()
   getData()
-  init()
+  nextTick(() => {
+    init()
+  })
   bus.$on('execCommand', execCommand)
   bus.$on('paddingChange', onPaddingChange)
   bus.$on('export', exportMap)
