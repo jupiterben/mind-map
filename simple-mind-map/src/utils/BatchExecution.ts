@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { nextTick } from '.'
+import { nextTick } from './nextTick'
 
 //  批量执行
 class BatchExecution {
