@@ -217,7 +217,6 @@ export default {
     changeSourceCodeEdit: 'Chuyển sang chế độ chỉnh sửa mã nguồn',
     shortcutKeys: 'Phím tắt',
     ai: 'Đối thoại AI',
-    downloadClient: 'Tải về khách hàng',
     site: 'Trang web chính thức',
     current: 'Hiện tại:',
     downloadDesc: 'Có thể download từ địa chỉ sau:',
@@ -358,6 +357,8 @@ export default {
       'Vui lòng xuất tệp đang chỉnh sửa trước khi tạo mới, Cẩn thận mất nội dung',
     openFileTip:
       'Vui lòng xuất tệp đang chỉnh sửa trước khi mở tệp, Cẩn thận mất nội dung',
+    saveFileTip: 'Chọn iCloud Drive trong hộp thoại để lưu vào Apple Cloud',
+    iCloudTip: 'Chọn iCloud Drive trong hộp thoại để mở hoặc lưu vào Apple Cloud',
     ai: 'AI',
     aiCreatePart: 'AI Nút con',
     hideToolbars: 'Ẩn thanh công cụ',
@@ -382,9 +383,7 @@ export default {
     withBg: 'Với Background',
     tryTipTitle: 'Mẹo dùng thử chức năng',
     tryTipDesc:
-      'Chức năng này là chức năng dùng thử trong phiên bản web, xin vui lòng tải xuống để khách hàng sử dụng:',
-    downBaidu: 'Tải xuống Baidu',
-    downGithub: 'Tải xuống Github'
+      'Chức năng này là chức năng dùng thử trong phiên bản web, xin vui lòng tải xuống để khách hàng sử dụng:'
   },
   mouseAction: {
     tip1:

@@ -218,13 +218,9 @@ export default {
     changeSourceCodeEdit: 'Switch to source code editing mode',
     shortcutKeys: 'Shortcut keys',
     ai: 'AI dialogue',
-    downloadClient: 'Download client',
     site: 'Official website',
     current: 'Current:',
-    downloadDesc: 'You can download it from the following address:',
-    hideToolbars: 'Hide toolbars',
-    showToolbars: 'Show toolbars',
-    zenModeShortcut: 'Ctrl+\\'
+    downloadDesc: 'You can download it from the following address:'
   },
   nodeHyperlink: {
     title: 'Link',
@@ -360,6 +356,8 @@ export default {
       'Please export the currently edited file before creating a new one, Beware of content loss',
     openFileTip:
       'Please export the currently edited file before opening it, Beware of content loss',
+    saveFileTip: 'Select iCloud Drive in the dialog to save to Apple Cloud',
+    iCloudTip: 'Select iCloud Drive in the dialog to open or save to Apple Cloud',
     ai: 'AI',
     aiCreatePart: 'AI Child Nodes',
     hideToolbars: 'Hide toolbars',
@@ -384,9 +382,7 @@ export default {
     withBg: 'With background image',
     tryTipTitle: 'Function trial prompt',
     tryTipDesc:
-      'This feature is a trial feature in the web version. Please download the client to use it:',
-    downBaidu: 'Go to Baidu Netdisk to download',
-    downGithub: 'Download from Github'
+      'This feature is a trial feature in the web version. Please download the client to use it:'
   },
   mouseAction: {
     tip1:

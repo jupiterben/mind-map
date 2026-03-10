@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SMM",
+  "description": "Simple Mind Map 格式：可为仅节点树或含 root/layout/theme/view 的完整数据",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["data", "children"],
+      "description": "仅节点树（根节点）",
+      "properties": {
+        "data": { "$ref": "#/definitions/nodeData" },
+        "children": { "type": "array", "items": { "$ref": "#/definitions/node" } }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "root": { "$ref": "#/definitions/node" },
+        "layout": { "type": "string" },
+        "theme": {
+          "type": "object",
+          "properties": {
+            "template": { "type": "string" },
+            "config": { "type": "object" }
+          }
+        },
+        "view": { "type": "object" },
+        "smmVersion": { "type": "string" }
+      }
+    }
+  ],
+  "definitions": {
+    "nodeData": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "expand": { "type": "boolean" },
+        "richText": { "type": "boolean" },
+        "icon": { "type": "array", "items": { "type": "string" } },
+        "tag": { "type": "array", "items": { "type": "string" } },
+        "note": { "type": "string" },
+        "hyperlink": { "type": "string" },
+        "hyperlinkTitle": { "type": "string" },
+        "image": { "type": "string" },
+        "imageTitle": { "type": "string" },
+        "imageSize": { "type": "object" },
+        "uid": { "type": "string" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["data", "children"],
+      "properties": {
+        "data": { "$ref": "#/definitions/nodeData" },
+        "children": { "type": "array", "items": { "$ref": "#/definitions/node" } }
+      }
+    }
+  }
+}

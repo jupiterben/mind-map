@@ -213,10 +213,8 @@ export default {
     changeSourceCodeEdit: '切換為原始碼編輯模式',
     shortcutKeys: '快捷鍵',
     ai: 'AI對話',
-    downloadClient: '下載客戶端',
     site: '官方網站',
     current: '當前：',
-    downloadDesc: '可從如下地址下載：',
     hideToolbars: '隱藏工具列',
     showToolbars: '顯示工具列',
     zenModeShortcut: 'Ctrl+\\'
@@ -351,6 +349,8 @@ export default {
     directory: '目錄',
     newFileTip: '新增檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     openFileTip: '開啟檔案前，請先匯出目前編輯的檔案，以免內容遺失',
+    saveFileTip: '在彈窗中選擇 iCloud Drive 可儲存到 Apple 雲端',
+    iCloudTip: '在彈窗中選擇 iCloud Drive 可開啟或儲存到 Apple 雲端',
     ai: 'AI',
     aiCreatePart: 'AI子節點',
     hideToolbars: '隱藏工具列',
@@ -372,9 +372,7 @@ export default {
       '你創建的思維導圖體積已經超過浏覽器允許存儲的上限，請立即導出，否則數據將丟失！建議下載客戶端進行使用，客戶端無大小限制。',
     withBg: '帶背景',
     tryTipTitle: '功能試用提示',
-    tryTipDesc: '該功能在網頁版中為試用功能，請下載用戶端使用：',
-    downBaidu: '去百度網盤下載',
-    downGithub: '去Github下載'
+    tryTipDesc: '該功能在網頁版中為試用功能，請下載用戶端使用：'
   },
   mouseAction: {
     tip1: '目前：左鍵拖曳畫布，右鍵框選節點',

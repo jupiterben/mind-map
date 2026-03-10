@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "启动 SMM 扩展",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["${workspaceFolder}"],
+      "extensionDevelopmentPath": ["${workspaceFolder}/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
+      "preLaunchTask": "npm: compile - vscode-extension"
+    }
+  ]
+}

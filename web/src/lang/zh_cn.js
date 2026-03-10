@@ -212,10 +212,8 @@ export default {
     changeSourceCodeEdit: '切换为源码编辑模式',
     shortcutKeys: '快捷键',
     ai: 'AI对话',
-    downloadClient: '下载客户端',
     site: '官方网站',
     current: '当前：',
-    downloadDesc: '可从如下地址下载：',
     hideToolbars: '隐藏工具栏',
     showToolbars: '显示工具栏',
     zenModeShortcut: 'Ctrl+\\'
@@ -350,6 +348,8 @@ export default {
     directory: '目录',
     newFileTip: '新建文件前请先导出当前编辑的文件，谨防内容丢失',
     openFileTip: '打开文件前请先导出当前编辑的文件，谨防内容丢失',
+    saveFileTip: '在弹窗中选择 iCloud Drive 可保存到 Apple 云盘',
+    iCloudTip: '在弹窗中选择 iCloud Drive 可打开或保存到 Apple 云盘',
     ai: 'AI',
     aiCreatePart: 'AI子节点',
     hideToolbars: '隐藏工具栏',
@@ -372,9 +372,7 @@ export default {
       '你创建的思维导图体积已经超过浏览器允许存储的上限，请立即导出，否则数据将丢失！建议下载客户端进行使用，客户端无大小限制。',
     withBg: '带背景',
     tryTipTitle: '功能试用提示',
-    tryTipDesc: '该功能在网页版中为试用功能，请下载客户端使用：',
-    downBaidu: '去百度网盘下载',
-    downGithub: '去Github下载'
+    tryTipDesc: '该功能在网页版中为试用功能，请下载客户端使用：'
   },
   mouseAction: {
     tip1: '当前：左键拖动画布，右键框选节点',

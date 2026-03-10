@@ -40,7 +40,7 @@
         </div>
         <el-tooltip
           effect="dark"
-          :content="$t('toolbar.openFileTip')"
+          :content="$t('toolbar.openFileTip') + '\n' + $t('toolbar.iCloudTip')"
           placement="bottom"
           v-if="!isMobile"
         >
@@ -49,10 +49,17 @@
             <span class="text">{{ $t('toolbar.openFile') }}</span>
           </div>
         </el-tooltip>
-        <div class="toolbarBtn" @click="saveLocalFile" v-if="!isMobile">
-          <span class="icon iconfont iconlingcunwei"></span>
-          <span class="text">{{ $t('toolbar.saveAs') }}</span>
-        </div>
+        <el-tooltip
+          effect="dark"
+          :content="$t('toolbar.saveFileTip')"
+          placement="bottom"
+          v-if="!isMobile"
+        >
+          <div class="toolbarBtn" @click="saveLocalFile">
+            <span class="icon iconfont iconlingcunwei"></span>
+            <span class="text">{{ $t('toolbar.saveAs') }}</span>
+          </div>
+        </el-tooltip>
         <div class="toolbarBtn" @click="emitShowImport">
           <span class="icon iconfont icondaoru"></span>
           <span class="text">{{ $t('toolbar.import') }}</span>
@@ -373,7 +380,9 @@ function createNewLocalFile() {
   setIsHandleLocalFile(false)
   ElNotification.closeAll()
   waitingWriteToLocalFile.value = false
-  const data = exampleData?.root ? exampleData : { ...exampleData, root: exampleData }
+  // 新建仅保留一个根节点，沿用 exampleData 的 theme、layout 等（根节点文案由 setData 里 ensureRootDefaultText 填）
+  const onlyRoot = { data: {}, children: [] }
+  const data = { ...exampleData, root: onlyRoot }
   bus.$emit('setData', data)
 }
 

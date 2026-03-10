@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, h, onMounted, onBeforeUnmount, provide } from 'vue'
+import { ref, watch, h, onMounted, onBeforeUnmount, provide, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
@@ -264,6 +264,11 @@ function ensureRootDefaultText(root: unknown) {
 
 // 初始化
 function init() {
+  const el = mindMapContainer.value
+  if (!el || typeof el.getBoundingClientRect !== 'function') {
+    console.warn('[Edit] mindMapContainer 未就绪，跳过初始化')
+    return
+  }
   let hasFile = hasFileURL()
   const raw = mindMapData.value as { root?: unknown; layout?: string; theme?: { template?: string; config?: unknown }; view?: unknown } | null
   let root = raw?.root
@@ -284,8 +289,7 @@ function init() {
     view = null
   }
   root = ensureRootDefaultText(root)
-  mindMap.value = new MindMap({
-    el: mindMapContainer.value,
+  mindMap.value = new MindMap(el, {
     data: root,
     fit: false,
     layout: layout,
@@ -593,54 +597,12 @@ function onDrop(e: DragEvent) {
   bus.$emit('importFile', file)
 }
 
-// 网页版试用提示
-function webTip() {
-  const storageKey = 'webUseTip'
-  const data = localStorage.getItem(storageKey)
-  if (data) {
-    return
-  }
-  showDownloadTip(
-    '重要提示',
-    '网页版已暂停更新，部分功能缺失，请下载客户端获得完整体验~'
-  )
-  localStorage.setItem(storageKey, 1)
-}
-
-function showDownloadTip(title: string, desc: string) {
-  ElMessageBox.alert(
-    h('div', null, [
-      h('p', { style: { marginBottom: '12px' } }, desc),
-      h('div', null, [
-        h(
-          'a',
-          {
-            href: 'https://pan.baidu.com/s/1huasEbKsGNH2Af68dvWiOg?pwd=3bp3',
-            target: '_blank',
-            style: { color: '#409eff', marginRight: '12px' }
-          },
-          t('edit.downBaidu')
-        ),
-        h(
-          'a',
-          {
-            href: 'https://github.com/wanglin2/mind-map/releases',
-            target: '_blank',
-            style: { color: '#409eff' }
-          },
-          t('edit.downGithub')
-        )
-      ])
-    ]),
-    title,
-    { showCancelButton: false, showConfirmButton: false }
-  )
-}
-
 onMounted(() => {
   showLoading()
   getData()
-  init()
+  nextTick(() => {
+    init()
+  })
   bus.$on('execCommand', execCommand)
   bus.$on('paddingChange', onPaddingChange)
   bus.$on('export', exportMap)
@@ -653,8 +615,6 @@ onMounted(() => {
   bus.$on('showLoading', handleShowLoading)
   bus.$on('localStorageExceeded', onLocalStorageExceeded)
   window.addEventListener('resize', handleResize)
-  bus.$on('showDownloadTip', showDownloadTip)
-  webTip()
   window.addEventListener('keydown', onZenModeKeydown)
 })
 onBeforeUnmount(() => {
@@ -670,7 +630,6 @@ onBeforeUnmount(() => {
   bus.$off('showLoading', handleShowLoading)
   bus.$off('localStorageExceeded', onLocalStorageExceeded)
   window.removeEventListener('resize', handleResize)
-  bus.$off('showDownloadTip', showDownloadTip)
   window.removeEventListener('keydown', onZenModeKeydown)
   if (mindMap.value) mindMap.value.destroy()
 })

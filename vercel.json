@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd web && npx vite build",
+  "outputDirectory": "dist",
+  "installCommand": "cd simple-mind-map && npm install && cd ../web && npm install",
+  "rewrites": [
+    {
+      "source": "/api/huoshan/:path*",
+      "destination": "https://ark.cn-beijing.volces.com/api/:path*"
+    },
+    {
+      "source": "/api/deepseek/:path*",
+      "destination": "https://api.deepseek.com/:path*"
+    },
+    {
+      "source": "/api/minimax/:path*",
+      "destination": "https://api.minimax.io/:path*"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

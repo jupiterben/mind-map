@@ -3,8 +3,6 @@ import { CONSTANTS } from './constant'
 // 默认选项配置
 export const defaultOpt = {
   // 【基本】
-  // 容器元素，必传，必须为DOM元素
-  el: null,
   // 思维导图回显数据
   data: null,
   // 要恢复的视图数据，一般通过mindMap.view.getTransformData()方法获取
