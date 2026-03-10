@@ -203,7 +203,10 @@ export default {
     xmindCanvasSelectDialogTitle: 'Chọn canvas để nhập',
     mdImportDialogTitle: 'Dán nội dung Markdown để nhập',
     mdPlaceholder: 'Vui lòng nhập nội dung ở định dạng Markdown',
-    mdEmptyTip: 'Nội dung không được trống'
+    mdEmptyTip: 'Nội dung không được trống',
+    tabFile: 'Tệp',
+    tabText: 'Văn bản',
+    textPlaceholder: 'Dán Markdown hoặc JSON (bắt đầu bằng { hoặc [ = JSON, ngược lại = Markdown)'
   },
   navigatorToolbar: {
     openMiniMap: 'Mở bản đồ thu nhỏ',
@@ -217,7 +220,10 @@ export default {
     downloadClient: 'Tải về khách hàng',
     site: 'Trang web chính thức',
     current: 'Hiện tại:',
-    downloadDesc: 'Có thể download từ địa chỉ sau:'
+    downloadDesc: 'Có thể download từ địa chỉ sau:',
+    hideToolbars: 'Ẩn thanh công cụ',
+    showToolbars: 'Hiện thanh công cụ',
+    zenModeShortcut: 'Ctrl+\\'
   },
   nodeHyperlink: {
     title: 'Liên kết',
@@ -353,7 +359,9 @@ export default {
     openFileTip:
       'Vui lòng xuất tệp đang chỉnh sửa trước khi mở tệp, Cẩn thận mất nội dung',
     ai: 'AI',
-    aiCreatePart: 'AI Nút con'
+    aiCreatePart: 'AI Nút con',
+    hideToolbars: 'Ẩn thanh công cụ',
+    showToolbars: 'Hiện thanh công cụ'
   },
   edit: {
     newFeatureNoticeTitle: 'Nhắc nhở tính năng mới',

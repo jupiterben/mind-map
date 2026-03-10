@@ -390,6 +390,11 @@ export const shortcutKeyList = [
     type: '画布操作',
     list: [
       {
+        icon: 'iconquanping',
+        name: '隐藏/显示工具栏',
+        value: `${ctrl} + \\`
+      },
+      {
         icon: 'iconfangda',
         name: '放大',
         value: `${ctrl} + +`

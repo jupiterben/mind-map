@@ -79,6 +79,11 @@
         <div class="btn el-icon-more"></div>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item command="zenMode">
+              <span class="iconfont iconquanping"></span>
+              {{ isZenMode ? t('navigatorToolbar.showToolbars') : t('navigatorToolbar.hideToolbars') }}
+              <span class="shortcut-hint">{{ t('navigatorToolbar.zenModeShortcut') }}</span>
+            </el-dropdown-item>
             <el-dropdown-item command="shortcutKey">
               <span class="iconfont iconjianpan"></span>
               {{ t('navigatorToolbar.shortcutKeys') }}
@@ -133,7 +138,7 @@ const props = defineProps<{
 }>()
 const { t } = useI18n()
 const store = useStore()
-const { isReadonly, isDark, activeSidebar } = storeToRefs(store)
+const { isReadonly, isDark, activeSidebar, isZenMode } = storeToRefs(store)
 const { setIsReadonly, setActiveSidebar, setLocalConfig } = store
 const bus = getBus()
 
@@ -170,6 +175,10 @@ function toggleDark() {
 }
 
 function handleCommand(command: string) {
+  if (command === 'zenMode') {
+    setLocalConfig({ isZenMode: !isZenMode.value })
+    return
+  }
   if (command === 'shortcutKey') {
     setActiveSidebar('shortcutKey')
     return
@@ -264,6 +273,12 @@ function backToRoot() {
       font-size: 18px;
     }
   }
+}
+
+.shortcut-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 @media screen and (max-width: 700px) {

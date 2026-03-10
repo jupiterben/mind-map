@@ -199,7 +199,10 @@ export default {
     xmindCanvasSelectDialogTitle: '選擇要匯入的畫布',
     mdImportDialogTitle: '粘貼Markdown內容導入',
     mdPlaceholder: '請輸入Markdown格式的內容',
-    mdEmptyTip: '內容不能爲空'
+    mdEmptyTip: '內容不能爲空',
+    tabFile: '檔案',
+    tabText: '文本',
+    textPlaceholder: '直接粘貼 Markdown 或 JSON 文本（以 { 或 [ 開頭按 JSON 解析，否則按 Markdown）'
   },
   navigatorToolbar: {
     openMiniMap: '開啟小地圖',
@@ -213,7 +216,10 @@ export default {
     downloadClient: '下載客戶端',
     site: '官方網站',
     current: '當前：',
-    downloadDesc: '可從如下地址下載：'
+    downloadDesc: '可從如下地址下載：',
+    hideToolbars: '隱藏工具列',
+    showToolbars: '顯示工具列',
+    zenModeShortcut: 'Ctrl+\\'
   },
   nodeHyperlink: {
     title: '超連結',
@@ -346,7 +352,9 @@ export default {
     newFileTip: '新增檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     openFileTip: '開啟檔案前，請先匯出目前編輯的檔案，以免內容遺失',
     ai: 'AI',
-    aiCreatePart: 'AI子節點'
+    aiCreatePart: 'AI子節點',
+    hideToolbars: '隱藏工具列',
+    showToolbars: '顯示工具列'
   },
   edit: {
     newFeatureNoticeTitle: '新功能提醒',

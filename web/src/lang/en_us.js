@@ -204,7 +204,10 @@ export default {
     xmindCanvasSelectDialogTitle: 'Select the canvas to import',
     mdImportDialogTitle: 'Paste Markdown content to import',
     mdPlaceholder: 'Please enter the content in Markdown format',
-    mdEmptyTip: 'The content cannot be empty'
+    mdEmptyTip: 'The content cannot be empty',
+    tabFile: 'File',
+    tabText: 'Text',
+    textPlaceholder: 'Paste Markdown or JSON (starts with { or [ = JSON, otherwise Markdown)'
   },
   navigatorToolbar: {
     openMiniMap: 'Open mini map',
@@ -218,7 +221,10 @@ export default {
     downloadClient: 'Download client',
     site: 'Official website',
     current: 'Current:',
-    downloadDesc: 'You can download it from the following address:'
+    downloadDesc: 'You can download it from the following address:',
+    hideToolbars: 'Hide toolbars',
+    showToolbars: 'Show toolbars',
+    zenModeShortcut: 'Ctrl+\\'
   },
   nodeHyperlink: {
     title: 'Link',
@@ -355,7 +361,9 @@ export default {
     openFileTip:
       'Please export the currently edited file before opening it, Beware of content loss',
     ai: 'AI',
-    aiCreatePart: 'AI Child Nodes'
+    aiCreatePart: 'AI Child Nodes',
+    hideToolbars: 'Hide toolbars',
+    showToolbars: 'Show toolbars'
   },
   edit: {
     newFeatureNoticeTitle: 'New feature reminder',

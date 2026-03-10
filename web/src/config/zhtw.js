@@ -324,6 +324,11 @@ export const shortcutKeyList = [
     type: '畫布操作',
     list: [
       {
+        icon: 'iconquanping',
+        name: '隱藏/顯示工具列',
+        value: `${ctrl} + \\`
+      },
+      {
         icon: 'iconfangda',
         name: '放大',
         value: `${ctrl} + +`

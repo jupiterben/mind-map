@@ -4,29 +4,42 @@
       class="nodeImportDialog"
       :title="$t('import.title')"
       v-model="dialogVisible"
-      width="350px"
+      width="480px"
     >
-      <el-upload
-        ref="uploadRef"
-        action="x"
-        :accept="supportFileStr"
-        :file-list="fileList"
-        :auto-upload="false"
-        :multiple="false"
-        :on-change="onChange"
-        :on-remove="onRemove"
-        :limit="1"
-        :on-exceed="onExceed"
-      >
-        <template #trigger>
-          <el-button size="small" type="primary">{{ $t('import.selectFile') }}</el-button>
-        </template>
-        <template #tip>
-          <div class="el-upload__tip">
-            {{ $t('import.support') }}{{ supportFileStr }}{{ $t('import.file') }}
-          </div>
-        </template>
-      </el-upload>
+      <el-tabs v-model="importTab" class="import-tabs">
+        <el-tab-pane :label="$t('import.tabFile')" name="file">
+          <el-upload
+            ref="uploadRef"
+            action="x"
+            :accept="supportFileStr"
+            :file-list="fileList"
+            :auto-upload="false"
+            :multiple="false"
+            :on-change="onChange"
+            :on-remove="onRemove"
+            :limit="1"
+            :on-exceed="onExceed"
+          >
+            <template #trigger>
+              <el-button size="small" type="primary">{{ $t('import.selectFile') }}</el-button>
+            </template>
+            <template #tip>
+              <div class="el-upload__tip">
+                {{ $t('import.support') }}{{ supportFileStr }}{{ $t('import.file') }}
+              </div>
+            </template>
+          </el-upload>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('import.tabText')" name="text">
+          <el-input
+            v-model="pasteText"
+            type="textarea"
+            :rows="10"
+            :placeholder="$t('import.textPlaceholder')"
+            class="import-textarea"
+          />
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="cancel">{{ $t('dialog.cancel') }}</el-button>
@@ -71,12 +84,13 @@ const route = useRoute()
 const { t } = useI18n()
 
 const dialogVisible = ref(false)
+const importTab = ref<'file' | 'text'>('file')
+const pasteText = ref('')
 const fileList = ref<any[]>([])
 const selectPromiseResolve = ref<((value: any) => void) | null>(null)
 const xmindCanvasSelectDialogVisible = ref(false)
 const selectCanvas = ref(0)
 const canvasList = ref<any[]>([])
-const mdStr = ref('')
 
 const supportFileStr = computed(() => '.smm,.json,.xmind,.md')
 
@@ -128,6 +142,31 @@ function cancel() {
 }
 
 function confirm() {
+  if (importTab.value === 'text') {
+    const text = pasteText.value.trim()
+    if (!text) return ElMessage.error(t('import.mdEmptyTip'))
+    setIsHandleLocalFile(false)
+    try {
+      const trimmed = text.trim()
+      const first = trimmed.charAt(0)
+      if (first === '{' || first === '[') {
+        const data = JSON.parse(trimmed)
+        if (typeof data !== 'object') throw new Error(t('import.fileContentError'))
+        const payload = data.root !== undefined ? data : { root: data }
+        bus.$emit('setData', payload)
+      } else {
+        const data = markdown.transformMarkdownTo(trimmed)
+        bus.$emit('setData', data)
+      }
+      ElMessage.success(t('import.importSuccess'))
+      cancel()
+      setActiveSidebar(null)
+    } catch (err) {
+      console.error(err)
+      ElMessage.error(t('import.fileParsingFailed'))
+    }
+    return
+  }
   if (fileList.value.length <= 0) {
     return ElMessage.error(t('import.notSelectTip'))
   }
@@ -207,7 +246,10 @@ function handleImportFile(file: any) {
 }
 
 watch(dialogVisible, (val, oldVal) => {
-  if (!val && oldVal) fileList.value = []
+  if (!val && oldVal) {
+    fileList.value = []
+    pasteText.value = ''
+  }
 })
 
 onMounted(() => {
@@ -227,6 +269,12 @@ defineExpose({ onChange, confirm })
 
 <style lang="less" scoped>
 .nodeImportDialog {
+  .import-tabs {
+    min-height: 120px;
+  }
+  .import-textarea {
+    margin-top: 8px;
+  }
 }
 
 .canvasList {

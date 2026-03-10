@@ -328,6 +328,11 @@ export const shortcutKeyList = [
     type: 'Hoạt động Canvas',
     list: [
       {
+        icon: 'iconquanping',
+        name: 'Ẩn/Hiện thanh công cụ',
+        value: `${ctrl} + \\`
+      },
+      {
         icon: 'iconfangda',
         name: 'Phóng to',
         value: `${ctrl} + +`

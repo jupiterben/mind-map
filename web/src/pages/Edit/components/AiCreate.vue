@@ -64,6 +64,7 @@
       </template>
     </el-dialog>
     <AiDebugPanel
+      v-if="!isZenMode"
       :visible="showAiDebug"
       v-model:prompt="lastAiPrompt"
       v-model:response="lastAiResponse"
@@ -92,7 +93,7 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{ mindMap: any }>()
-const { aiConfig } = useStoreMixin()
+const { aiConfig, isZenMode } = useStoreMixin()
 const bus = getBus()
 const { t } = useI18n()
 

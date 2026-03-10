@@ -324,6 +324,11 @@ export const shortcutKeyList = [
     type: 'Canvas operation',
     list: [
       {
+        icon: 'iconquanping',
+        name: 'Hide/Show toolbars',
+        value: `${ctrl} + \\`
+      },
+      {
         icon: 'iconfangda',
         name: 'Zoom in',
         value: `${ctrl} + +`

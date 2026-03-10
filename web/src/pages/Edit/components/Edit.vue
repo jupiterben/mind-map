@@ -29,7 +29,7 @@
       <NodeImgPlacementToolbar :mindMap="mindMap"></NodeImgPlacementToolbar>
       <NodeNoteSidebar :mindMap="mindMap"></NodeNoteSidebar>
       <AiCreate v-if="enableAi" :mindMap="mindMap"></AiCreate>
-      <AiContinueToolbar v-if="enableAi" :mindMap="mindMap"></AiContinueToolbar>
+      <AiContinueToolbar v-if="enableAi && !isZenMode" :mindMap="mindMap"></AiContinueToolbar>
     </template>
     <ShortcutKey></ShortcutKey>
     <SidebarTrigger v-if="!isZenMode"></SidebarTrigger>
@@ -37,6 +37,13 @@
     <div class="dragMask" v-if="showDragMask" @dragleave.stop.prevent="onDragleave" @dragover.stop.prevent
       @drop.stop.prevent="onDrop">
       <div class="dragTip">{{ t('edit.dragTip') }}</div>
+    </div>
+    <!-- 禅模式时显示浮动按钮恢复工具栏 -->
+    <div v-if="isZenMode" class="zenRestoreBar">
+      <el-button size="small" type="primary" @click="toggleZenMode">
+        {{ t('toolbar.showToolbars') }}
+      </el-button>
+      <span class="zenShortcutHint">{{ t('navigatorToolbar.zenModeShortcut') }}</span>
     </div>
   </div>
 </template>
@@ -147,6 +154,10 @@ const route = useRoute()
 const { t } = useI18n()
 const store = useStore()
 const { openNodeRichText, isShowScrollbar, useLeftKeySelectionRightKeyDrag, extraTextOnExport, enableAi, enableDragImport, isDragOutlineTreeNode, isZenMode } = storeToRefs(store)
+
+function toggleZenMode() {
+  store.setLocalConfig({ isZenMode: !isZenMode.value })
+}
 const { aiConfig } = useStoreMixin()
 const bus = getBus()
 
@@ -644,6 +655,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize)
   bus.$on('showDownloadTip', showDownloadTip)
   webTip()
+  window.addEventListener('keydown', onZenModeKeydown)
 })
 onBeforeUnmount(() => {
   bus.$off('execCommand', execCommand)
@@ -659,8 +671,18 @@ onBeforeUnmount(() => {
   bus.$off('localStorageExceeded', onLocalStorageExceeded)
   window.removeEventListener('resize', handleResize)
   bus.$off('showDownloadTip', showDownloadTip)
+  window.removeEventListener('keydown', onZenModeKeydown)
   if (mindMap.value) mindMap.value.destroy()
 })
+
+function onZenModeKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+    const target = e.target as HTMLElement
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName) || target?.isContentEditable) return
+    e.preventDefault()
+    store.setLocalConfig({ isZenMode: !isZenMode.value })
+  }
+}
 </script>
 
 <style lang="less" scoped>
@@ -695,6 +717,26 @@ onBeforeUnmount(() => {
     top: 0px;
     width: 100%;
     height: 100%;
+  }
+
+  .zenRestoreBar {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--el-bg-color-overlay);
+    box-shadow: var(--el-box-shadow-light);
+
+    .zenShortcutHint {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
   }
 }
 </style>

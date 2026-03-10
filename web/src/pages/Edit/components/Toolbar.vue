@@ -57,14 +57,20 @@
           <span class="icon iconfont icondaoru"></span>
           <span class="text">{{ $t('toolbar.import') }}</span>
         </div>
-        <div
-          class="toolbarBtn"
-          @click="emitShowExport"
-          style="margin-right: 0;"
-        >
+        <div class="toolbarBtn" @click="emitShowExport">
           <span class="icon iconfont iconexport"></span>
           <span class="text">{{ $t('toolbar.export') }}</span>
         </div>
+        <el-tooltip
+          effect="dark"
+          :content="isZenMode ? $t('toolbar.showToolbars') : $t('toolbar.hideToolbars')"
+          placement="bottom"
+        >
+          <div class="toolbarBtn" @click="toggleZenMode" style="margin-right: 0;">
+            <span class="icon iconfont iconquanping"></span>
+            <span class="text">{{ isZenMode ? $t('toolbar.showToolbars') : $t('toolbar.hideToolbars') }}</span>
+          </div>
+        </el-tooltip>
         <!-- 本地文件树 -->
         <div
           class="fileTreeBox"
@@ -168,7 +174,7 @@ const defaultBtnList = [
 ]
 
 let fileHandle: any = null
-const { openNodeRichText, enableAi, isHandleLocalFile, setIsHandleLocalFile } = useStoreMixin()
+const { openNodeRichText, enableAi, isHandleLocalFile, setIsHandleLocalFile, isZenMode, setLocalConfig } = useStoreMixin()
 const bus = getBus()
 const { t } = useI18n()
 
@@ -200,6 +206,10 @@ function emitShowImport() {
 }
 function emitShowExport() {
   bus.$emit('showExport')
+}
+
+function toggleZenMode() {
+  setLocalConfig({ isZenMode: !isZenMode.value })
 }
 
 function computeToolbarShow() {
