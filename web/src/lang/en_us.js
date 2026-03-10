@@ -220,7 +220,9 @@ export default {
     ai: 'AI dialogue',
     site: 'Official website',
     current: 'Current:',
-    downloadDesc: 'You can download it from the following address:'
+    hideToolbars: 'Hide toolbars',
+    showToolbars: 'Show toolbars',
+    zenModeShortcut: 'Ctrl+\\'
   },
   nodeHyperlink: {
     title: 'Link',
