@@ -606,6 +606,12 @@ export const downTypeList = [
     desc: 'md文本格式，便于其他软件打开'
   },
   {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Mermaid图表格式，可在mermaid.live渲染'
+  },
+  {
     name: 'XMind',
     type: 'xmind',
     icon: 'iconxmind',
@@ -634,6 +640,12 @@ export const downTypeList = [
     type: 'json',
     icon: 'iconjson',
     desc: '流行的数据交换格式，可用于再次导入'
+  },
+  {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Mermaid图表格式，支持在Mermaid Live Editor中查看'
   },
 ]
 

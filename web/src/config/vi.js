@@ -528,6 +528,12 @@ export const downTypeList = [
     desc: 'Định dạng văn bản md để dễ dàng mở phần mềm khác'
   },
   {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Định dạng biểu đồ Mermaid, có thể hiển thị tại mermaid.live'
+  },
+  {
     name: 'XMind',
     type: 'xmind',
     icon: 'iconxmind',

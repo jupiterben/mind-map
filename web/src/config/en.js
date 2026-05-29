@@ -505,6 +505,12 @@ export const downTypeList = [
     desc: 'MD text format, easy for other software to open'
   },
   {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Mermaid diagram format, renderable at mermaid.live'
+  },
+  {
     name: 'XMind',
     type: 'xmind',
     icon: 'iconxmind',
@@ -533,6 +539,12 @@ export const downTypeList = [
     type: 'json',
     icon: 'iconjson',
     desc: 'Popular data exchange format that can be used for re importing'
+  },
+  {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Mermaid chart format, viewable in Mermaid Live Editor'
   },
 ]
 

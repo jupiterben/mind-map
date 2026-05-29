@@ -13,6 +13,7 @@ import drawBackgroundImageToCanvas from '../utils/simulateCSSBackgroundInCanvas'
 import { transformToMarkdown } from '../parse/toMarkdown'
 import { ERROR_TYPES } from '../constants/constant'
 import { transformToTxt } from '../parse/toTxt'
+import { transformToMermaid } from '../parse/toMermaid'
 
 //  导出插件
 class Export {
@@ -451,6 +452,15 @@ class Export {
     const data = this.mindMap.getData()
     const content = transformToTxt(data)
     const blob = new Blob([content])
+    const res = await readBlob(blob)
+    return res
+  }
+
+  // mermaid文件
+  async mermaid() {
+    const data = this.mindMap.getData()
+    const content = transformToMermaid(data)
+    const blob = new Blob([content], { type: 'text/plain' })
     const res = await readBlob(blob)
     return res
   }

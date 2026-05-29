@@ -504,6 +504,12 @@ export const downTypeList = [
     desc: 'md文本格式，便于其他軟件打開'
   },
   {
+    name: 'Mermaid',
+    type: 'mermaid',
+    icon: 'iconmarkdown',
+    desc: 'Mermaid圖表格式，可在mermaid.live渲染'
+  },
+  {
     name: 'XMind',
     type: 'xmind',
     icon: 'iconxmind',
